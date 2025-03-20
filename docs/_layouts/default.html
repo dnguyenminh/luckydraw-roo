@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'en-US' }}">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+{% seo %}
+    <link rel="stylesheet" href="{{ '/assets/css/style.css?v=' | append: site.github.build_revision | relative_url }}">
+  </head>
+  <body>
+    <header class="page-header" role="banner">
+      <h1 class="project-name">{{ page.title | default: site.title }}</h1>
+      <h2 class="project-tagline">{{ page.description | default: site.description }}</h2>
+      <a href="{{ site.github.repository_url }}" class="btn">View on GitHub</a>
+      <a href="{{ site.baseurl }}/" class="btn">Documentation</a>
+      {% if page.show_downloads %}
+        <a href="{{ site.github.zip_url }}" class="btn">Download .zip</a>
+        <a href="{{ site.github.tar_url }}" class="btn">Download .tar.gz</a>
+      {% endif %}
+    </header>
+
+    <main class="main-content" role="main">
+      <nav class="navigation">
+        <h3>Documentation</h3>
+        <a href="{{ site.baseurl }}/" {% if page.url == '/' %}class="current"{% endif %}>
+          Home
+        </a>
+        <a href="{{ site.baseurl }}/architecture/" {% if page.url contains '/architecture/' %}class="current"{% endif %}>
+          Architecture
+        </a>
+        <h4>Diagrams</h4>
+        <a href="{{ site.baseurl }}/architecture/entity-overview" {% if page.url == '/architecture/entity-overview' %}class="current"{% endif %}>
+          Overview
+        </a>
+        <a href="{{ site.baseurl }}/architecture/entity-classes" {% if page.url == '/architecture/entity-classes' %}class="current"{% endif %}>
+          Core Classes
+        </a>
+        <a href="{{ site.baseurl }}/architecture/entity-lifecycle" {% if page.url == '/architecture/entity-lifecycle' %}class="current"{% endif %}>
+          Lifecycle
+        </a>
+        <a href="{{ site.baseurl }}/architecture/entity-validation" {% if page.url == '/architecture/entity-validation' %}class="current"{% endif %}>
+          Validation
+        </a>
+        <a href="{{ site.baseurl }}/architecture/entity-exceptions" {% if page.url == '/architecture/entity-exceptions' %}class="current"{% endif %}>
+          Exceptions
+        </a>
+        <a href="{{ site.baseurl }}/architecture/entity-sequence" {% if page.url == '/architecture/entity-sequence' %}class="current"{% endif %}>
+          Operations
+        </a>
+      </nav>
+
+      {{ content }}
+
+      <footer class="site-footer">
+        {% if site.github.is_project_page %}
+          <span class="site-footer-owner">
+            <a href="{{ site.github.repository_url }}">{{ site.github.repository_name }}</a> is maintained by <a href="{{ site.github.owner_url }}">{{ site.github.owner_name }}</a>.
+          </span>
+        {% endif %}
+        <span class="site-footer-credits">
+          Documentation powered by <a href="https://pages.github.com">GitHub Pages</a>.
+        </span>
+        <span class="last-updated">
+          Last updated: {{ 'now' | date: '%Y-%m-%d %H:%M' }}
+        </span>
+      </footer>
+    </main>
+
+    {% if site.google_analytics %}
+      <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+        ga('create', '{{ site.google_analytics }}', 'auto');
+        ga('send', 'pageview');
+      </script>
+    {% endif %}
+  </body>
+</html>

@@ -1,0 +1,23 @@
+rootProject.name = 'luckydraw-roo'
+
+include 'entity'
+include 'repository'
+include 'service'
+include 'controller'
+
+project(':entity').projectDir = file('entity')
+project(':repository').projectDir = file('repository')
+project(':service').projectDir = file('service')
+project(':controller').projectDir = file('controller')
+
+
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.0'
+    }
+}
+
+enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')

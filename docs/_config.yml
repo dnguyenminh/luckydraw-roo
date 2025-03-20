@@ -1,0 +1,137 @@
+# Site settings
+title: Entity System Documentation
+description: Comprehensive documentation for the entity management system
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "" # the base hostname & protocol for your site
+
+# Theme settings
+theme: jekyll-theme-cayman
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  math_engine: mathjax
+
+# Collections
+collections:
+  architecture:
+    output: true
+    permalink: /:collection/:path/
+  diagrams:
+    output: true
+    permalink: /diagrams/:path/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+  - scope:
+      path: "architecture"
+      type: "architecture"
+    values:
+      layout: "default"
+  - scope:
+      path: "assets/diagrams"
+      type: "diagrams"
+    values:
+      layout: "diagram"
+
+# Navigation
+navigation:
+  - title: Home
+    url: /
+  - title: Architecture
+    url: /architecture/
+    children:
+      - title: Overview
+        url: /architecture/entity-overview/
+      - title: Core Classes
+        url: /architecture/entity-classes/
+      - title: Lifecycle
+        url: /architecture/entity-lifecycle/
+      - title: Validation
+        url: /architecture/entity-validation/
+      - title: Exceptions
+        url: /architecture/entity-exceptions/
+      - title: Operations
+        url: /architecture/entity-sequence/
+
+# Custom settings
+logo: /assets/images/logo.png
+google_analytics: # Add your GA tracking ID
+show_downloads: false
+github:
+  is_project_page: true
+  repository_url: # Add your repository URL
+
+# Asset configuration
+sass:
+  style: compressed
+  sass_dir: _sass
+
+# SEO settings
+twitter:
+  username: # Add Twitter username
+  card: summary
+social:
+  name: Entity System
+  links:
+    - # Add social links
+
+# Exclude files
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+  - .gitignore
+  - README.md
+  - LICENSE
+  - CHANGELOG.md
+  - package.json
+  - package-lock.json
+
+# Include files
+include:
+  - .well-known
+  - _pages
+  - _diagrams
+
+# Timezone and encoding
+timezone: UTC
+encoding: utf-8
+
+# Compression settings
+compress_html:
+  clippings: all
+  comments: all
+  endings: all
+  startings: []
+  blanklines: false
+  profile: false
+
+# Development settings
+livereload: true
+incremental: false
+strict_front_matter: true
+
+# Additional configuration
+keep_files:
+  - .git
+  - .svn
+  - assets
+  - generated
+future: true
+unpublished: false
+safe: true

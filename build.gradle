@@ -1,0 +1,59 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.0'
+        classpath 'io.spring.gradle:dependency-management-plugin:1.1.7'
+    }
+}
+
+plugins {
+    id 'java'
+    // id 'io.spring.dependency-management' version '1.1.7' // Add this
+}
+
+allprojects {
+    group = 'vn.com.fecredit.app'
+    version = '0.0.1-SNAPSHOT'
+
+    repositories {
+        mavenCentral()
+    }
+    // tasks.withType(JavaCompile).configureEach {
+    //     javaCompiler = javaToolchains.compilerFor {
+    //         languageVersion = JavaLanguageVersion.of(17)
+    //         // vendor = JvmVendorSpec.ADOPTIUM
+    //     }
+    // }
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'io.spring.dependency-management' // Add this for all subprojects
+
+    // Add Java toolchain configuration
+    // java {
+    //     toolchain {
+    //         languageVersion = JavaLanguageVersion.of(17)
+    //     }
+    // }
+
+    sourceCompatibility = '17'
+
+    dependencyManagement {  // Add this block
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+    }
+
+    dependencies {
+        testImplementation 'org.springframework.boot:spring-boot-starter-test:3.2.0'
+        testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+}
