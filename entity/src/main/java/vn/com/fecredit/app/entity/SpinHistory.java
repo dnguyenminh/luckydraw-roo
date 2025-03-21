@@ -45,7 +45,7 @@ public class SpinHistory extends AbstractStatusAwareEntity {
     @JoinColumn(name = "golden_hour_id")
     private GoldenHour goldenHour;
 
-    @Column(name = "is_win", nullable = false)
+    @Column(name = "win", nullable = false)
     @Builder.Default
     private boolean win = false;
 

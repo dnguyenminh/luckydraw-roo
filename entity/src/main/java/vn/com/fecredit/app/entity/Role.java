@@ -29,7 +29,7 @@ import java.util.Set;
 public class Role extends AbstractStatusAwareEntity {
 
     @NotNull(message = "Role name is required")
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(name = "role_name", nullable = false, unique = true)
     @Enumerated(EnumType.STRING)
     @EqualsAndHashCode.Include
     private RoleName roleName;

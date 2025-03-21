@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "golden_hours", indexes = {
-        @Index(name = "idx_golden_hour_location", columnList = "location_id"),
+        @Index(name = "idx_golden_hour_location", columnList = "event_location_id"),
         @Index(name = "idx_golden_hour_status", columnList = "status"),
         @Index(name = "idx_golden_hour_time", columnList = "start_time, end_time")
 })
@@ -42,7 +42,7 @@ public class GoldenHour extends AbstractStatusAwareEntity {
 
     @NotNull(message = "Location is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "location_id", nullable = false)
+    @JoinColumn(name = "event_location_id", nullable = false)
     private EventLocation eventLocation;
 
     public EventLocation getEventLocation() {

@@ -1,0 +1,20 @@
+@startuml
+class InteractionAndServiceCaseSummaryTAT << ReportDefinition >> {
+   .. belong to FECredit_FW_CSFW_Work_SCM ..
+}
+class "FECredit_Base_CS_Work_SCM"
+class "FECredit_FW_CSFW_Work_SCM"
+class "FECredit_FW_CSFW_Work_SCM_Correspondence"
+class "FECredit_FW_CSFW_Work_SCM_Anything"
+class "FECredit_Base_CS_Work_SCM_ComplaintHandling" <<(C,#FFAAAA)>>
+class "FECredit_Base_CS_Work_SCM_Anything" <<(C,#FFAAAA)>>
+
+"FECredit_Base_CS_Work_SCM" --|> "FECredit_FW_CSFW_Work_SCM"
+"FECredit_FW_CSFW_Work_SCM" <|-- "FECredit_FW_CSFW_Work_SCM_Correspondence"
+"FECredit_FW_CSFW_Work_SCM" <|-- "FECredit_FW_CSFW_Work_SCM_Anything"
+"FECredit_Base_CS_Work_SCM" <|-- "FECredit_Base_CS_Work_SCM_ComplaintHandling"
+"FECredit_Base_CS_Work_SCM" <|-- "FECredit_Base_CS_Work_SCM_Anything"
+
+
+'InteractionAndServiceCaseSummaryTAT --|> "FECredit_FW_CSFW_Work_SCM"
+@enduml

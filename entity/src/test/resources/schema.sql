@@ -290,6 +290,8 @@ CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories(timestamp);
         created_at timestamp(6),
         event_location_id bigint,
         id bigserial not null,
+        last_spin_time timestamp(6),
+        last_sync_time timestamp(6),
         participant_id bigint,
         updated_at timestamp(6),
         version bigint not null,
@@ -1529,40 +1531,40 @@ CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories(timestamp);
        foreign key (user_id) 
        references users;
 
-    alter table if exists event_locations 
-       add constraint FKdquu070vft3scg2w79xy9secn 
+    alter table if exists event_location 
+       add constraint FKbn1d7fexc2sywojnk93i7vvye 
        foreign key (event_id) 
-       references events;
+       references event;
 
-    alter table if exists event_locations 
-       add constraint FK67osrbf60n45yieja8frjcdyp 
+    alter table if exists event_location 
+       add constraint FKhclmyywn8a6ts46igc2et4re3 
        foreign key (region_id) 
        references region;
 
     alter table if exists event_provinces 
-       add constraint FKjery6fo6inw9u08pm2op2mapv 
+       add constraint FKq3o6xx4gjdhb6hw34blvuhy7g 
        foreign key (province_id) 
-       references provinces;
+       references province;
 
     alter table if exists event_provinces 
-       add constraint FKhb3bbux1ipjav2d3wap0o1n6x 
+       add constraint FKa6j8my1tiy5ob5wvnwucrjm6a 
        foreign key (event_id) 
-       references events;
+       references event;
 
     alter table if exists golden_hours 
-       add constraint FKiextogf8tkm1q3gu9vblyswnq 
+       add constraint FKd1lq9qcki1lngxlt30om69ep7 
        foreign key (event_location_id) 
-       references event_locations;
+       references event_location;
 
     alter table if exists participant_events 
-       add constraint FKsodxjcwjkui9kprbjnq6687h6 
+       add constraint FKfqvcfcgot4i0e581y5gjc2iyn 
        foreign key (event_id) 
-       references events;
+       references event;
 
     alter table if exists participant_events 
-       add constraint FKd015ah4sdlr6ry5rx5nvnu6qa 
+       add constraint FKbwn8ufullhdam9rbks8lw0hgl 
        foreign key (event_location_id) 
-       references event_locations;
+       references event_location;
 
     alter table if exists participant_events 
        add constraint FKjjitit5lfpkqyk3nvwel8xgf 
@@ -1570,9 +1572,9 @@ CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories(timestamp);
        references participants;
 
     alter table if exists participant_events 
-       add constraint FK3e479x0gga1sw3ojsib6s5llo 
+       add constraint FKrqh4au8kefrfcf4vm9idlqj0d 
        foreign key (province_id) 
-       references provinces;
+       references province;
 
     alter table if exists participant_roles 
        add constraint FK70v5tkbsbn1o6xl1c22b4owtn 
@@ -1585,24 +1587,24 @@ CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories(timestamp);
        references participants;
 
     alter table if exists participants 
-       add constraint FKapubofdx7bicmjxnngjaf4mcj 
+       add constraint FKigcjsqxpvlml58wc1ys0e95je 
        foreign key (province_id) 
-       references provinces;
+       references province;
 
     alter table if exists participants 
        add constraint FKghixrahoj1s8cloinfx8lyeqa 
        foreign key (user_id) 
        references users;
 
-    alter table if exists provinces 
-       add constraint FKbvdfhcpk9245le7drrydsbuc4 
+    alter table if exists province 
+       add constraint FKc7qs0yyib7q7aeqek906g81cn 
        foreign key (region_id) 
        references region;
 
     alter table if exists rewards 
-       add constraint FK465nimj9nfk08cul0s94bu79n 
+       add constraint FKdwssrhmk120pnee3bd6fi9abq 
        foreign key (event_location_id) 
-       references event_locations;
+       references event_location;
 
     alter table if exists role_permissions 
        add constraint FKn5fotdgk8d1xvo8nav9uv3muc 
@@ -1610,9 +1612,9 @@ CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories(timestamp);
        references roles;
 
     alter table if exists spin_histories 
-       add constraint FKn5ghsrn4a8u3tve4lpbat9cf1 
+       add constraint FK3jjr3flpxvcdejf8gn4uqrfgu 
        foreign key (event_location_id) 
-       references event_locations;
+       references event_location;
 
     alter table if exists spin_histories 
        add constraint FKcje0w53l1u9ctyuxv36ufpmmu 
@@ -1830,8 +1832,6 @@ CREATE INDEX IF NOT EXISTS idx_spin_history_date ON spin_histories(timestamp);
 
     create table role_permissions (
         role_id bigint not null,
-        permission varchar(255) check (permission in ('VIEW_EVENTS','CREATE_EVENT','EDIT_EVENT','DELETE_EVENT','VIEW_PARTICIPANTS','CREATE_PARTICIPANT','EDIT_PARTICIPANT','DELETE_PARTICIPANT','VIEW_REWARDS','CREATE_REWARD','EDIT_REWARD','DELETE_REWARD','VIEW_USERS','CREATE_USER','EDIT_USER','DELETE_USER','VIEW_ROLES','CREATE_ROLE','EDIT_ROLE','DELETE_ROLE','MANAGE_SYSTEM','VIEW_REPORTS'))
-    );
 
     create table roles (
         priority integer,

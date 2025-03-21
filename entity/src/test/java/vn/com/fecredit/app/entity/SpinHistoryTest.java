@@ -63,8 +63,8 @@ class SpinHistoryTest {
         Participant participant = Participant.builder()
                 .name("Test Participant")
                 .code("TEST_PART")
-                .phone("1234567890")
-                .email("test@example.com")
+                // .phone("1234567890")
+                // .email("test@example.com")
                 .status(CommonStatus.ACTIVE)
                 .build();
 

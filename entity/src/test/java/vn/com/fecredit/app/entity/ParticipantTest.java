@@ -49,8 +49,8 @@ class ParticipantTest {
         participant = Participant.builder()
             .name("Test Participant")
             .code("TEST_PART")
-            .email("test@example.com")
-            .phone("1234567890")
+            // .email("test@example.com")
+            // .phone("1234567890")
             .province(province)
             .status(CommonStatus.ACTIVE)
             .build();
@@ -110,14 +110,14 @@ class ParticipantTest {
         assertDoesNotThrow(() -> invalid.validateState());
     }
 
-    @Test
-    void testContactInformation() {
-        participant.setPhone("0987654321");
-        participant.setEmail("newemail@example.com");
-        participant.setContact("Alternative Contact");
+    // @Test
+    // void testContactInformation() {
+    //     // participant.setPhone("0987654321");
+    //     // participant.setEmail("newemail@example.com");
+    //     // participant.setContact("Alternative Contact");
 
-        assertEquals("0987654321", participant.getPhone());
-        assertEquals("newemail@example.com", participant.getEmail());
-        assertEquals("Alternative Contact", participant.getContact());
-    }
+    //     // assertEquals("0987654321", participant.getPhone());
+    //     // assertEquals("newemail@example.com", participant.getEmail());
+    //     // assertEquals("Alternative Contact", participant.getContact());
+    // }
 }

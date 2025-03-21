@@ -1,10 +1,8 @@
 package vn.com.fecredit.app.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
@@ -18,9 +16,7 @@ import java.util.Set;
     name = "participants",
     indexes = {
         @Index(name = "idx_participant_code", columnList = "code", unique = true),
-        @Index(name = "idx_participant_phone", columnList = "phone", unique = true),
-        @Index(name = "idx_participant_email", columnList = "email", unique = true),
-        @Index(name = "idx_participant_status", columnList = "status"),
+        @Index(name = "idx_participants_status", columnList = "status"),
         @Index(name = "idx_participant_province", columnList = "province_id")
     }
 )
@@ -40,18 +36,6 @@ public class Participant extends AbstractStatusAwareEntity {
     @Column(name = "code", nullable = false, unique = true)
     @EqualsAndHashCode.Include
     private String code;
-
-    @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Invalid phone number format")
-    @Column(name = "phone", nullable = false, unique = true)
-    private String phone;
-
-    @Email(message = "Invalid email format")
-    @Column(name = "email", unique = true)
-    private String email;
-
-    @Column(name = "contact")
-    private String contact;
 
     @NotNull(message = "Province is required")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -148,10 +132,6 @@ public class Participant extends AbstractStatusAwareEntity {
     public void validateState() {
         if (code != null) {
             code = code.toUpperCase();
-        }
-
-        if (email != null) {
-            email = email.toLowerCase();
         }
 
         if (province == null) {
