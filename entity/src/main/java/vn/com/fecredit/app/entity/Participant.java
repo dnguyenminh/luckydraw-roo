@@ -20,7 +20,8 @@ import java.util.Set;
         @Index(name = "idx_participant_province", columnList = "province_id")
     }
 )
-@Data
+@Getter
+@Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,17 +33,20 @@ public class Participant extends AbstractStatusAwareEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @NotBlank(message = "Participant code is required")
+    @NotBlank(message = "Code is required")
     @Column(name = "code", nullable = false, unique = true)
     @EqualsAndHashCode.Include
     private String code;
+
+    @Column(name = "phone")
+    private String phone;
 
     @NotNull(message = "Province is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "province_id", nullable = false)
     private Province province;
 
-    @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();
 
@@ -140,6 +144,18 @@ public class Participant extends AbstractStatusAwareEntity {
 
         if (!province.getStatus().isActive() && getStatus().isActive()) {
             throw new IllegalStateException("Cannot activate participant in inactive province");
+        }
+
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalStateException("Name is required");
+        }
+        
+        if (code == null || code.trim().isEmpty()) {
+            throw new IllegalStateException("Code is required");
+        }
+        
+        if (province == null) {
+            throw new IllegalStateException("Province is required");
         }
     }
 }

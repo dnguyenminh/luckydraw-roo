@@ -61,4 +61,10 @@ public interface RegionRepository extends JpaRepository<Region, Long> {
     boolean hasProvinceWithCode(
         @Param("regionId") Long regionId,
         @Param("provinceCode") String provinceCode);
+
+    @Query("SELECT r FROM Region r JOIN r.provinces p WHERE p.code = :provinceCode")
+    List<Region> findByProvincesCode(@Param("provinceCode") String provinceCode);
+    
+    @Query("SELECT r FROM Region r JOIN r.eventLocations el WHERE el.code = :locationCode")
+    List<Region> findByEventLocationsCode(@Param("locationCode") String locationCode);
 }

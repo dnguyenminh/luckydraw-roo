@@ -22,6 +22,8 @@ public interface SpinHistoryRepository extends JpaRepository<SpinHistory, Long> 
     
     List<SpinHistory> findByGoldenHourId(Long goldenHourId);
     
+    List<SpinHistory> findByStatus(CommonStatus status);
+    
     @Query("SELECT sh FROM SpinHistory sh " +
            "WHERE sh.participantEvent.id = :participantEventId " +
            "AND sh.spinTime >= :startTime " +

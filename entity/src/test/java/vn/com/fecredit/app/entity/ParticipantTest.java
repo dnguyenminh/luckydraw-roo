@@ -1,7 +1,7 @@
 package vn.com.fecredit.app.entity;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static vn.com.fecredit.app.entity.util.TestUtil.generateUniqueCode;
+// import vn.com.fecredit.app.entity.util.TestUtil.generateUniqueCode;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

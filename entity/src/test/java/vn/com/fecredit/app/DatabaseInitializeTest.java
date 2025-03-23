@@ -1,14 +1,11 @@
 package vn.com.fecredit.app;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
 
 @DataJpaTest
 @ActiveProfiles("test")
@@ -20,7 +17,7 @@ import org.springframework.test.context.TestPropertySource;
     "spring.jpa.show-sql=true"
 })
 @EntityScan(basePackages = "vn.com.fecredit.app.entity")
-public class DatabaseInitializeTest {
+class DatabaseInitializeTest {
     
     @Test
     void contextLoads() {

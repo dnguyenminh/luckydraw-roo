@@ -1,5 +1,7 @@
 package vn.com.fecredit.app.entity;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
@@ -28,6 +30,8 @@ import java.util.Set;
 @ToString(callSuper = true, exclude = {"locations", "participantEvents"})
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Event extends AbstractStatusAwareEntity {
+
+    private static final Logger log = LoggerFactory.getLogger(Event.class);
 
     @NotBlank(message = "Event name is required")
     @Column(name = "name", nullable = false)
@@ -202,7 +206,18 @@ public class Event extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Event must be at least 30 minutes long");
         }
         
-        if (startTime.plusHours(24).isBefore(endTime)) {
+        // Add diagnostic logging
+        log.info("Validating event duration - Start: {}, End: {}", startTime, endTime);
+        
+        // Calculate duration in hours including fractional part
+        var duration = java.time.Duration.between(startTime, endTime);
+        var durationHours = duration.toHours() + (duration.toMinutesPart() / 60.0);
+        
+        log.info("Duration in hours: {}", durationHours);
+        
+        if (durationHours > 24.0) {
+            log.error("Event duration exceeds 24 hours - Start: {}, End: {}, Duration: {} hours",
+                startTime, endTime, durationHours);
             throw new IllegalStateException("Event cannot be longer than 24 hours");
         }
 

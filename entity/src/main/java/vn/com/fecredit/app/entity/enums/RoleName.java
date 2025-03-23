@@ -27,7 +27,12 @@ public enum RoleName {
     /**
      * Premium participants with special privileges
      */
-    VIP;
+    VIP,
+
+    /**
+     * Guest users with limited access
+     */
+    GUEST;
 
     /**
      * Check if this role has administrative privileges

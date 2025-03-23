@@ -161,11 +161,13 @@ class AbstractAuditEntityTest extends BaseEntityTest {
         private Map<String, String> metadata = new HashMap<>();
 
         // Custom setter to ensure deep copy
+        @SuppressWarnings("unused") // Method used for testing setters
         public void setTags(List<String> tags) {
             this.tags = tags != null ? new ArrayList<>(tags) : new ArrayList<>();
         }
 
         // Custom setter to ensure deep copy
+        @SuppressWarnings("unused") // Method used for testing setters
         public void setMetadata(Map<String, String> metadata) {
             this.metadata = metadata != null ? new HashMap<>(metadata) : new HashMap<>();
         }

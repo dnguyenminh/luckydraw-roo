@@ -9,11 +9,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class SpinHistoryTest {
+    @SuppressWarnings("unused") // Field used for test setup
+    private GoldenHour goldenHour;
 
     private SpinHistory spinHistory;
     private ParticipantEvent participantEvent;
     private Reward reward;
-    private GoldenHour goldenHour;
 
     @BeforeEach
     void setUp() {

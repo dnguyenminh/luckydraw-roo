@@ -12,12 +12,6 @@ import org.junit.jupiter.api.Test;
 
 class ParticipantEventTest {
 
-    // TODO: Update test cases to use maxSpin instead of dailySpinLimit
-    // Changes needed:
-    // - Replace dailyLimit variable with maxSpin
-    // - Update error message expectations
-    // - Update test method names
-
     private ParticipantEvent participantEvent;
     private TestEvent event;
     private EventLocation eventLocation;
@@ -238,5 +232,14 @@ class ParticipantEventTest {
         // Should be able to spin today
         assertDoesNotThrow(() -> participantEvent.spin(),
                 "Should allow spins after daily reset");
+    }
+
+    @Test
+    void testParticipantEventCreation() {
+        ParticipantEvent pe = ParticipantEvent.builder()
+                                              .spinsRemaining(5)
+                                              .build();
+
+        assertEquals(5, pe.getSpinsRemaining());
     }
 }

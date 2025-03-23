@@ -26,8 +26,10 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
 
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-}
+    testRuntimeOnly 'org.junit.platform:junit-platform-commons'}
 
 test {
     useJUnitPlatform()

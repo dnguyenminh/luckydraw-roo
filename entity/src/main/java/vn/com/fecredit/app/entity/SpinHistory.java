@@ -27,7 +27,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @ToString(callSuper = true, exclude = {"participantEvent", "reward", "goldenHour"})
-@EqualsAndHashCode(callSuper = true)
+// Removed @EqualsAndHashCode since we have custom equals/hashCode implementations
 public class SpinHistory extends AbstractStatusAwareEntity {
 
     @Column(name = "spin_time", nullable = false)

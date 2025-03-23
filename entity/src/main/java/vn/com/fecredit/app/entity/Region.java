@@ -167,18 +167,10 @@ public class Region extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Package private method for Province to notify Region when its status changes
-     * Updates Region status based on Province statuses
+     * Update region status based on provinces status
+     * Called when province status changes
      */
-    /**
-     * Package private method for Province to notify Region when province status changes.
-     * Only deactivates Region if all provinces are inactive and Region is currently active.
-     */
-    /**
-     * Package private method for Province to notify Region when province status changes.
-     * Only deactivates Region if all provinces become inactive and Region is currently active.
-     */
-    void updateStatusBasedOnProvinces() {
+    public void updateStatusBasedOnProvinces() {
         // Only check for deactivation if region is currently active
         if (getStatus().isActive()) {
             boolean allProvincesInactive = provinces.stream()

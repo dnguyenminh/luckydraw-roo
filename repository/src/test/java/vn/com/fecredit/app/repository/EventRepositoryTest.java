@@ -4,12 +4,14 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest; // Add this import
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.transaction.annotation.Transactional;
+
 import vn.com.fecredit.app.entity.*;
 import vn.com.fecredit.app.repository.config.TestConfig;
 
@@ -19,11 +21,13 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
+// @DataJpaTest
+@SpringBootTest // Add this annotation
 @ContextConfiguration(classes = TestConfig.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
+@Transactional // Add this annotation to ensure all test methods run in a transaction
 public class EventRepositoryTest {
 
     @Autowired
@@ -39,6 +43,7 @@ public class EventRepositoryTest {
 
     private Event currentEvent;
     private Event futureEvent;
+    @SuppressWarnings("unused") // Field used for test data setup
     private Event pastEvent;
     private Event inactiveEvent;
 

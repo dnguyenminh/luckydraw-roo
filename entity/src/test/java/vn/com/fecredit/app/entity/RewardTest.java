@@ -8,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class RewardTest {
-
     private Reward reward;
     private EventLocation location;
     private Region region;
@@ -49,6 +48,7 @@ class RewardTest {
                 .winProbability(0.5)
                 .eventLocation(location)
                 .status(CommonStatus.ACTIVE)
+                .description("Reward for testing")
                 .build();
 
         // Setup bidirectional relationships
@@ -139,6 +139,22 @@ class RewardTest {
         assertThrows(IllegalStateException.class, () -> {
             reward.setEventLocation(null);
             reward.validateState();
+        });
+    }
+
+    @Test
+    void testRewardInitialization() {
+        assertNotNull(reward);
+        assertEquals("Test Reward", reward.getName());
+        assertEquals(BigDecimal.valueOf(100), reward.getValue());
+        assertTrue(reward.getStatus().isActive());
+    }
+
+    @Test
+    void testSettingValueBelowZeroShouldFail() {
+        assertThrows(IllegalStateException.class, () -> {
+            reward.setValue(BigDecimal.valueOf(-1));
+            reward.validateState(); // Suppose validateState() checks the value
         });
     }
 }

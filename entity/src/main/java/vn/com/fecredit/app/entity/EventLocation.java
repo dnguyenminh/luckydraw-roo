@@ -4,12 +4,15 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
+@Slf4j
 @Table(
     name = "event_locations",
     indexes = {
@@ -264,6 +267,14 @@ public class EventLocation extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Maximum spins must be at least 1");
         }
 
+        // Debug logging for class loading issue
+        if (region != null) {
+            var status = region.getStatus();
+            log.debug("Region status class: {}", status.getClass().getName());
+            log.debug("Region status methods: {}", Arrays.toString(status.getClass().getMethods()));
+            log.debug("Region status value: {}", status);
+        }
+        
         if (getStatus().isActive() && (region == null || !region.getStatus().isActive())) {
             throw new IllegalStateException("Location cannot be active in inactive region");
         }

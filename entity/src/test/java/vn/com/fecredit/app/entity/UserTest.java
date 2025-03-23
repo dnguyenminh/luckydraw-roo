@@ -10,8 +10,9 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserTest extends BaseEntityTest {
 
     private User user;
-    private Role adminRole;
+    @SuppressWarnings("unused") // Field used for test setup
     private Role userRole;
+    private Role adminRole;
 
     @BeforeEach
     void setUp() {

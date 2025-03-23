@@ -22,8 +22,9 @@ class GoldenHourTest {
     private Event event;
     private EventLocation location;
     private LocalDateTime now;
-    private Region region;
+    @SuppressWarnings("unused") // Field used for test setup
     private Province province;
+    private Region region; // Added missing field declaration
 
     /**
      * Sets up the test environment.

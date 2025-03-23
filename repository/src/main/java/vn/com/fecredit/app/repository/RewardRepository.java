@@ -7,12 +7,12 @@ import org.springframework.stereotype.Repository;
 import vn.com.fecredit.app.entity.Reward;
 import vn.com.fecredit.app.entity.CommonStatus;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface RewardRepository extends JpaRepository<Reward, Long> {
-    
     Optional<Reward> findByCode(String code);
     
     boolean existsByCode(String code);
@@ -50,4 +50,15 @@ public interface RewardRepository extends JpaRepository<Reward, Long> {
            "FROM Reward r " +
            "WHERE r.id = :rewardId")
     int getRemainingQuantity(@Param("rewardId") Long rewardId);
+    
+    @Query("SELECT r FROM Reward r " +
+           "WHERE r.eventLocation.id = :locationId " +
+           "AND r.status = 'ACTIVE' " +
+           "AND r.quantity > 0")
+    List<Reward> findAvailableRewardsByLocation(@Param("locationId") Long locationId);
+    
+    @Query("SELECT COALESCE(MAX(r.value), 0) FROM Reward r " +
+           "WHERE r.eventLocation.id = :locationId " +
+           "AND r.status = 'ACTIVE'")
+    BigDecimal getMaximumRewardValueAtLocation(@Param("locationId") Long locationId);
 }

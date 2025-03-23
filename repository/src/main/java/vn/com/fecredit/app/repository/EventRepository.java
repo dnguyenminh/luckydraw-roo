@@ -36,4 +36,16 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     boolean hasOverlappingEvents(@Param("eventId") Long eventId, 
                                @Param("startTime") LocalDateTime startTime,
                                @Param("endTime") LocalDateTime endTime);
+    
+    @Query("SELECT e FROM Event e WHERE e.status = :status " +
+           "AND e.startTime <= :now AND e.endTime >= :now")
+    List<Event> findCurrentEvents(@Param("now") LocalDateTime now);
+    
+    @Query("SELECT e FROM Event e WHERE e.status = :status " +
+           "AND e.startTime > :now")
+    List<Event> findUpcomingEvents(@Param("now") LocalDateTime now);
+    
+    @Query("SELECT e FROM Event e WHERE e.status = :status " +
+           "AND e.endTime < :now")
+    List<Event> findPastEvents(@Param("now") LocalDateTime now);
 }

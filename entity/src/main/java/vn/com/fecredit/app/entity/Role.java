@@ -12,39 +12,46 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Entity
-@Table(
-    name = "roles",
-    indexes = {
-        @Index(name = "idx_role_name", columnList = "name", unique = true),
-        @Index(name = "idx_role_status", columnList = "status")
-    }
-)
+@Table(name = "roles")
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = "users")
+@ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Role extends AbstractStatusAwareEntity {
 
     @NotNull(message = "Role name is required")
-    @Column(name = "role_name", nullable = false, unique = true)
     @Enumerated(EnumType.STRING)
-    @EqualsAndHashCode.Include
+    @Column(name = "role_name", nullable = false, unique = true)
     private RoleName roleName;
+
+    @Column(name = "description")
+    private String description;
 
     @Min(value = 0, message = "Display order must be non-negative")
     @Column(name = "display_order")
     @Builder.Default
     private Integer displayOrder = 0;
 
-    @Column(name = "description")
-    private String description;
-
     @ManyToMany(mappedBy = "roles")
+    @ToString.Exclude
     @Builder.Default
     private Set<User> users = new HashSet<>();
+
+    @ManyToMany
+    @JoinTable(
+        name = "role_permissions",
+        joinColumns = @JoinColumn(name = "role_id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id")
+    )
+    @Builder.Default
+    private Set<Permission> permissions = new HashSet<>();
+
+    public Set<Permission> getPermissions() {
+        return permissions;
+    }
 
     /**
      * Validate role state

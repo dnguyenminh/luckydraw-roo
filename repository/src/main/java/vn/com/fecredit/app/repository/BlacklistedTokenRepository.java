@@ -23,6 +23,8 @@ public interface BlacklistedTokenRepository extends JpaRepository<BlacklistedTok
     
     List<BlacklistedToken> findByUserIdAndTokenType(Long userId, String tokenType);
     
+    List<BlacklistedToken> findByStatus(CommonStatus status);
+    
     @Query("SELECT bt FROM BlacklistedToken bt " +
            "WHERE bt.token = :token " +
            "AND bt.tokenType = :tokenType " +

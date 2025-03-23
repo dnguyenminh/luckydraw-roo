@@ -54,4 +54,7 @@ public interface ProvinceRepository extends JpaRepository<Province, Long> {
            "           WHERE pt.province = p " +
            "           AND pt.status = 'ACTIVE')")
     List<Province> findActiveProvincesWithParticipants();
+    
+    @Query("SELECT p FROM Province p WHERE p.region.code = :regionCode")
+    List<Province> findByRegionCode(@Param("regionCode") String regionCode);
 }

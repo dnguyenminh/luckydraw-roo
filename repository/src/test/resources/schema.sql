@@ -264,6 +264,19 @@ CREATE TABLE blacklisted_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id BIGINT PRIMARY KEY,
+    username VARCHAR(100),
+    status VARCHAR(50)
+);
+
+CREATE TABLE IF NOT EXISTS configurations (
+    id BIGINT PRIMARY KEY,
+    config_key VARCHAR(100) UNIQUE,
+    config_value VARCHAR(4000),
+    status VARCHAR(50)
+);
+
 -- Create all indexes
 CREATE INDEX idx_region_code ON regions(code);
 CREATE INDEX idx_region_status ON regions(status);

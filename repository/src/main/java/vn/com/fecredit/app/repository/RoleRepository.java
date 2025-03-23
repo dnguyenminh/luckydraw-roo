@@ -11,12 +11,10 @@ import java.util.Optional;
 
 @Repository
 public interface RoleRepository extends JpaRepository<Role, Long> {
-    
     Optional<Role> findByRoleName(RoleName roleName);
-    
     boolean existsByRoleName(RoleName roleName);
-    
     List<Role> findByStatus(CommonStatus status);
-    
     List<Role> findByStatusOrderByDisplayOrderAsc(CommonStatus status);
+    List<Role> findByDisplayOrderGreaterThan(Integer minOrder);
+    List<Role> findByUsersEmail(String email);
 }

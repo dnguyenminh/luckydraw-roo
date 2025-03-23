@@ -6,6 +6,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.com.fecredit.app.entity.ParticipantEvent;
 import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.Participant;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +25,8 @@ public interface ParticipantEventRepository extends JpaRepository<ParticipantEve
     List<ParticipantEvent> findByEventIdAndStatus(Long eventId, CommonStatus status);
     
     Optional<ParticipantEvent> findByEventIdAndParticipantId(Long eventId, Long participantId);
+    
+    List<ParticipantEvent> findByStatus(CommonStatus status);
     
     @Query("SELECT pe FROM ParticipantEvent pe " +
            "WHERE pe.eventLocation.id = :locationId " +
@@ -54,4 +58,9 @@ public interface ParticipantEventRepository extends JpaRepository<ParticipantEve
     boolean existsActiveParticipation(
         @Param("eventId") Long eventId,
         @Param("participantId") Long participantId);
+
+    Optional<ParticipantEvent> findByParticipantAndEvent(Participant participant, Event event);
+
+    long countByEvent(Event event);
+    long countByEventAndStatus(Event event, CommonStatus status);
 }
