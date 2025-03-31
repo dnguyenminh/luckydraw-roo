@@ -84,6 +84,13 @@ package "API Request Structures" {
         +sortType: SortType
     }
 
+    class DataObject {
+        +objectType: ObjectType
+        +fieldNameMap: Map(String, ColumnInfo)
+        +description: String
+        data: JsonObject
+    }
+
     class TableInfo{
         +totalPage: number
         +currentPage: number
@@ -92,7 +99,7 @@ package "API Request Structures" {
         +tableName:String
         +fieldNameMap: Map(String, ColumnInfo)
         +rows: List<TableRow>
-        +relatedTables: Map(String, TableInfo)
+        +relatedLinkedObjects: Map(String, DataObject)
     }
 
     class ChartInfo {
