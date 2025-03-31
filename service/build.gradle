@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'io.spring.dependency-management'
 }
 
 group = 'vn.com.fecredit'
@@ -27,6 +28,22 @@ dependencies {
     testImplementation 'org.mockito:mockito-junit-jupiter'
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    // Suppress deprecation warnings if any
+    options.compilerArgs << '-Xlint:-deprecation'
+}
+
 test {
     useJUnitPlatform()
+}
+
+jar {
+    enabled = true
 }

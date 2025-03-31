@@ -1,0 +1,175 @@
+Application Layout Structure
+=========================
+
+Main Layout
+----------
++------------------------------------------------------------------+
+|                          Header Bar                                 |
+| +--------------------------------------------------------------+ |
+| | Logo | Main Nav                              | User | Settings | |
+| +--------------------------------------------------------------+ |
+|                                                                    |
+|  +-------------+  +----------------------------------------+      |
+|  |             |  |                                        |      |
+|  | Side        |  |           Content Area                 |      |
+|  | Navigation  |  |                                        |      |
+|  |             |  |                                        |      |
+|  |             |  |                                        |      |
+|  |             |  |                                        |      |
+|  |             |  |                                        |      |
+|  |             |  |                                        |      |
+|  |             |  |                                        |      |
+|  +-------------+  +----------------------------------------+      |
+|                                                                    |
++------------------------------------------------------------------+
+
+Side Navigation
+--------------
+[Dashboard]
+  └─ System Overview
+
+[Events]
+  ├─ All Events
+  ├─ Active Events
+  └─ Event Templates
+
+[Locations]
+  ├─ All Locations
+  ├─ By Region
+  └─ By Province
+
+[Rewards]
+  ├─ All Rewards
+  ├─ Active Rewards
+  └─ Won Rewards
+
+[Participants]
+  ├─ All Participants
+  ├─ Active Players
+  └─ Winners
+
+[Reports]
+  ├─ Event Reports
+  ├─ Location Reports
+  ├─ Reward Reports
+  └─ Activity Reports
+
+[Settings]
+  ├─ User Management
+  ├─ Role Management 
+  └─ System Settings
+
+Header Components
+---------------
+1. Logo & Branding
+2. Main Navigation
+   - Quick access to key sections
+   - Search functionality
+   - Notifications
+3. User Menu
+   - Profile
+   - Preferences
+   - Logout
+4. Settings
+   - System settings
+   - Theme toggle
+   - Language selection
+
+Content Area Layout Patterns
+--------------------------
+
+1. List View Layout
+   +--------------------------------------------------+
+   | Page Title                         [Action Button] |
+   | Description text                                  |
+   |                                                   |
+   | [Filters Bar]                                    |
+   |                                                   |
+   | +-----------------------------------------------+|
+   | | Data Table                                    ||
+   | | - Sortable columns                           ||
+   | | - Pagination                                 ||
+   | | - Bulk actions                               ||
+   | +-----------------------------------------------+|
+   +--------------------------------------------------+
+
+2. Detail View Layout
+   +--------------------------------------------------+
+   | ← Back                              [Edit Button] |
+   | Title                                            |
+   | Subtitle / ID / Status                           |
+   |                                                   |
+   | [Tab Navigation]                                 |
+   | +-----------------------------------------------+|
+   | | Tab Content                                   ||
+   | | - Information cards                           ||
+   | | - Related data tables                         ||
+   | | - Charts & statistics                         ||
+   | +-----------------------------------------------+|
+   +--------------------------------------------------+
+
+3. Form Layout
+   +--------------------------------------------------+
+   | ← Back                                           |
+   | Form Title                                       |
+   |                                                   |
+   | +-----------------------------------------------+|
+   | | Form Section Title                            ||
+   | | Field Group 1                                 ||
+   | | Field Group 2                                 ||
+   | |                                               ||
+   | | [Form Actions]                                ||
+   | | [Cancel] [Save Draft] [Submit]                ||
+   | +-----------------------------------------------+|
+   +--------------------------------------------------+
+
+4. Dashboard Layout
+   +--------------------------------------------------+
+   | Dashboard Title                    [Time Filter]  |
+   |                                                   |
+   | [Stats Cards Row]                                |
+   |                                                   |
+   | +-------------------+ +------------------------+ |
+   | | Chart 1           | | Chart 2                ||
+   | +-------------------+ +------------------------+ |
+   |                                                   |
+   | +-----------------------------------------------+|
+   | | Activity Feed                                 ||
+   | +-----------------------------------------------+|
+   +--------------------------------------------------+
+
+Responsive Behavior
+-----------------
+1. Desktop (>1024px)
+   - Full side navigation
+   - Multi-column layouts
+   - Expanded tables
+
+2. Tablet (768px-1024px)
+   - Collapsible side nav
+   - Reduced columns
+   - Scrollable tables
+
+3. Mobile (<768px)
+   - Hidden side nav (hamburger)
+   - Single column
+   - Card view for tables
+   - Bottom navigation
+
+Theme Support
+-----------
+1. Light Theme (Default)
+   - White background
+   - Light gray accents
+   - Dark text
+
+2. Dark Theme
+   - Dark background
+   - Medium gray accents
+   - Light text
+
+3. Common Elements
+   - Primary action colors
+   - Status indicators
+   - Error states
+   - Success states

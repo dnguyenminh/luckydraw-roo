@@ -1,0 +1,23 @@
+package vn.com.fecredit.app.entity.enums;
+
+public enum PermissionName {
+    CREATE_USER,
+    READ_USER,
+    UPDATE_USER,
+    DELETE_USER,
+    
+    CREATE_EVENT,
+    READ_EVENT,
+    UPDATE_EVENT,
+    DELETE_EVENT,
+    
+    CREATE_PARTICIPANT,
+    READ_PARTICIPANT,
+    UPDATE_PARTICIPANT,
+    DELETE_PARTICIPANT,
+    
+    CREATE_CONFIGURATION,
+    READ_CONFIGURATION,
+    UPDATE_CONFIGURATION,
+    DELETE_CONFIGURATION
+}

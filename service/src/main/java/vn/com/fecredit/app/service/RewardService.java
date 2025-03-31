@@ -10,6 +10,7 @@ import java.util.Optional;
 public interface RewardService extends AbstractService<Reward> {
     Optional<Reward> findByCode(String code);
     List<Reward> findByEventLocationId(Long locationId);
+    List<Reward> findByEventId(Long eventId);
     List<Reward> findAvailableRewardsByLocation(Long locationId);
     boolean isRewardAvailable(Long rewardId);
     boolean hasAvailableQuantity(Long rewardId);

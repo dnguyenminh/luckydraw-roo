@@ -1,0 +1,164 @@
+Forms Structure Overview
+=====================
+
+Common Validation Rules
+----------------------
+- Required fields are marked with *
+- Code fields: alphanumeric, no spaces, max 50 chars
+- Name fields: max 255 chars
+- Phone: Vietnamese format (e.g., 0901234567)
+- Email: Standard email format
+- Dates: ISO format with timezone
+- Numeric fields: Non-negative
+- Percentages: 0-100 with up to 2 decimal places
+- Currency: VND, whole numbers
+
+Event Forms
+----------
+
+Create/Edit Event
+----------------
+Fields:
+- name* [text] - Event name
+- code* [text] - Unique identifier
+- startTime* [datetime] - Event start
+- endTime* [datetime] - Event end
+- status [select] - ACTIVE/INACTIVE
+
+Validation:
+- endTime must be after startTime
+- code must be unique
+- At least one location required
+
+Event Location Assignment
+-----------------------
+Fields:
+- location* [select] - From available locations
+- maxCapacity* [number] - Maximum participants
+- defaultWinProbability* [number] - Base win rate %
+- startTime* [datetime] - Location-specific start
+- endTime* [datetime] - Location-specific end
+
+Validation:
+- Win probability: 0-100%
+- Location times within event times
+- Capacity > 0
+
+Location Forms
+------------
+
+Create/Edit Location
+------------------
+Fields:
+- name* [text] - Location name
+- code* [text] - Unique identifier
+- region* [select] - Region selection
+- province* [select] - Province in region
+- status [select] - ACTIVE/INACTIVE
+
+Validation:
+- code must be unique
+- Province must belong to selected region
+
+Golden Hour Configuration
+-----------------------
+Fields:
+- startTime* [time] - Daily start time
+- endTime* [time] - Daily end time
+- multiplier* [number] - Win rate multiplier
+- active [boolean] - Enable/disable
+
+Validation:
+- endTime must be after startTime
+- Multiplier > 1
+- No overlapping times for same location
+
+Reward Forms
+-----------
+
+Create/Edit Reward
+----------------
+Fields:
+- name* [text] - Reward name
+- code* [text] - Unique identifier
+- value* [number] - Monetary value
+- quantity* [number] - Total available
+- durationType [select] - NONE/DAILY/WEEKLY/MONTHLY
+- itemsPerDuration [number] - Items per period
+- status [select] - ACTIVE/INACTIVE
+
+Validation:
+- code must be unique
+- Value & quantity > 0
+- If durationType set, itemsPerDuration required
+- itemsPerDuration ≤ quantity
+
+Location Reward Assignment
+-----------------------
+Fields:
+- reward* [select] - From available rewards
+- quantity* [number] - Allocated quantity
+- durationType [select] - Override base duration type
+- itemsPerDuration [number] - Override items per period
+
+Validation:
+- Quantity ≤ remaining unallocated reward quantity
+- Duration settings must not exceed base reward settings
+
+Participant Forms
+---------------
+
+Register Participant
+-----------------
+Fields:
+- name* [text] - Full name
+- code* [text] - Unique identifier
+- phone* [text] - Contact number
+- email [email] - Email address
+- province* [select] - Province selection
+- status [select] - ACTIVE/INACTIVE
+
+Validation:
+- code & phone must be unique
+- Valid Vietnamese phone format
+- Valid email if provided
+
+Event Registration
+----------------
+Fields:
+- event* [select] - From available events
+- location* [select] - From event locations
+- spinsAllowed* [number] - Number of spins
+
+Validation:
+- Location must belong to selected event
+- Location must have capacity
+- spinsAllowed > 0
+
+Form Submission Rules
+-------------------
+1. Client-side Validation
+   - Real-time field validation
+   - Show inline errors
+   - Disable submit until valid
+
+2. Server-side Validation
+   - Revalidate all rules
+   - Check unique constraints
+   - Verify relationships
+   - Check business rules
+
+3. Error Handling
+   - Field-level error messages
+   - Form-level error summary
+   - Validation error format:
+     {
+       field: string
+       code: string
+       message: string
+     }
+
+4. Success Handling
+   - Redirect to detail view
+   - Show success message
+   - Clear form data

@@ -1,0 +1,69 @@
+[Previous content remains unchanged]
+
+Event Audit Log (/events/[id]/audit)
+----------------------------------
++------------------------------------------------------------------+
+|                         Event Audit Log                             |
+|                                                                    |
+| Filters                                                            |
+| +--------------------------------------------------------------+ |
+| | Date Range: [Last 7 days ▼]  Category: [All Categories ▼]      | |
+| | User: [All Users ▼]          Action: [All Actions ▼]           | |
+| +--------------------------------------------------------------+ |
+|
+| System Changes                                         [Export Log] |
+| +----------------+----------+--------------+----------------------+ |
+| | Timestamp      | User     | Category     | Action               | |
+| +----------------+----------+--------------+----------------------+ |
+| | Today 10:00    | admin    | Settings     | Updated win rate    | |
+| | • Win probability changed from 0.4% to 0.5%                    | |
+| | • Reason: Adjusting for golden hour impact                     | |
+| |                                                                | |
+| | Today 09:30    | manager  | Rewards      | Added new reward    | |
+| | • Added iPhone 15 (10 units)                                   | |
+| | • Configured daily distribution: 1 unit                        | |
+| |                                                                | |
+| | Today 09:15    | operator | Participants | Manual registration | |
+| | • Added 5 participants from District 1                         | |
+| | • Reason: System maintenance period                            | |
+| +----------------+----------+--------------+----------------------+ |
+|
+| Participant Activity                                              |
+| +----------------+----------+--------------+----------------------+ |
+| | Timestamp      | User     | Location     | Activity             | |
+| +----------------+----------+--------------+----------------------+ |
+| | 09:45:23       | System   | District 1   | Spin processed      | |
+| | • Result: Win - iPhone 15                                      | |
+| | • Golden Hour: Active (2x)                                     | |
+| |                                                                | |
+| | 09:44:12       | Staff1   | District 2   | Prize claimed      | |
+| | • Prize: Samsung S24                                          | |
+| | • Verification: ID checked                                     | |
+| +----------------+----------+--------------+----------------------+ |
+|
+| System Events                                                     |
+| +----------------+----------+--------------+----------------------+ |
+| | Timestamp      | Level    | Component    | Message              | |
+| +----------------+----------+--------------+----------------------+ |
+| | 09:30:00       | INFO     | Scheduler   | Golden hour started | |
+| | 09:29:55       | WARN     | Capacity    | District 1 at 90%   | |
+| | 09:15:00       | ERROR    | Database    | Failover activated  | |
+| +----------------+----------+--------------+----------------------+ |
+|
+| Access History                                                    |
+| +----------------+----------+--------------+----------------------+ |
+| | Timestamp      | User     | IP Address   | Action               | |
+| +----------------+----------+--------------+----------------------+ |
+| | 10:15:23       | admin    | 10.0.1.123   | Settings modified   | |
+| | 10:00:15       | api      | 10.0.2.234   | API access          | |
+| | 09:45:12       | staff1   | 10.0.1.45    | Logged in          | |
+| +----------------+----------+--------------+----------------------+ |
+|
+| Group By: [Time ▼]  [Category ▼]  [User ▼]  [Location ▼]         |
+| Sort By:  [Newest First ▼]                                        |
+|                                                                    |
+| Results: Showing 50 of 1,234 entries                              |
+| [Load More] or [Download Full Log]                                |
++------------------------------------------------------------------+
+
+[Rest of the file remains unchanged]

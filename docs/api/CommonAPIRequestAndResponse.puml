@@ -1,0 +1,120 @@
+@startuml Request anh Response Structures for Table Components
+
+' Common API Request and Response Structures for Table Components
+
+package "API Request Structures" {
+    class SortType<<enumeration>> {
+
+        +ASCENDING
+        +DESCENDING
+        +NONE
+    }
+    class SortRequest {
+        +field: string
+        +sortType: SortType
+    }
+
+    class FilterType<<enumeration>> {
+        +EQUALS
+        +NOT_EQUALS
+        +LESS_THAN
+        +LESS_THAN_OR_EQUALS
+        +GREATER_THAN
+        +GREATER_THAN_OR_EQUALS
+        +BETWEEN
+        +IN
+        +NOT_IN
+    }
+    class FilterRequest {
+        +field: string
+        +filterType: FilterType
+        +minValue: string
+        +maxValue: string
+    }
+    class  SearchRequest {
+        +field: string
+        +value: string
+    }
+
+    class ObjectType<<enumeration>> {
+        +Event
+        +Region
+        +Province
+        +Reward
+        +GoldenHour
+        +SpinHistory
+        +AuditLog
+        +Statis
+        +User
+        +Role
+    }
+
+    class TableFetchRequest {
+        +objectType: ObjectType
+        +page: number
+        +size: number
+        +sorts: List<SortRequest>
+        +filters: List<FilterRequest>
+        +search: Map<String, String>
+    }
+
+    class TableRow {
+        +data: JsonObject
+    }
+
+    class TabTableRow{
+        +relatedTables: Map(String, TableRow)
+    }
+
+
+    class FieldType<<enumeration>> {
+
+        +STRING
+        +NUMBER
+        +BOOLEAN
+        +DATE
+        +DATETIME
+        +TIME
+        +OBJECT
+    }
+
+    class ColumnInfo {
+        +fieldName: String
+        +fieldType: String
+        +sortType: SortType
+    }
+
+    class TableInfo{
+        +totalPage: number
+        +currentPage: number
+        +pageSize: number
+        +totalElements: number
+        +tableName:String
+        +fieldNameMap: Map(String, ColumnInfo)
+        +rows: List<TableRow>
+        +relatedTables: Map(String, TableInfo)
+    }
+
+    class ChartInfo {
+        +chartName: String
+        +chartType: String
+        +chartData: Map(String, List<String>)
+    }
+
+    class StatitisInfo {
+        +charts:Map(String, List<ChartInfo>)
+    }
+
+    class TableFetchResponse {
+        +originalRequest: TableFetchRequest
+        +statitis: StatitisInfo
+    }
+
+    TableInfo <|-- TableFetchResponse
+    TableInfo "1"-"*" TableRow
+    TableFetchRequest "1"--"*" SortRequest
+    TableFetchRequest "1"--"*" FilterRequest
+    TableFetchRequest "1"--"0..1" SearchRequest
+    TableRow <|- TabTableRow
+}
+@enduml

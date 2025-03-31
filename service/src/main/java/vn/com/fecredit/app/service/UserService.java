@@ -1,16 +1,15 @@
 package vn.com.fecredit.app.service;
 
+import org.springframework.stereotype.Service;
+import vn.com.fecredit.app.dto.RegisterRequest;
 import vn.com.fecredit.app.entity.User;
-import vn.com.fecredit.app.entity.enums.RoleName;
-import vn.com.fecredit.app.service.base.AbstractService;
 
-import java.util.Optional;
-
-public interface UserService extends AbstractService<User> {
-    Optional<User> findByUsername(String username);
-    Optional<User> findByEmail(String email);
+@Service
+public interface UserService {
+    
     boolean existsByUsername(String username);
+    
     boolean existsByEmail(String email);
-    void addRole(Long userId, RoleName roleName);
-    void removeRole(Long userId, RoleName roleName);
+    
+    User registerUser(RegisterRequest registerRequest);
 }

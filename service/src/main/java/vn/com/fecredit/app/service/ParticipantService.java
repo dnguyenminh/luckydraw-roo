@@ -12,4 +12,5 @@ public interface ParticipantService extends AbstractService<Participant> {
     List<Participant> findByProvinceId(Long provinceId);
     List<Participant> findByEventId(Long eventId);
     List<Participant> findByStatus(CommonStatus status);
+    List<Participant> findCheckedInParticipantsByEventId(Long eventId);
 }

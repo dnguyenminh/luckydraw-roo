@@ -1,0 +1,139 @@
+API Endpoints Overview
+====================
+
+Base URL: /api/v1
+
+Authentication & Authorization
+----------------------------
+POST   /auth/login
+POST   /auth/logout
+POST   /auth/refresh-token
+GET    /auth/me
+
+Events
+------
+GET    /events                  # List events with pagination and filters
+POST   /events                  # Create new event
+GET    /events/:id             # Get event details
+PUT    /events/:id             # Update event
+DELETE /events/:id             # Delete/deactivate event
+GET    /events/:id/statistics  # Get event statistics
+
+Event Locations
+--------------
+GET    /events/:eventId/locations               # List locations for event
+POST   /events/:eventId/locations              # Add location to event
+PUT    /events/:eventId/locations/:locationId  # Update event location
+DELETE /events/:eventId/locations/:locationId  # Remove location from event
+
+Golden Hours
+-----------
+GET    /locations/:locationId/golden-hours      # List golden hours
+POST   /locations/:locationId/golden-hours     # Create golden hour
+PUT    /locations/:locationId/golden-hours/:id # Update golden hour
+DELETE /locations/:locationId/golden-hours/:id # Delete golden hour
+
+Locations
+---------
+GET    /locations                  # List locations with filters
+POST   /locations                 # Create new location
+GET    /locations/:id            # Get location details
+PUT    /locations/:id           # Update location
+DELETE /locations/:id          # Delete/deactivate location
+GET    /locations/:id/statistics # Get location statistics
+
+Rewards
+-------
+GET    /rewards                    # List rewards with filters
+POST   /rewards                   # Create new reward
+GET    /rewards/:id              # Get reward details
+PUT    /rewards/:id             # Update reward
+DELETE /rewards/:id            # Delete/deactivate reward
+GET    /rewards/:id/winners    # List reward winners
+GET    /rewards/:id/statistics # Get reward statistics
+
+Location Rewards
+---------------
+GET    /locations/:locationId/rewards               # List rewards for location
+POST   /locations/:locationId/rewards              # Add reward to location
+PUT    /locations/:locationId/rewards/:rewardId   # Update reward allocation
+DELETE /locations/:locationId/rewards/:rewardId  # Remove reward from location
+
+Participants
+-----------
+GET    /participants                    # List participants with filters
+POST   /participants                   # Register new participant
+GET    /participants/:id              # Get participant details
+PUT    /participants/:id             # Update participant
+DELETE /participants/:id            # Delete/deactivate participant
+GET    /participants/:id/events    # List participant's events
+GET    /participants/:id/spins     # List participant's spin history
+GET    /participants/:id/rewards   # List participant's won rewards
+GET    /participants/:id/statistics # Get participant statistics
+
+Regions
+-------
+GET    /regions                  # List regions
+POST   /regions                 # Create new region
+GET    /regions/:id            # Get region details
+PUT    /regions/:id           # Update region
+DELETE /regions/:id          # Delete/deactivate region
+
+Provinces
+---------
+GET    /provinces                 # List provinces
+GET    /provinces/:id            # Get province details
+GET    /regions/:id/provinces   # List provinces in region
+
+Spins
+-----
+POST   /spins                    # Perform a spin
+GET    /spins                   # List spin history with filters
+GET    /spins/:id              # Get spin details
+
+Statistics & Reports
+------------------
+GET    /statistics/dashboard            # Get dashboard statistics
+GET    /statistics/events              # Get events statistics
+GET    /statistics/locations          # Get locations statistics
+GET    /statistics/rewards           # Get rewards statistics
+GET    /statistics/participants     # Get participants statistics
+
+Export
+------
+GET    /export/events/:id/participants  # Export event participants
+GET    /export/events/:id/spins       # Export event spins
+GET    /export/locations/:id/spins    # Export location spins
+GET    /export/rewards/:id/winners   # Export reward winners
+
+Query Parameters
+--------------
+- page: number (default: 1)
+- pageSize: number (default: 20)
+- search: string
+- status: 'ACTIVE' | 'INACTIVE'
+- sort: string (field:direction)
+- startDate: string (ISO date)
+- endDate: string (ISO date)
+- locationId: number
+- eventId: number
+- rewardId: number
+- provinceId: number
+- regionId: number
+
+Response Format
+-------------
+{
+  "success": boolean,
+  "data": {
+    "items": T[],
+    "total": number,
+    "page": number,
+    "pageSize": number,
+    "totalPages": number
+  } | T,
+  "error"?: {
+    "code": string,
+    "message": string
+  }
+}

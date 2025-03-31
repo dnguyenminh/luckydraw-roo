@@ -1,97 +1,71 @@
 package vn.com.fecredit.app.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import vn.com.fecredit.app.entity.enums.RoleType;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.enums.RoleName;
 
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * User entity representing users in the system
+ */
 @Entity
-@Table(
-    name = "users",
-    indexes = {
-        @Index(name = "idx_user_username", columnList = "username", unique = true),
-        @Index(name = "idx_user_email", columnList = "email", unique = true),
-        @Index(name = "idx_user_status", columnList = "status")
-    }
-)
-@Getter
-@Setter
-@SuperBuilder(toBuilder = true)
+@Table(name = "users")
+@Data
 @NoArgsConstructor
-@AllArgsConstructor
-@ToString(callSuper = true, exclude = "roles")
-@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
+@EqualsAndHashCode(callSuper = true)
 public class User extends AbstractStatusAwareEntity {
-
-    @NotBlank(message = "Username is required")
-    @Column(name = "username", nullable = false, unique = true)
-    @EqualsAndHashCode.Include
+    
+    @Column(nullable = false, unique = true)
     private String username;
-
-    @NotBlank(message = "Password is required")
-    @Column(name = "password", nullable = false)
+    
+    @Column(nullable = false)
     private String password;
-
-    @Email(message = "Email must be valid")
-    @NotBlank(message = "Email is required")
-    @Column(name = "email", nullable = false, unique = true)
+    
+    @Column(nullable = false, unique = true)
     private String email;
-
-    @NotBlank(message = "Full name is required")
-    @Column(name = "full_name", nullable = false)
+    
+    @Column(name = "full_name")
     private String fullName;
-
-    @Column(name = "enabled", nullable = false)
-    @Builder.Default
-    private boolean enabled = true;
-
-    @Column(name = "account_expired", nullable = false)
-    @Builder.Default
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RoleType role;
+    
+    @Column(nullable = false)
+    private boolean active;
+    
     private boolean accountExpired = false;
-
-    @Column(name = "account_locked", nullable = false)
-    @Builder.Default
+    
     private boolean accountLocked = false;
-
-    @Column(name = "credentials_expired", nullable = false)
-    @Builder.Default
+    
     private boolean credentialsExpired = false;
-
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "user_roles",
         joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id"),
-        indexes = {
-            @Index(name = "idx_user_role_user", columnList = "user_id"),
-            @Index(name = "idx_user_role_role", columnList = "role_id")
-        }
+        inverseJoinColumns = @JoinColumn(name = "role_id")
     )
-    @Builder.Default
     private Set<Role> roles = new HashSet<>();
-
-    public boolean hasRole(RoleName roleName) {
-        return roles.stream()
-                .anyMatch(role -> role.getRoleName() == roleName && role.getStatus().isActive());
+    
+    public boolean isEnabled() {
+        return active;
     }
-
-    public void addRole(Role role) {
-        roles.add(role);
-        role.getUsers().add(this);
+    
+    public void setEnabled(boolean enabled) {
+        this.active = enabled;
     }
-
-    public void removeRole(Role role) {
-        roles.remove(role);
-        role.getUsers().remove(this);
+    
+    public Set<Role> getRoles() {
+        return roles;
     }
-
-    public boolean isAccountActive() {
-        return isEnabled() && !isAccountExpired() && !isAccountLocked() && !isCredentialsExpired();
+    
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
     }
 }

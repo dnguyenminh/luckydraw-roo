@@ -28,4 +28,6 @@ public interface ParticipantRepository extends JpaRepository<Participant, Long> 
     List<Participant> findActiveParticipantsInEvent(@Param("eventId") Long eventId);
     
     List<Participant> findByStatus(CommonStatus status);
+    
+    List<Participant> findByEventIdAndCheckedInTrue(Long eventId);
 }

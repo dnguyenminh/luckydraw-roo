@@ -1,5 +1,6 @@
 plugins {
     id 'java-library'
+    id 'io.spring.dependency-management'
 }
 
 dependencies {
@@ -16,11 +17,20 @@ dependencies {
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
+    // Add Hibernate ORM dependency
+implementation 'org.hibernate.orm:hibernate-core:6.3.1.Final'
+
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.mockito:mockito-junit-jupiter'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
 }
 
 //tasks.named('test') {
@@ -46,4 +56,9 @@ test {
         showStandardStreams = true
         events "passed", "failed", "skipped"
     }
+}
+
+// Instead of bootJar, just use the jar task
+jar {
+    enabled = true
 }

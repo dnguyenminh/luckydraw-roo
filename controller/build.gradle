@@ -1,5 +1,7 @@
 plugins {
     id 'java'
+    id 'java-library'
+    id 'io.spring.dependency-management'
 }
 
 group = 'vn.com.fecredit'
@@ -10,10 +12,46 @@ repositories {
 }
 
 dependencies {
+    api project(':service')
+    api project(':repository')
+    api project(':entity')
+    api project(':security')  // Add this line to include the security module
+        
+    // Web & REST
+    api 'org.springframework.boot:spring-boot-starter-web'
+    api 'org.springframework.boot:spring-boot-starter-data-rest'
+    
+    // Jakarta Validation - replacing javax.validation
+    api 'org.springframework.boot:spring-boot-starter-validation'
+    api 'jakarta.validation:jakarta.validation-api'
+    
+    // Spring Security
+    api 'org.springframework.boot:spring-boot-starter-security'
+    
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
 }
 
 test {
     useJUnitPlatform()
+}
+
+jar {
+    enabled = true
 }

@@ -17,7 +17,7 @@ import java.util.Optional;
 @Service
 @Transactional
 public class EventServiceImpl extends AbstractServiceImpl<Event> implements EventService {
-    
+
     private final EventRepository eventRepository;
 
     public EventServiceImpl(EventRepository eventRepository) {
@@ -59,9 +59,14 @@ public class EventServiceImpl extends AbstractServiceImpl<Event> implements Even
     @Transactional(readOnly = true)
     public boolean isEventActive(Long eventId) {
         return findById(eventId)
-            .map(event -> CommonStatus.ACTIVE.equals(event.getStatus()) &&
-                         event.getStartTime().isBefore(LocalDateTime.now()) &&
-                         event.getEndTime().isAfter(LocalDateTime.now()))
-            .orElse(false);
+                .map(event -> CommonStatus.ACTIVE.equals(event.getStatus()) &&
+                        event.getStartTime().isBefore(LocalDateTime.now()) &&
+                        event.getEndTime().isAfter(LocalDateTime.now()))
+                .orElse(false);
+    }
+
+    @Override
+    public List<Event> findActiveEvents() {
+        return eventRepository.findActiveEvents(LocalDateTime.now());
     }
 }

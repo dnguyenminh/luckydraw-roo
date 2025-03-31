@@ -47,4 +47,9 @@ public class ParticipantServiceImpl extends AbstractServiceImpl<Participant> imp
     public List<Participant> findByEventId(Long eventId) {
         return participantRepository.findByEventId(eventId);
     }
+
+    @Override
+    public List<Participant> findCheckedInParticipantsByEventId(Long eventId) {
+        return participantRepository.findByEventIdAndCheckedInTrue(eventId);
+    }
 }

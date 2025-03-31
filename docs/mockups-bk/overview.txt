@@ -1,0 +1,148 @@
+UI Structure Overview
+====================
+
+Main Navigation
+--------------
+- Dashboard (/)
+- Events (/events)
+- Locations (/locations)
+- Rewards (/rewards)
+- Participants (/participants)
+
+Key Features by Section
+----------------------
+
+1. Dashboard
+   - Quick stats (events, rewards, participants, spins)
+   - Current events overview
+   - Active golden hours
+   - Real-time activity feed
+   - Performance metrics and charts
+   - System health monitoring
+
+2. Events
+   - Event listing with filters
+   - Event details with multiple locations
+   - Reward allocation per event
+   - Golden hours configuration
+   - Participant tracking
+   - Performance statistics
+
+3. Locations
+   - Location management by region/province
+   - Event assignments
+   - Reward allocation
+   - Golden hours scheduling
+   - Participant activity tracking
+   - Performance metrics
+
+4. Rewards
+   - Reward inventory management
+   - Distribution settings (daily/weekly/monthly)
+   - Event and location allocation
+   - Winner tracking
+   - Performance analytics
+
+5. Participants
+   - Participant registration and management
+   - Event participation tracking
+   - Spin history and rewards won
+   - Activity monitoring
+   - Statistics and analytics
+
+Common Features Across Sections
+-----------------------------
+1. Search & Filters
+   - Text search
+   - Date range filters
+   - Status filters
+   - Numeric range filters
+   - Multi-select filters
+
+2. Data Tables
+   - Sortable columns
+   - Expandable rows
+   - Pagination
+   - Bulk actions
+   - Export functionality
+
+3. Detail Views
+   - Basic information
+   - Tabbed sections for related data
+   - Activity history
+   - Statistics and charts
+   - Edit/Update functionality
+
+4. Common Actions
+   - Add new items
+   - Edit existing items
+   - Enable/Disable
+   - Export data
+   - View history
+
+Key UI Components
+---------------
+1. Navigation
+   - Main menu
+   - Breadcrumbs
+   - Section headers
+   - Action buttons
+
+2. Forms
+   - Input validation
+   - Date/time pickers
+   - Multi-select dropdowns
+   - Search inputs
+   - Filter panels
+
+3. Data Display
+   - Data tables
+   - Charts
+   - Statistics cards
+   - Activity feeds
+   - Status indicators
+
+4. Interactive Elements
+   - Tooltips
+   - Expandable sections
+   - Modal dialogs
+   - Action menus
+   - Loading states
+
+Data Relationships
+----------------
+1. Event → Locations
+   - One event can have multiple locations
+   - Each location has its own capacity and win rate
+
+2. Location → Rewards
+   - Locations have allocated rewards
+   - Each reward has quantity and distribution settings
+
+3. Location → Golden Hours
+   - Locations can have scheduled golden hours
+   - Golden hours affect win multipliers
+
+4. Participant → Events
+   - Participants join events at specific locations
+   - Track spins and wins per event
+
+5. Reward → Winners
+   - Track who won each reward
+   - Record golden hour status at win time
+
+Color Scheme
+-----------
+- Primary: Blue (#2563eb)
+- Success: Green (#10b981)
+- Warning: Yellow (#f59e0b)
+- Error: Red (#ef4444)
+- Info: Blue (#3b82f6)
+- Text: Slate (#0f172a)
+- Background: Gray (#f8fafc)
+
+Typography
+---------
+- Headers: Inter (Bold)
+- Body: Inter (Regular)
+- Monospace: Jetbrains Mono

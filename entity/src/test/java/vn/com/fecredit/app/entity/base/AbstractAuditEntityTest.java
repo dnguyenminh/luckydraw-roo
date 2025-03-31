@@ -43,40 +43,42 @@ class AbstractAuditEntityTest extends BaseEntityTest {
         @DisplayName("toBuilder should perform deep copy")
         void toBuilder_ShouldPerformDeepCopy() {
             ComplexTestEntity original = ComplexTestEntity.builder()
-                .id(1L)
-                .createdBy("creator")
-                .createdAt(now)
-                .updatedBy("updater")
-                .updatedAt(now.plusHours(1))
-                .tags(new ArrayList<>())
-                .metadata(new HashMap<>())
-                .build();
+                    .id(1L)
+                    .createdBy("creator")
+                    .createdAt(now)
+                    .updatedBy("updater")
+                    .updatedAt(now.plusHours(1))
+                    .tags(new ArrayList<>())
+                    .metadata(new HashMap<>())
+                    .build();
 
             original.getTags().addAll(Arrays.asList("tag1", "tag2"));
             original.getMetadata().put("key", "value");
 
             ComplexTestEntity copy = original.toBuilder()
-                .tags(new ArrayList<>(original.getTags()))
-                .metadata(new HashMap<>(original.getMetadata()))
-                .build();
-            
+                    .tags(new ArrayList<>(original.getTags()))
+                    .metadata(new HashMap<>(original.getMetadata()))
+                    .build();
+
             // Modify original collections
             original.getTags().add("tag3");
             original.getMetadata().put("newKey", "newValue");
 
             assertAll(
-                "Deep copy should be independent",
-                () -> assertNotSame(original.getTags(), copy.getTags(), "Tags list should be different instances"),
-                () -> assertNotSame(original.getMetadata(), copy.getMetadata(), "Metadata map should be different instances"),
-                () -> assertEquals(2, copy.getTags().size(), "Tags size should remain unchanged"),
-                () -> assertEquals(1, copy.getMetadata().size(), "Metadata size should remain unchanged"),
-                () -> assertEquals(Arrays.asList("tag1", "tag2"), copy.getTags(), "Tags content should match original"),
-                () -> assertEquals(Collections.singletonMap("key", "value"), copy.getMetadata(), "Metadata content should match original"),
-                () -> assertEquals(original.getCreatedAt(), copy.getCreatedAt(), "Created at should match"),
-                () -> assertEquals(original.getCreatedBy(), copy.getCreatedBy(), "Created by should match"),
-                () -> assertEquals(original.getUpdatedAt(), copy.getUpdatedAt(), "Updated at should match"),
-                () -> assertEquals(original.getUpdatedBy(), copy.getUpdatedBy(), "Updated by should match")
-            );
+                    "Deep copy should be independent",
+                    () -> assertNotSame(original.getTags(), copy.getTags(), "Tags list should be different instances"),
+                    () -> assertNotSame(original.getMetadata(), copy.getMetadata(),
+                            "Metadata map should be different instances"),
+                    () -> assertEquals(2, copy.getTags().size(), "Tags size should remain unchanged"),
+                    () -> assertEquals(1, copy.getMetadata().size(), "Metadata size should remain unchanged"),
+                    () -> assertEquals(Arrays.asList("tag1", "tag2"), copy.getTags(),
+                            "Tags content should match original"),
+                    () -> assertEquals(Collections.singletonMap("key", "value"), copy.getMetadata(),
+                            "Metadata content should match original"),
+                    () -> assertEquals(original.getCreatedAt(), copy.getCreatedAt(), "Created at should match"),
+                    () -> assertEquals(original.getCreatedBy(), copy.getCreatedBy(), "Created by should match"),
+                    () -> assertEquals(original.getUpdatedAt(), copy.getUpdatedAt(), "Updated at should match"),
+                    () -> assertEquals(original.getUpdatedBy(), copy.getUpdatedBy(), "Updated by should match"));
         }
     }
 
@@ -132,11 +134,11 @@ class AbstractAuditEntityTest extends BaseEntityTest {
             assertTrue(endLatch.await(5, TimeUnit.SECONDS), "Concurrent operations timed out");
 
             assertAll(
-                "Should complete all operations",
-                () -> assertTrue(updates.get("reads") > 0, "Should have some reads"),
-                () -> assertTrue(updates.get("writes") > 0, "Should have some writes"),
-                () -> assertEquals(numThreads, updates.get("reads") + updates.get("writes"), "Total operations should match thread count")
-            );
+                    "Should complete all operations",
+                    () -> assertTrue(updates.get("reads") > 0, "Should have some reads"),
+                    () -> assertTrue(updates.get("writes") > 0, "Should have some writes"),
+                    () -> assertEquals(numThreads, updates.get("reads") + updates.get("writes"),
+                            "Total operations should match thread count"));
         }
     }
 
@@ -184,13 +186,14 @@ class AbstractAuditEntityTest extends BaseEntityTest {
         }
 
         @Override
-        public void setUpdatedAt(LocalDateTime updatedAt) {
+        public AbstractAuditEntity setUpdatedAt(LocalDateTime updatedAt) {
             lock.writeLock().lock();
             try {
                 super.setUpdatedAt(updatedAt);
             } finally {
                 lock.writeLock().unlock();
             }
+            return this;
         }
 
         @Override

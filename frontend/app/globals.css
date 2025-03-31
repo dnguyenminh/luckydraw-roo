@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  --vscode-background: #1e1e1e;
+  --vscode-foreground: #cccccc;
+  --vscode-sidebar-background: #252526;
+  --vscode-activity-bar-background: #333333;
+  --vscode-toolbar-background: #3c3c3c;
+  --vscode-border-color: #1e1e1e;
+  --vscode-highlight-color: #007acc;
+  --vscode-hover-background: #2a2d2e;
+  --vscode-active-background: #37373d;
+}
+
+@theme inline {
+  --color-background: var(--vscode-background);
+  --color-foreground: var(--vscode-foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--vscode-background);
+  color: var(--vscode-foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}

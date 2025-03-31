@@ -50,6 +50,9 @@ public class Participant extends AbstractStatusAwareEntity {
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();
 
+    @Builder.Default
+    private boolean checkedIn = false;
+
     /**
      * Set the participant's province with proper bidirectional relationship
      * @param province the province to set
@@ -157,5 +160,13 @@ public class Participant extends AbstractStatusAwareEntity {
         if (province == null) {
             throw new IllegalStateException("Province is required");
         }
+    }
+
+    public boolean isCheckedIn() {
+        return checkedIn;
+    }
+
+    public void setCheckedIn(boolean checkedIn) {
+        this.checkedIn = checkedIn;
     }
 }

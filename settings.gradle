@@ -1,23 +1,20 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+    plugins {
+        id 'org.springframework.boot' version '3.2.0'
+        id 'io.spring.dependency-management' version '1.1.3'
+    }
+}
+
 rootProject.name = 'luckydraw-roo'
 
 include 'entity'
 include 'repository'
 include 'service'
 include 'controller'
-
-project(':entity').projectDir = file('entity')
-project(':repository').projectDir = file('repository')
-project(':service').projectDir = file('service')
-project(':controller').projectDir = file('controller')
-
-
-buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'org.springframework.boot:spring-boot-gradle-plugin:3.2.0'
-    }
-}
+include 'security'
 
 enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')

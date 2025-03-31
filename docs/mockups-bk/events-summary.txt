@@ -1,0 +1,170 @@
+Events Section Interface Summary
+=============================
+
+1. List View (/events)
+---------------------
+- Event listing with filters and sorting
+- Quick stats and status indicators
+- Expandable rows with detailed information:
+  • Location assignments
+  • Reward allocations
+  • Golden hours schedule
+  • Participant summary
+  • Today's performance metrics
+
+2. Detail View (/events/[id])
+---------------------------
+Basic Information:
+- Event name, code, status
+- Duration and schedule
+- Quick action buttons
+
+Tab Navigation:
+a) Locations
+   - Location assignments
+   - Capacity management
+   - Default win rates
+   - Operating hours
+
+b) Rewards
+   - Reward inventory
+   - Distribution rules
+   - Stock levels
+   - Winner tracking
+
+c) Golden Hours
+   - Schedule management
+   - Multiplier settings
+   - Status monitoring
+   - Performance tracking
+
+d) Participants
+   - Registration management
+   - Activity tracking
+   - Spin history
+   - Win records
+
+e) Spins
+   - Quick registration
+   - Spin processing
+   - Real-time monitoring
+   - Activity feed
+
+f) Statistics
+   - Performance metrics
+   - Win rate analysis
+   - Participation trends
+   - Location comparisons
+
+3. Settings Interface (/events/[id]/settings)
+-----------------------------------------
+a) General
+   - Basic configuration
+   - Status management
+   - Description
+   - Visibility settings
+
+b) Scheduling
+   - Event duration
+   - Operating hours
+   - Blackout dates
+   - Schedule overrides
+
+c) Win Rules
+   - Base probability
+   - Win limits
+   - Participant restrictions
+   - Golden hour rules
+
+d) Notifications
+   - Winner alerts
+   - Staff notifications
+   - Message templates
+   - Delivery channels
+
+e) Access Control
+   - Staff permissions
+   - Location access
+   - API integration
+   - Audit settings
+
+4. Spin Processing Interface
+--------------------------
+a) Registration Flow
+   - Quick lookup
+   - New registration
+   - QR code scanning
+   - Participant verification
+
+b) Spin Controls
+   - Spin button
+   - Real-time probability
+   - Golden hour status
+   - Reward eligibility
+
+c) Result Modals
+   - Win celebration
+   - Prize details
+   - Collection instructions
+   - Better luck message
+   - Error handling
+
+5. Audit System (/events/[id]/audit)
+---------------------------------
+a) System Changes
+   - Configuration updates
+   - Reward management
+   - Staff actions
+   - Setting modifications
+
+b) Participant Activity
+   - Registration events
+   - Spin results
+   - Prize claims
+   - Location visits
+
+c) System Events
+   - Scheduled operations
+   - System warnings
+   - Error logging
+   - Performance alerts
+
+d) Access History
+   - User actions
+   - API access
+   - Login tracking
+   - IP monitoring
+
+6. Common Features
+----------------
+a) Data Management
+   - Filtering
+   - Sorting
+   - Pagination
+   - Export options
+
+b) User Interface
+   - Responsive design
+   - Mobile compatibility
+   - Loading states
+   - Error handling
+
+c) Actions
+   - Bulk operations
+   - Quick edits
+   - Status updates
+   - Data export
+
+d) Monitoring
+   - Real-time updates
+   - Performance tracking
+   - System health
+   - User activity
+
+This structure provides a complete event management system with:
+- Comprehensive configuration options
+- Real-time operation monitoring
+- Detailed activity tracking
+- Strong audit capabilities
+- Flexible participant management
+- Robust reporting features

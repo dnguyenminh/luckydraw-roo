@@ -1,0 +1,158 @@
+Events Management - User Roles & Permissions
+=====================================
+
+1. System Roles
+-------------
+
+a) Event Administrator
+   Full access to event management including:
+   - Create/Edit/Delete events
+   - Configure win rules and probabilities
+   - Manage golden hours
+   - Access all reports and statistics
+   - Modify system settings
+   - View audit logs
+   - Manage staff access
+
+b) Event Manager
+   Operational management of events:
+   - Edit existing events
+   - Manage participants
+   - View statistics
+   - Process prize claims
+   - Monitor performance
+   - Generate reports
+   - View basic logs
+
+c) Location Staff
+   Day-to-day operations:
+   - Register participants
+   - Process spins
+   - View event details
+   - Handle prize claims
+   - Basic reporting
+   - Location-specific monitoring
+
+d) Viewer
+   Read-only access:
+   - View event details
+   - Access public reports
+   - Monitor statistics
+   - No operational access
+
+2. Permission Matrix
+-----------------
+
+Feature Access              | Admin | Manager | Staff | Viewer
+---------------------------|--------|----------|--------|-------
+Create Events              |   ✓    |    -     |    -    |   -
+Edit Events               |   ✓    |    ✓     |    -    |   -
+Delete Events             |   ✓    |    -     |    -    |   -
+View Events              |   ✓    |    ✓     |    ✓    |   ✓
+Manage Locations         |   ✓    |    ✓     |    -    |   -
+Configure Rewards        |   ✓    |    ✓     |    -    |   -
+Set Win Rules           |   ✓    |    -     |    -    |   -
+Manage Golden Hours     |   ✓    |    ✓     |    -    |   -
+Register Participants   |   ✓    |    ✓     |    ✓    |   -
+Process Spins          |   ✓    |    ✓     |    ✓    |   -
+Handle Prize Claims    |   ✓    |    ✓     |    ✓    |   -
+View Statistics       |   ✓    |    ✓     |    ✓    |   ✓
+Export Data          |   ✓    |    ✓     |    -    |   -
+Access Audit Logs    |   ✓    |    -     |    -    |   -
+Manage Staff Access  |   ✓    |    -     |    -    |   -
+
+3. Location-Based Permissions
+--------------------------
+
+Staff members can be assigned to:
+a) Multiple locations
+b) Single location
+c) Specific event locations
+
+Access Restrictions:
+- Can only view assigned location data
+- Can only process spins at assigned locations
+- Can only handle claims for assigned locations
+- Statistics limited to assigned scope
+
+4. Time-Based Restrictions
+-----------------------
+
+Operating Hours:
+- Access limited to configured event hours
+- Special permissions for off-hours
+- Emergency access protocols
+- Maintenance window access
+
+Session Management:
+- Automatic logout after inactivity
+- Concurrent session limits
+- IP-based access restrictions
+- Location-based authentication
+
+5. Data Access Controls
+--------------------
+
+Sensitive Information:
+- Full participant details (Admin/Manager only)
+- Win probabilities (Admin only)
+- Financial data (Admin only)
+- System configurations (Admin only)
+
+Report Access:
+- Public reports (All roles)
+- Operational reports (Staff+)
+- Financial reports (Manager+)
+- System reports (Admin only)
+
+6. Audit Requirements
+------------------
+
+All roles subject to:
+- Action logging
+- Access tracking
+- Change monitoring
+- Session recording
+
+Special audits for:
+- Probability changes
+- Prize claims
+- Manual overrides
+- System settings changes
+
+7. Emergency Protocols
+-------------------
+
+Override Capabilities:
+- Emergency stop (Admin/Manager)
+- System pause (Admin/Manager)
+- Force prize claim (Manager+)
+- Reset participant (Admin only)
+
+Special Situations:
+- System failures
+- Prize disputes
+- Capacity issues
+- Technical problems
+
+8. API Access Control
+------------------
+
+Integration Permissions:
+- Read-only access
+- Write access
+- Administrative access
+- Webhook configurations
+
+API Key Management:
+- Key generation
+- Access scoping
+- Usage monitoring
+- Rate limiting
+
+This role-based access control system ensures:
+- Proper segregation of duties
+- Operational efficiency
+- Security compliance
+- Audit trail maintenance
+- Scalable management

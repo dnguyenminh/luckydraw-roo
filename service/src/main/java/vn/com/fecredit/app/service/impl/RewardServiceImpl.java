@@ -95,4 +95,9 @@ public class RewardServiceImpl extends AbstractServiceImpl<Reward> implements Re
     public BigDecimal getMaximumRewardValueAtLocation(Long locationId) {
         return rewardRepository.getMaximumRewardValueAtLocation(locationId);
     }
+
+    @Override
+    public List<Reward> findByEventId(Long eventId) {
+        return rewardRepository.findByEventId(eventId);
+    }
 }

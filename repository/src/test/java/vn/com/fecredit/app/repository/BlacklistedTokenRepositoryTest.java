@@ -21,6 +21,7 @@ import jakarta.transaction.Transactional;
 import vn.com.fecredit.app.entity.BlacklistedToken;
 import vn.com.fecredit.app.entity.CommonStatus;
 import vn.com.fecredit.app.entity.User;
+import vn.com.fecredit.app.entity.enums.RoleType;
 import vn.com.fecredit.app.repository.config.TestConfig;
 
 @SpringBootTest
@@ -44,23 +45,12 @@ class BlacklistedTokenRepositoryTest {
     }
 
     private User createAndSaveUser() {
-        User user = User.builder()
-            .username("testUser")
-            .email("test@example.com")
-            .password("testPassword")
-            .fullName("Test User")
-            .enabled(true)
-            .accountExpired(false)
-            .accountLocked(false)
-            .credentialsExpired(false)
-            .status(CommonStatus.ACTIVE)
-            .version(0L)
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
-            .createdBy("system")
-            .updatedBy("system")
-            .roles(new HashSet<>())
-            .build();
+User user = new User();
+user.setUsername("testUser");
+user.setPassword("testPassword");
+user.setEmail("test@example.com");
+user.setRole(RoleType.ROLE_USER);
+user.setActive(true);
         entityManager.persist(user);
         entityManager.flush();
         return user;
@@ -171,23 +161,12 @@ class BlacklistedTokenRepositoryTest {
     void testFindAllValidTokens() {
         User user1 = createAndSaveUser();
         
-        User user2 = User.builder()
-            .username("testUser2")
-            .email("test2@example.com")
-            .password("testPassword")
-            .fullName("Test User 2")
-            .enabled(true)
-            .accountExpired(false)
-            .accountLocked(false)
-            .credentialsExpired(false)
-            .status(CommonStatus.ACTIVE)
-            .version(0L)
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
-            .createdBy("system")
-            .updatedBy("system")
-            .roles(new HashSet<>())
-            .build();
+User user2 = new User();
+user2.setUsername("testUser2");
+user2.setPassword("testPassword");
+user2.setEmail("test2@example.com");
+user2.setRole(RoleType.ROLE_USER);
+user2.setActive(true);
         entityManager.persist(user2);
         entityManager.flush();
 
@@ -234,23 +213,12 @@ class BlacklistedTokenRepositoryTest {
     void testDeleteExpiredTokens() {
         User user1 = createAndSaveUser();
         
-        User user2 = User.builder()
-            .username("testUser2")
-            .email("test2@example.com")
-            .password("testPassword")
-            .fullName("Test User 2")
-            .enabled(true)
-            .accountExpired(false)
-            .accountLocked(false)
-            .credentialsExpired(false)
-            .status(CommonStatus.ACTIVE)
-            .version(0L)
-            .createdAt(LocalDateTime.now())
-            .updatedAt(LocalDateTime.now())
-            .createdBy("system")
-            .updatedBy("system")
-            .roles(new HashSet<>())
-            .build();
+User user2 = new User();
+user2.setUsername("testUser2");
+user2.setPassword("testPassword");
+user2.setEmail("test2@example.com");
+user2.setRole(RoleType.ROLE_USER);
+user2.setActive(true);
         entityManager.persist(user2);
         entityManager.flush();
 

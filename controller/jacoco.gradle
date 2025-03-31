@@ -1,0 +1,89 @@
+apply plugin: 'jacoco'
+
+jacoco {
+    toolVersion = '0.8.10'
+}
+
+jacocoTestReport {
+    reports {
+        xml.required = false
+        csv.required = false
+        html.outputLocation = file("${buildDir}/reports/jacoco")
+    }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                // Configuration classes
+                '**/config/**',
+                // DTOs
+                '**/dto/**',
+                // Generated code
+                '**/generated/**',
+                // Entity classes
+                '**/entity/**',
+                // Model classes
+                '**/model/**',
+                // Exception classes
+                '**/exception/**',
+                // Constants
+                '**/constant/**',
+                // Main application class
+                '**/ControllerApplication.*'
+            ])
+        }))
+    }
+
+    // Dependencies for coverage reporting
+    dependencies {
+        jacocoAnt "org.jacoco:org.jacoco.ant:${jacoco.toolVersion}"
+        jacocoAgent "org.jacoco:org.jacoco.agent:${jacoco.toolVersion}"
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport
+    jacoco {
+        excludes = [
+            '**/config/**',
+            '**/dto/**',
+            '**/generated/**',
+            '**/entity/**',
+            '**/model/**',
+            '**/exception/**',
+            '**/constant/**',
+            '**/ControllerApplication.*'
+        ]
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.7
+            }
+
+            // Exclude classes from coverage requirements
+            excludes = [
+                '**/*Configuration*',
+                '**/*Properties*',
+                '**/*Exception*',
+                '**/*Dto*',
+                '**/*Entity*',
+                '**/*Constants*',
+                '**/*Application*'
+            ]
+        }
+    }
+}
+
+// Custom task to check coverage and fail build if below threshold
+task checkCoverage {
+    dependsOn test
+    dependsOn jacocoTestReport
+    dependsOn jacocoTestCoverageVerification
+}
+
+// Hook into the check lifecycle
+check.dependsOn checkCoverage

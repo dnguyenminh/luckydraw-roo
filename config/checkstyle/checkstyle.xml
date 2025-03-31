@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+          "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+          "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!-- Simplest possible Checkstyle configuration to start with -->
+<module name="Checker">
+    <!-- Use spaces instead of tabs -->
+    <property name="tabWidth" value="4"/>
+    
+    <!-- Ignore warnings from generated code -->
+    <module name="SuppressionFilter">
+        <property name="file" value="${config_loc}/suppressions.xml"/>
+        <property name="optional" value="true"/>
+    </module>
+    
+    <module name="TreeWalker">
+        <!-- Just check for unused imports to start -->
+        <module name="UnusedImports"/>
+    </module>
+</module>

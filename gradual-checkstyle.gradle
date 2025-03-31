@@ -1,0 +1,30 @@
+// This is a supplementary script to gradually enable Checkstyle once the configuration is verified
+
+allprojects {
+    afterEvaluate { project ->
+        if (project.plugins.hasPlugin('java')) {
+            // Apply checkstyle with minimal configuration
+            project.apply plugin: 'checkstyle'
+            
+            project.checkstyle {
+                toolVersion = '9.3' // Use a more stable version
+                configFile = rootProject.file('config/checkstyle/checkstyle.xml')
+                showViolations = true
+                ignoreFailures = true // Don't fail the build
+                maxWarnings = 1000 // High threshold to start
+            }
+            
+            // Skip tests for checkstyle initially
+            project.checkstyleTest.enabled = false
+            
+            // Add a task to check a single source file for testing
+            project.task('checkstyleSingleFile', type: Checkstyle) {
+                source = 'src/main/java' // Adjust if needed
+                include '**/*.java'
+                classpath = project.sourceSets.main.output
+                maxWarnings = 1000
+                ignoreFailures = true
+            }
+        }
+    }
+}

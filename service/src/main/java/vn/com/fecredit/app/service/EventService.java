@@ -13,4 +13,6 @@ public interface EventService extends AbstractService<Event> {
     List<Event> findUpcomingEvents(LocalDateTime now);
     List<Event> findPastEvents(LocalDateTime now);
     boolean isEventActive(Long eventId);
+
+    List<Event> findActiveEvents();
 }

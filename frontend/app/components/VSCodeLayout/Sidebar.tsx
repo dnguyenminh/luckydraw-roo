@@ -1,0 +1,84 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  Home, Users, Gift, Clock, Map, BarChart2, Settings, History, 
+  FileText, ChevronsRight, ChevronsLeft, Lock, Shield,
+  Circle
+} from 'lucide-react';
+import SidebarNavItem from './SidebarNavItem';
+
+interface SidebarProps {
+  minimized?: boolean;
+  onToggle?: () => void;
+}
+
+export default function Sidebar({ minimized = false, onToggle }: SidebarProps) {
+  const [collapsed, setCollapsed] = useState(minimized);
+  const pathname = usePathname();
+  
+  // Handle toggle from external control
+  useEffect(() => {
+    setCollapsed(minimized);
+  }, [minimized]);
+
+  const handleToggle = () => {
+    setCollapsed(!collapsed);
+    if (onToggle) onToggle();
+  };
+  
+  // Define sidebar navigation items
+  const navItems = [
+    { href: '/', icon: <Home />, label: 'Home' },
+    { href: '/events', icon: <FileText />, label: 'Events' },
+    { href: '/participants', icon: <Users />, label: 'Participants' },
+    { href: '/rewards', icon: <Gift />, label: 'Rewards' },
+    { href: '/golden-hours', icon: <Clock />, label: 'Golden Hours' },
+    { href: '/regions', icon: <Map />, label: 'Regions' },
+    { href: '/provinces', icon: <Map />, label: 'Provinces' },
+    { href: '/spin-history', icon: <History />, label: 'Spin History' },
+    { href: '/statistics', icon: <BarChart2 />, label: 'Statistics' },
+    { href: '/audit-log', icon: <FileText />, label: 'Audit Log' },
+    { href: '/users', icon: <Users />, label: 'Users' },
+    { href: '/roles', icon: <Shield />, label: 'Roles' },
+    { href: '/wheel', icon: <Circle />, label: 'Wheel' },
+  ];
+  
+  return (
+    <aside className={`h-full flex flex-col bg-[#252526] border-r border-[#3c3c3c] ${collapsed ? 'w-[56px]' : 'w-[240px]'}`}>
+      <div className="p-3">
+        <button 
+          className="w-full flex items-center justify-center p-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c] transition-all duration-200"
+          onClick={handleToggle}
+        >
+          {collapsed ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
+          {!collapsed && <span className="ml-2">Collapse</span>}
+        </button>
+      </div>
+      
+      <nav className="flex-1 overflow-y-auto">
+        <ul className="space-y-1 px-2">
+          {navItems.map((item) => (
+            <SidebarNavItem 
+              key={item.href}
+              href={item.href}
+              icon={item.icon}
+              label={item.label}
+              isActive={pathname === item.href}
+              collapsed={collapsed}
+            />
+          ))}
+        </ul>
+      </nav>
+      
+      <div className="p-3">
+        <div className={`flex items-center text-gray-400 ${collapsed ? 'justify-center' : 'justify-start'}`}>
+          <Lock size={16} />
+          {!collapsed && <span className="ml-2 text-xs">v1.0.0</span>}
+        </div>
+      </div>
+    </aside>
+  );
+}
