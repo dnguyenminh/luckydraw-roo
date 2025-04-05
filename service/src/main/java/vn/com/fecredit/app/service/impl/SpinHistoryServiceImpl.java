@@ -1,17 +1,17 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.SpinHistory;
-import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.SpinHistoryRepository;
 import vn.com.fecredit.app.service.SpinHistoryService;
 import vn.com.fecredit.app.service.base.AbstractServiceImpl;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -48,12 +48,6 @@ public class SpinHistoryServiceImpl extends AbstractServiceImpl<SpinHistory> imp
     public List<SpinHistory> findSpinsInTimeRange(
             Long participantEventId, LocalDateTime startTime, LocalDateTime endTime) {
         return spinHistoryRepository.findSpinsInTimeRange(participantEventId, startTime, endTime);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public BigDecimal calculateTotalWinnings(Long participantEventId) {
-        return spinHistoryRepository.calculateTotalWinnings(participantEventId);
     }
 
     @Override

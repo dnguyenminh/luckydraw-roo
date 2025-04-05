@@ -1,14 +1,36 @@
 package vn.com.fecredit.app.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotBlank;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.entity.base.StatusAware;
+
+/**
+ * Region entity representing geographical regions in the system.
+ * Regions contain provinces and event locations, forming a geographical hierarchy.
+ * This entity supports regional organization of events and participants.
+ */
 @Entity
 @Table(
     name = "regions",
@@ -26,34 +48,48 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Region extends AbstractStatusAwareEntity {
 
+    /**
+     * Name of the geographical region
+     */
     @NotBlank(message = "Region name is required")
     @Column(name = "name", nullable = false)
     private String name;
-    
+
+    /**
+     * Unique code identifier for this region
+     */
     @NotBlank(message = "Region code is required")
     @Column(name = "code", nullable = false, unique = true)
     @EqualsAndHashCode.Include
     private String code;
 
-    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL)
+    /**
+     * Description of the geographical region
+     */
+    @Column(name = "description")
+    private String description;
+
+    /**
+     * Provinces contained within this region
+     */
+    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<Province> provinces = new HashSet<>();
 
-    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL)
+    /**
+     * Event locations situated in this region
+     */
+    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private Set<EventLocation> eventLocations = new HashSet<>();
 
     /**
-     * Add a province to this region
+     * Add a province to this region with bidirectional relationship
      * @param province the province to add
      */
     public void addProvince(Province province) {
-        if (province != null) {
-            provinces.add(province);
-            if (province.getRegion() != this) {
-                province.setRegion(this);
-            }
-        }
+        provinces.add(province);
+        province.setRegion(this);
     }
 
     /**
@@ -61,24 +97,17 @@ public class Region extends AbstractStatusAwareEntity {
      * @param province the province to remove
      */
     public void removeProvince(Province province) {
-        if (province != null && provinces.remove(province)) {
-            if (province.getRegion() == this) {
-                province.setRegion(null);
-            }
-        }
+        provinces.remove(province);
+        province.setRegion(null);
     }
 
     /**
-     * Add an event location to this region
+     * Add an event location to this region with bidirectional relationship
      * @param location the location to add
      */
     public void addEventLocation(EventLocation location) {
-        if (location != null) {
-            eventLocations.add(location);
-            if (location.getRegion() != this) {
-                location.setRegion(this);
-            }
-        }
+        eventLocations.add(location);
+        location.setRegion(this);
     }
 
     /**
@@ -86,15 +115,12 @@ public class Region extends AbstractStatusAwareEntity {
      * @param location the location to remove
      */
     public void removeEventLocation(EventLocation location) {
-        if (location != null && eventLocations.remove(location)) {
-            if (location.getRegion() == this) {
-                location.setRegion(null);
-            }
-        }
+        eventLocations.remove(location);
+        location.setRegion(null);
     }
 
     /**
-     * Count active provinces in this region
+     * Get total active provinces in this region
      * @return count of active provinces
      */
     @Transient
@@ -105,13 +131,13 @@ public class Region extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Count active event locations in this region
+     * Get total active event locations in this region
      * @return count of active locations
      */
     @Transient
     public long getActiveEventLocationCount() {
         return eventLocations.stream()
-            .filter(l -> l.getStatus().isActive())
+            .filter(e -> e.getStatus().isActive())
             .count();
     }
 
@@ -130,12 +156,22 @@ public class Region extends AbstractStatusAwareEntity {
                 .anyMatch(p2 -> p1.equals(p2)));
     }
 
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
+    }
+
     /**
      * Validate region state
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
         if (code != null) {
             code = code.toUpperCase();
@@ -148,22 +184,29 @@ public class Region extends AbstractStatusAwareEntity {
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalStateException("Region code must be specified");
         }
-
-       
     }
 
     /**
-     * Set region status and cascade to event locations
+     * Set status with proper cascading to related entities
+     * @param status the new status
+     * @return this region for method chaining
      */
     @Override
-    public void setStatus(CommonStatus newStatus) {
-        boolean wasActive = getStatus().isActive();
-        super.setStatus(newStatus);
+    public StatusAware setStatus(CommonStatus status) {
+        super.setStatus(status);
         
-        // Cascade deactivation to event locations
-        if (wasActive && newStatus != null && !newStatus.isActive()) {
-            eventLocations.forEach(el -> el.setStatus(CommonStatus.INACTIVE));
+        // If region is inactive, cascade to provinces and event locations
+        if (status != null && !status.isActive()) {
+            if (provinces != null) {
+                provinces.forEach(province -> province.setStatus(CommonStatus.INACTIVE));
+            }
+            
+            if (eventLocations != null) {
+                eventLocations.forEach(location -> location.setStatus(CommonStatus.INACTIVE));
+            }
         }
+        
+        return this;
     }
 
     /**
@@ -172,13 +215,38 @@ public class Region extends AbstractStatusAwareEntity {
      */
     public void updateStatusBasedOnProvinces() {
         // Only check for deactivation if region is currently active
-        if (getStatus().isActive()) {
-            boolean allProvincesInactive = provinces.stream()
+        if (getStatus() != null && getStatus().isActive()) {
+            boolean allProvincesInactive = !provinces.isEmpty() && provinces.stream()
                 .allMatch(p -> !p.getStatus().isActive());
-                
+
             if (allProvincesInactive) {
                 setStatus(CommonStatus.INACTIVE);
             }
         }
+    }
+
+    /**
+     * Mark the region as active and propagate to related entities if needed
+     */
+    public void markAsActive() {
+        this.setStatus(CommonStatus.ACTIVE);
+    }
+
+    @Override
+    public void deactivate() {
+        super.deactivate();
+    }
+
+    /**
+     * Check if any provinces in this region are active
+     * @return true if at least one province is active
+     */
+    @Transient
+    public boolean hasActiveProvinces() {
+        if (provinces == null || provinces.isEmpty()) {
+            return false;
+        }
+        return provinces.stream()
+                .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
     }
 }

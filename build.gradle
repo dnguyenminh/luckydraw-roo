@@ -1,3 +1,8 @@
+// Properly clear initialization scripts using standard Java API
+buildscript {
+    gradle.startParameter.initScripts = new ArrayList<>()
+}
+
 plugins {
     id 'org.springframework.boot' version '3.2.0' apply false
     id 'io.spring.dependency-management' version '1.1.3' apply false
@@ -56,6 +61,15 @@ subprojects {
     dependencies {
         // Common dependencies can go here
         developmentOnly 'org.springframework.boot:spring-boot-devtools'
+        
+        // Add these dependency alignments to all subprojects
+        implementation 'org.hibernate.orm:hibernate-core:6.2.7.Final'
+        implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+        
+        // Testing dependencies
+        testImplementation 'org.springframework.boot:spring-boot-starter-test'
+        testImplementation 'org.mockito:mockito-core:5.3.1'
+        testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
     }
     
     // Add compiler options to suppress common warnings
@@ -95,6 +109,9 @@ dependencies {
     
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
 // Comment out Node-related configurations to fix build errors

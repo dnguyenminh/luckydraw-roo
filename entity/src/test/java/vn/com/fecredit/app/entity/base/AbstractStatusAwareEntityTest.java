@@ -1,14 +1,14 @@
 package vn.com.fecredit.app.entity.base;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import org.junit.jupiter.api.Test;
+
 import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.entity.Role;
 import vn.com.fecredit.app.entity.User;
-import vn.com.fecredit.app.entity.Participant;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static vn.com.fecredit.app.entity.CommonStatus.ACTIVE;
-import static vn.com.fecredit.app.entity.CommonStatus.INACTIVE;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class AbstractStatusAwareEntityTest extends BaseEntityTest {
 
@@ -16,37 +16,37 @@ class AbstractStatusAwareEntityTest extends BaseEntityTest {
     void status_ShouldBeHandledByAllEntities() {
         // Test Event
         Event event = new Event();
-        event.setStatus(ACTIVE);
-        assertEquals(ACTIVE, event.getStatus());
+        event.setStatus(CommonStatus.ACTIVE);
+        assertEquals(CommonStatus.ACTIVE, event.getStatus());
 
         // Test Role
         Role role = new Role();
-        role.setStatus(ACTIVE);
-        assertEquals(ACTIVE, role.getStatus());
+        role.setStatus(CommonStatus.ACTIVE);
+        assertEquals(CommonStatus.ACTIVE, role.getStatus());
 
         // Test User
         User user = new User();
-        user.setStatus(ACTIVE);
-        assertEquals(ACTIVE, user.getStatus());
+        user.setStatus(CommonStatus.ACTIVE);
+        assertEquals(CommonStatus.ACTIVE, user.getStatus());
 
         // Test Participant
         Participant participant = new Participant();
-        participant.setStatus(ACTIVE);
-        assertEquals(ACTIVE, participant.getStatus());
+        participant.setStatus(CommonStatus.ACTIVE);
+        assertEquals(CommonStatus.ACTIVE, participant.getStatus());
     }
 
     @Test
     void status_ShouldHandleActiveState() {
         Event event = new Event();
-        event.setStatus(ACTIVE);
-        assertEquals(ACTIVE, event.getStatus());
+        event.setStatus(CommonStatus.ACTIVE);
+        assertEquals(CommonStatus.ACTIVE, event.getStatus());
     }
 
     @Test
     void status_ShouldHandleInactiveState() {
         Event event = new Event();
-        event.setStatus(INACTIVE);
-        assertEquals(INACTIVE, event.getStatus());
+        event.setStatus(CommonStatus.INACTIVE);
+        assertEquals(CommonStatus.INACTIVE, event.getStatus());
     }
 
     @Test
@@ -54,10 +54,10 @@ class AbstractStatusAwareEntityTest extends BaseEntityTest {
         Event event1 = new Event();
         Event event2 = new Event();
 
-        event1.setStatus(ACTIVE);
-        event2.setStatus(INACTIVE);
+        event1.setStatus(CommonStatus.ACTIVE);
+        event2.setStatus(CommonStatus.INACTIVE);
 
-        assertEquals(ACTIVE, event1.getStatus());
-        assertEquals(INACTIVE, event2.getStatus());
+        assertEquals(CommonStatus.ACTIVE, event1.getStatus());
+        assertEquals(CommonStatus.INACTIVE, event2.getStatus());
     }
 }

@@ -1,127 +1,139 @@
-@startuml Request anh Response Structures for Table Components
+@startuml CommonAPIRequestAndResponse
 
-' Common API Request and Response Structures for Table Components
+' Common API Request and Response Models
 
-package "API Request Structures" {
-    class SortType<<enumeration>> {
-
-        +ASCENDING
-        +DESCENDING
-        +NONE
+namespace vn.com.fecredit.app.service.dto {
+    
+    enum ObjectType {
+        Event
+        Region
+        Province
+        Reward
+        GoldenHour
+        SpinHistory
+        AuditLog
+        Statistics
+        User
+        Role
+        Permission
+        Configuration
+        BlacklistedToken
+        EventLocation
+        Participant
+        ParticipantEvent
     }
-    class SortRequest {
-        +field: string
-        +sortType: SortType
+    
+    enum FetchStatus {
+        SUCCESS
+        NO_DATA
+        ERROR
+        INVALID_REQUEST
+        ACCESS_DENIED
     }
-
-    class FilterType<<enumeration>> {
-        +EQUALS
-        +NOT_EQUALS
-        +LESS_THAN
-        +LESS_THAN_OR_EQUALS
-        +GREATER_THAN
-        +GREATER_THAN_OR_EQUALS
-        +BETWEEN
-        +IN
-        +NOT_IN
+    
+    enum SortType {
+        ASCENDING
+        DESCENDING
+        NONE
     }
-    class FilterRequest {
-        +field: string
-        +filterType: FilterType
-        +minValue: string
-        +maxValue: string
+    
+    enum FilterType {
+        EQUALS
+        NOT_EQUALS
+        LESS_THAN
+        LESS_THAN_OR_EQUALS
+        GREATER_THAN
+        GREATER_THAN_OR_EQUALS
+        BETWEEN
+        IN
+        NOT_IN
     }
-    class  SearchRequest {
-        +field: string
-        +value: string
-    }
-
-    class ObjectType<<enumeration>> {
-        +Event
-        +Region
-        +Province
-        +Reward
-        +GoldenHour
-        +SpinHistory
-        +AuditLog
-        +Statis
-        +User
-        +Role
-    }
-
+    
     class TableFetchRequest {
-        +objectType: ObjectType
-        +page: number
-        +size: number
-        +sorts: List<SortRequest>
-        +filters: List<FilterRequest>
-        +search: Map<String, String>
+        ObjectType objectType
+        String entityName
+        int page
+        int size
+        List<SortRequest> sorts
+        List<FilterRequest> filters
+        Map<String, String> search
     }
-
-    class TableRow {
-        +data: JsonObject
-    }
-
-    class TabTableRow{
-        +relatedTables: Map(String, TableRow)
-    }
-
-
-    class FieldType<<enumeration>> {
-
-        +STRING
-        +NUMBER
-        +BOOLEAN
-        +DATE
-        +DATETIME
-        +TIME
-        +OBJECT
-    }
-
-    class ColumnInfo {
-        +fieldName: String
-        +fieldType: String
-        +sortType: SortType
-    }
-
-    class DataObject {
-        +objectType: ObjectType
-        +fieldNameMap: Map(String, ColumnInfo)
-        +description: String
-        data: JsonObject
-    }
-
-    class TableInfo{
-        +totalPage: number
-        +currentPage: number
-        +pageSize: number
-        +totalElements: number
-        +tableName:String
-        +fieldNameMap: Map(String, ColumnInfo)
-        +rows: List<TableRow>
-        +relatedLinkedObjects: Map(String, DataObject)
-    }
-
-    class ChartInfo {
-        +chartName: String
-        +chartType: String
-        +chartData: Map(String, List<String>)
-    }
-
-    class StatitisInfo {
-        +charts:Map(String, List<ChartInfo>)
-    }
-
+    
     class TableFetchResponse {
-        +originalRequest: TableFetchRequest
-        +statitis: StatitisInfo
+        TableFetchRequest originalRequest
+        StatisticsInfo statistics
     }
-
-    TableInfo <|-- TableFetchResponse
-    TableInfo "1"-"*" TableRow
-    TableFetchRequest "1"--"*" SortRequest
-    TableFetchRequest "1"--"*" FilterRequest
-    TableFetchRequest "1"--"0..1" SearchRequest
-    TableRow <|- TabTableRow
+    
+    class TableInfo {
+        FetchStatus status
+        String message
+        Integer totalPage
+        Integer currentPage
+        Integer pageSize
+        Long totalElements
+        String tableName
+        Map<String, ColumnInfo> fieldNameMap
+        List<TableRow> rows
+        Map<String, DataObject> relatedLinkedObjects
+    }
+    
+    class TableRow {
+        Map<String, Object> data
+    }
+    
+    class TabTableRow {
+        List<String> relatedTables
+        boolean hasRelatedTables()
+        TabTableRow addRelatedTable(String tableName)
+    }
+    
+    class FilterRequest {
+        String field
+        FilterType filterType
+        String minValue
+        String maxValue
+    }
+    
+    class SortRequest {
+        String field
+        SortType sortType
+    }
+    
+    class ColumnInfo {
+        String fieldName
+        String fieldType
+        SortType sortType
+    }
+    
+    class StatisticsInfo {
+        Map<String, List<ChartInfo>> charts
+    }
+    
+    class ChartInfo {
+        String chartName
+        String chartType
+        Map<String, List<String>> chartData
+    }
+    
+    class DataObject {
+        ObjectType objectType
+        Map<String, ColumnInfo> fieldNameMap
+        String description
+        Map<String, Object> data
+        Integer order
+    }
+    
+    TableFetchResponse --|> TableInfo
+    TabTableRow --|> TableRow
+    TableFetchResponse --> TableFetchRequest
+    TableFetchResponse --> StatisticsInfo
+    TableFetchRequest --> ObjectType
+    TableInfo --> FetchStatus
+    TableFetchRequest --> SortRequest
+    TableFetchRequest --> FilterRequest
+    SortRequest --> SortType
+    FilterRequest --> FilterType
+    StatisticsInfo --> ChartInfo
 }
+
 @enduml

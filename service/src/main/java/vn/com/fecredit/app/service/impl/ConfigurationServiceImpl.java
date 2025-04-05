@@ -1,19 +1,20 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.entity.Configuration;
-import vn.com.fecredit.app.entity.CommonStatus;
-import vn.com.fecredit.app.repository.ConfigurationRepository;
-import vn.com.fecredit.app.service.ConfigurationService;
-import vn.com.fecredit.app.service.base.AbstractServiceImpl;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.Configuration;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.repository.ConfigurationRepository;
+import vn.com.fecredit.app.service.ConfigurationService;
+import vn.com.fecredit.app.service.base.AbstractServiceImpl;
 
 @Slf4j
 @Service

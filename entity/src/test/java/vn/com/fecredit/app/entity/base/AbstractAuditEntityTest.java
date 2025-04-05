@@ -42,6 +42,7 @@ class AbstractAuditEntityTest extends BaseEntityTest {
         @Test
         @DisplayName("toBuilder should perform deep copy")
         void toBuilder_ShouldPerformDeepCopy() {
+            // Given
             ComplexTestEntity original = ComplexTestEntity.builder()
                     .id(1L)
                     .createdBy("creator")
@@ -55,15 +56,21 @@ class AbstractAuditEntityTest extends BaseEntityTest {
             original.getTags().addAll(Arrays.asList("tag1", "tag2"));
             original.getMetadata().put("key", "value");
 
+            // When - create a copy and explicitly copy the audit fields
             ComplexTestEntity copy = original.toBuilder()
                     .tags(new ArrayList<>(original.getTags()))
                     .metadata(new HashMap<>(original.getMetadata()))
+                    .createdAt(original.getCreatedAt())  // Explicitly copy audit fields
+                    .createdBy(original.getCreatedBy())
+                    .updatedAt(original.getUpdatedAt())
+                    .updatedBy(original.getUpdatedBy())
                     .build();
 
             // Modify original collections
             original.getTags().add("tag3");
             original.getMetadata().put("newKey", "newValue");
 
+            // Then
             assertAll(
                     "Deep copy should be independent",
                     () -> assertNotSame(original.getTags(), copy.getTags(), "Tags list should be different instances"),
@@ -147,8 +154,10 @@ class AbstractAuditEntityTest extends BaseEntityTest {
     @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
     private static class TestAuditEntity extends AbstractAuditEntity {
+        @SuppressWarnings("unused")
         private static final long serialVersionUID = 1L;
         private Long id;
+        
     }
 
     @Data

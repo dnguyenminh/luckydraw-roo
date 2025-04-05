@@ -70,6 +70,7 @@ classDiagram
 ```mermaid
 classDiagram
     User "*" -- "*" Role
+    Role "*" -- "*" Permission
     User "1" -- "*" BlacklistedToken
 
     class User {
@@ -81,6 +82,11 @@ classDiagram
     class Role {
         +String name
         +String code
+        +String description
+        +Integer displayOrder
+    }
+    class Permission {
+        +String name
         +String description
         +Integer displayOrder
     }

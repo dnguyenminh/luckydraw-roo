@@ -1,18 +1,19 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.Reward;
-import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.RewardRepository;
 import vn.com.fecredit.app.service.RewardService;
 import vn.com.fecredit.app.service.base.AbstractServiceImpl;
 import vn.com.fecredit.app.service.exception.EntityNotFoundException;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service

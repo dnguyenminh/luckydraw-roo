@@ -1,6 +1,5 @@
 package vn.com.fecredit.app.controller.auth;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -10,8 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import vn.com.fecredit.app.controller.auth.dto.AuthRequest;
 import vn.com.fecredit.app.controller.auth.dto.AuthResponse;
-import vn.com.fecredit.app.dto.RegisterRequest;
 import vn.com.fecredit.app.service.UserService;
+import vn.com.fecredit.app.service.dto.RegisterRequest;
 import vn.com.fecredit.app.security.JwtTokenProvider;
 
 import jakarta.validation.Valid;
@@ -50,7 +49,7 @@ public class AuthenticationController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest registerRequest) {
-        vn.com.fecredit.app.dto.RegisterRequest serviceRegisterRequest = new vn.com.fecredit.app.dto.RegisterRequest();
+        vn.com.fecredit.app.service.dto.RegisterRequest serviceRegisterRequest = new vn.com.fecredit.app.service.dto.RegisterRequest();
         serviceRegisterRequest.setUsername(registerRequest.getUsername());
         serviceRegisterRequest.setEmail(registerRequest.getEmail());
         serviceRegisterRequest.setPassword(registerRequest.getPassword());

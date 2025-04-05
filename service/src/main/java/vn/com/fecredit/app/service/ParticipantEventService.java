@@ -1,11 +1,11 @@
 package vn.com.fecredit.app.service;
 
-import vn.com.fecredit.app.entity.ParticipantEvent;
-import vn.com.fecredit.app.entity.CommonStatus;
-import vn.com.fecredit.app.service.base.AbstractService;
-
 import java.util.List;
 import java.util.Optional;
+
+import vn.com.fecredit.app.entity.ParticipantEvent;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.service.base.AbstractService;
 
 public interface ParticipantEventService extends AbstractService<ParticipantEvent> {
     List<ParticipantEvent> findByEventId(Long eventId);

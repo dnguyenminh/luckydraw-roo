@@ -1,33 +1,21 @@
 package vn.com.fecredit.app.repository;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.transaction.annotation.Transactional;
-
-import vn.com.fecredit.app.entity.*;
-import vn.com.fecredit.app.repository.config.TestConfig;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
-// @DataJpaTest
-@SpringBootTest
-@ContextConfiguration(classes = TestConfig.class)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@ActiveProfiles("test")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@Transactional // Add this annotation to ensure all test methods run in a transaction
-public class ProvinceRepositoryTest {
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import vn.com.fecredit.app.entity.Province;
+import vn.com.fecredit.app.entity.Region;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+
+public class ProvinceRepositoryTest extends AbstractRepositoryTest {
 
     @Autowired
     private ProvinceRepository provinceRepository;
@@ -88,45 +76,45 @@ public class ProvinceRepositoryTest {
     private Region createRegion(String code, String name) {
         LocalDateTime now = LocalDateTime.now();
         return Region.builder()
-            .code(code)
-            .name(name)
-            .status(CommonStatus.ACTIVE)
-            .provinces(new HashSet<>())
-            .eventLocations(new HashSet<>())
-            .version(0L)
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
+                .code(code)
+                .name(name)
+                .status(CommonStatus.ACTIVE)
+                .provinces(new HashSet<>())
+                .eventLocations(new HashSet<>())
+                .version(0L)
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("test-user")
+                .updatedBy("test-user")
+                .build();
     }
 
     private Province createProvince(String code, String name, Region region, CommonStatus status) {
         LocalDateTime now = LocalDateTime.now();
         return Province.builder()
-            .code(code)
-            .name(name)
-            .region(region)
-            .status(status)
-            .version(0L)
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
+                .code(code)
+                .name(name)
+                .region(region)
+                .status(status)
+                .version(0L)
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("test-user")
+                .updatedBy("test-user")
+                .build();
     }
 
     @Test
     void findByCode_ShouldReturnProvince_WhenExists() {
         var result = provinceRepository.findByCode("HN");
-        
+
         assertThat(result)
-            .isPresent()
-            .hasValueSatisfying(province -> {
-                assertThat(province.getName()).isEqualTo("Ha Noi");
-                assertThat(province.getStatus()).isEqualTo(CommonStatus.ACTIVE);
-                assertThat(province.getRegion().getCode()).isEqualTo("NORTH");
-            });
+                .isPresent()
+                .hasValueSatisfying(province -> {
+                    assertThat(province.getName()).isEqualTo("Ha Noi");
+                    assertThat(province.getStatus()).isEqualTo(CommonStatus.ACTIVE);
+                    assertThat(province.getRegion().getCode()).isEqualTo("NORTH");
+                });
     }
 
     @Test
@@ -139,47 +127,47 @@ public class ProvinceRepositoryTest {
     void findByRegion_ShouldReturnAllProvincesInRegion() {
         var northProvinces = provinceRepository.findByRegion(northRegion);
         assertThat(northProvinces)
-            .hasSize(3)
-            .extracting("code")
-            .containsExactlyInAnyOrder("HN", "BN", "IP");
+                .hasSize(3)
+                .extracting("code")
+                .containsExactlyInAnyOrder("HN", "BN", "IP");
 
         var southProvinces = provinceRepository.findByRegion(southRegion);
         assertThat(southProvinces)
-            .hasSize(1)
-            .extracting("code")
-            .containsExactly("HCM");
+                .hasSize(1)
+                .extracting("code")
+                .containsExactly("HCM");
     }
 
     @Test
     void findByRegionAndStatus_ShouldReturnFilteredProvinces() {
         var activeNorthProvinces = provinceRepository.findByRegionAndStatus(
-            northRegion, CommonStatus.ACTIVE);
+                northRegion, CommonStatus.ACTIVE);
         assertThat(activeNorthProvinces)
-            .hasSize(2)
-            .extracting("code")
-            .containsExactlyInAnyOrder("HN", "BN");
+                .hasSize(2)
+                .extracting("code")
+                .containsExactlyInAnyOrder("HN", "BN");
 
         var inactiveNorthProvinces = provinceRepository.findByRegionAndStatus(
-            northRegion, CommonStatus.INACTIVE);
+                northRegion, CommonStatus.INACTIVE);
         assertThat(inactiveNorthProvinces)
-            .hasSize(1)
-            .extracting("code")
-            .containsExactly("IP");
+                .hasSize(1)
+                .extracting("code")
+                .containsExactly("IP");
     }
 
     @Test
     void findActiveProvincesByRegion_ShouldReturnOnlyActiveProvinces() {
         var activeNorthProvinces = provinceRepository.findActiveProvincesByRegion(northRegion.getId());
         assertThat(activeNorthProvinces)
-            .hasSize(2)
-            .extracting("code")
-            .containsExactlyInAnyOrder("HN", "BN");
+                .hasSize(2)
+                .extracting("code")
+                .containsExactlyInAnyOrder("HN", "BN");
 
         var activeSouthProvinces = provinceRepository.findActiveProvincesByRegion(southRegion.getId());
         assertThat(activeSouthProvinces)
-            .hasSize(1)
-            .extracting("code")
-            .containsExactly("HCM");
+                .hasSize(1)
+                .extracting("code")
+                .containsExactly("HCM");
     }
 
     @Test

@@ -1,51 +1,102 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.entity.Role;
-import vn.com.fecredit.app.entity.CommonStatus;
-import vn.com.fecredit.app.entity.enums.RoleName;
-import vn.com.fecredit.app.repository.RoleRepository;
-import vn.com.fecredit.app.service.RoleService;
-import vn.com.fecredit.app.service.base.AbstractServiceImpl;
-
 import java.util.List;
 import java.util.Optional;
 
-@Slf4j
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.Role;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.entity.enums.RoleType;
+import vn.com.fecredit.app.repository.RoleRepository;
+import vn.com.fecredit.app.service.RoleService;
+
+/**
+ * Implementation of the RoleService interface.
+ * Provides business logic for role management operations.
+ */
 @Service
+@Slf4j
+@RequiredArgsConstructor
 @Transactional
-public class RoleServiceImpl extends AbstractServiceImpl<Role> implements RoleService {
-
+public class RoleServiceImpl implements RoleService {
+    
     private final RoleRepository roleRepository;
-
-    public RoleServiceImpl(RoleRepository roleRepository) {
-        super(roleRepository);
-        this.roleRepository = roleRepository;
+    
+    @Override
+    public Role save(Role role) {
+        log.debug("Saving Role: {}", role);
+        return roleRepository.save(role);
     }
-
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Role> findById(Long id) {
+        log.debug("Finding Role by ID: {}", id);
+        return roleRepository.findById(id);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Role> findByRoleType(RoleType roleType) {
+        log.debug("Finding Role by type: {}", roleType);
+        return roleRepository.findByRoleType(roleType);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<Role> findAll() {
+        log.debug("Finding all Roles");
+        return roleRepository.findAll();
+    }
+    
     @Override
     @Transactional(readOnly = true)
     public List<Role> findByStatus(CommonStatus status) {
+        log.debug("Finding Roles by status: {}", status);
         return roleRepository.findByStatus(status);
     }
-
+    
     @Override
     @Transactional(readOnly = true)
-    public Optional<Role> findByRoleName(RoleName name) {
-        return roleRepository.findByRoleName(name);
+    public List<Role> findByStatusOrdered(CommonStatus status) {
+        log.debug("Finding Roles by status ordered by display order: {}", status);
+        return roleRepository.findByStatusOrderByDisplayOrderAsc(status);
     }
-
+    
     @Override
     @Transactional(readOnly = true)
-    public List<Role> findByDisplayOrderGreaterThan(Integer minOrder) {
-        return roleRepository.findByDisplayOrderGreaterThan(minOrder);
+    public boolean existsByRoleType(RoleType roleType) {
+        log.debug("Checking if Role exists by type: {}", roleType);
+        return roleRepository.existsByRoleType(roleType);
     }
-
+    
+    @Override
+    public void delete(Role role) {
+        log.debug("Deleting Role: {}", role);
+        roleRepository.delete(role);
+    }
+    
+    @Override
+    public void deleteById(Long id) {
+        log.debug("Deleting Role by ID: {}", id);
+        roleRepository.deleteById(id);
+    }
+    
     @Override
     @Transactional(readOnly = true)
-    public List<Role> findByUserEmail(String userEmail) {
-        return roleRepository.findByUsersEmail(userEmail);
+    public List<Role> findByUserId(Long userId) {
+        log.debug("Finding Roles by user ID: {}", userId);
+        return roleRepository.findByUserId(userId);
+    }
+    
+    @Override
+    @Transactional(readOnly = true)
+    public List<Role> findByPermissionName(String permissionName) {
+        log.debug("Finding Roles by permission name: {}", permissionName);
+        return roleRepository.findByPermissionName(permissionName);
     }
 }

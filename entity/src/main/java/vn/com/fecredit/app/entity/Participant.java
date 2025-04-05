@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -130,12 +131,22 @@ public class Participant extends AbstractStatusAwareEntity {
             .anyMatch(pe -> pe.getStatus().isActive() && pe.getEvent().isActive());
     }
 
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
+    }
+
     /**
      * Validate participant state
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
         if (code != null) {
             code = code.toUpperCase();
@@ -152,11 +163,11 @@ public class Participant extends AbstractStatusAwareEntity {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalStateException("Name is required");
         }
-        
+
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalStateException("Code is required");
         }
-        
+
         if (province == null) {
             throw new IllegalStateException("Province is required");
         }

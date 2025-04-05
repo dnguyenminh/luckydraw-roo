@@ -1,12 +1,19 @@
 package vn.com.fecredit.app.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class SpinHistoryTest {
     @SuppressWarnings("unused") // Field used for test setup
@@ -14,12 +21,11 @@ class SpinHistoryTest {
 
     private SpinHistory spinHistory;
     private ParticipantEvent participantEvent;
-    private Reward reward;
 
     @BeforeEach
     void setUp() {
         LocalDateTime now = LocalDateTime.now();
-        
+
         Event event = Event.builder()
                 .name("Test Event")
                 .code("TEST_EVENT")
@@ -43,10 +49,9 @@ class SpinHistoryTest {
                 .status(CommonStatus.ACTIVE)
                 .build();
 
-        reward = Reward.builder()
+        Reward.builder()
                 .name("Test Reward")
                 .code("TEST_REWARD")
-                .value(BigDecimal.valueOf(100))
                 .quantity(10)
                 .winProbability(0.5)
                 .eventLocation(location)
@@ -85,39 +90,20 @@ class SpinHistoryTest {
     }
 
     @Test
-    void testCalculateEffectiveValue() {
-        // No reward, should be zero
-        assertThat(spinHistory.calculateEffectiveValue()).isEqualByComparingTo(BigDecimal.ZERO);
-        
-        // With reward but not a win, should be zero
-        spinHistory.setReward(reward);
-        spinHistory.setWin(false);
-        assertThat(spinHistory.calculateEffectiveValue()).isEqualByComparingTo(BigDecimal.ZERO);
-        
-        // With reward and win, normal multiplier
-        spinHistory.setWin(true);
-        assertThat(spinHistory.calculateEffectiveValue()).isEqualByComparingTo(BigDecimal.valueOf(100));
-        
-        // With golden hour multiplier
-        spinHistory.setMultiplier(BigDecimal.valueOf(2.5));
-        assertThat(spinHistory.calculateEffectiveValue()).isEqualByComparingTo(BigDecimal.valueOf(250));
-    }
-
-    @Test
     void testDefaultMultiplier() {
         SpinHistory newHistory = SpinHistory.builder()
                 .participantEvent(participantEvent)
                 .spinTime(LocalDateTime.now())
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         assertThat(newHistory.getMultiplier()).isEqualByComparingTo(BigDecimal.ONE);
     }
 
     @Test
     void testWinFlag() {
         assertFalse(spinHistory.isWin());
-        
+
         spinHistory.setWin(true);
         assertTrue(spinHistory.isWin());
     }
@@ -151,4 +137,20 @@ class SpinHistoryTest {
             spinHistory.validateState();
         });
     }
+
+    @Test
+    void testWin() {
+        // Use the specific setter method for win flag
+        spinHistory.setWin(true);
+        assertTrue(spinHistory.isWin(), "isWin() should return true after setWin(true)");
+
+        spinHistory.setWin(false);
+        assertFalse(spinHistory.isWin(), "isWin() should return false after setWin(false)");
+
+        // Test the builder-style method
+        SpinHistory result = spinHistory.win(true);
+        assertTrue(spinHistory.isWin(), "isWin() should return true after win(true)");
+        assertEquals(spinHistory, result, "win() should return same object for chaining");
+    }
+
 }

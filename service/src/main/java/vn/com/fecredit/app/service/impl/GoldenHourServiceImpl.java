@@ -1,16 +1,17 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.GoldenHour;
-import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.GoldenHourRepository;
 import vn.com.fecredit.app.service.GoldenHourService;
 import vn.com.fecredit.app.service.base.AbstractServiceImpl;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Service

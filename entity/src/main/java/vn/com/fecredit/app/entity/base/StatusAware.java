@@ -1,51 +1,29 @@
 package vn.com.fecredit.app.entity.base;
 
-import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
- * Interface for entities that have a status field.
- * Keeps the contract focused only on status-related operations.
+ * Interface for entities that maintain a status field.
+ * Provides methods to get and set status, and to check if an entity is active.
  */
 public interface StatusAware {
+    
     /**
-     * Get the current status of the entity
+     * Get the status of this entity
      * @return the current status
      */
     CommonStatus getStatus();
-
+    
     /**
-     * Set the status of the entity
+     * Set the status of this entity
      * @param status the new status
+     * @return this entity for chaining
      */
-    void setStatus(CommonStatus status);
+    StatusAware setStatus(CommonStatus status);
     
     /**
-     * Check if the entity is active
-     * @return true if the status is ACTIVE
+     * Check if this entity is active
+     * @return true if status is ACTIVE
      */
-    default boolean isActive() {
-        return getStatus() == CommonStatus.ACTIVE;
-    }
-    
-    /**
-     * Check if the entity is deleted
-     * @return true if the status is DELETED
-     */
-    default boolean isDeleted() {
-        return getStatus() == CommonStatus.DELETED;
-    }
-    
-    /**
-     * Mark the entity as deleted
-     */
-    default void markAsDeleted() {
-        setStatus(CommonStatus.DELETED);
-    }
-    
-    /**
-     * Mark the entity as active
-     */
-    default void markAsActive() {
-        setStatus(CommonStatus.ACTIVE);
-    }
+    boolean isActive();
 }

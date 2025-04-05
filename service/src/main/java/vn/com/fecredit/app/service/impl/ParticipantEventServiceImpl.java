@@ -1,16 +1,17 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.ParticipantEvent;
-import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.ParticipantEventRepository;
 import vn.com.fecredit.app.service.ParticipantEventService;
 import vn.com.fecredit.app.service.base.AbstractServiceImpl;
-
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -51,7 +52,9 @@ public class ParticipantEventServiceImpl extends AbstractServiceImpl<Participant
     @Override
     @Transactional(readOnly = true)
     public Optional<ParticipantEvent> findByEventIdAndParticipantId(Long eventId, Long participantId) {
-        return participantEventRepository.findByEventIdAndParticipantId(eventId, participantId);
+        return participantEventRepository.findByParticipantIdAndEventId(participantId, eventId)
+            .stream()
+            .findFirst(); // Convert List to Optional
     }
 
     @Override

@@ -1,11 +1,6 @@
 package vn.com.fecredit.app.service;
 
-import vn.com.fecredit.app.entity.enums.ActionType;
-import vn.com.fecredit.app.service.dto.ActionCountDTO;
-import vn.com.fecredit.app.service.dto.UserActivityDTO;
-
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -14,57 +9,83 @@ import java.util.Map;
 public interface AuditLogStatisticsService {
     
     /**
-     * Count actions by type within a given time range.
-     *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
-     * @return a map of action types to their counts
+     * Get statistics on action types within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return statistics data by action type
      */
-    Map<ActionType, Long> countActionsByType(LocalDateTime startTime, LocalDateTime endTime);
+    Map<String, Long> getActionTypeStatistics(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
-     * Get a breakdown of actions with counts within a time range.
-     *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
-     * @return a list of DTOs containing action types and their counts
+     * Get user activity statistics within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return statistics data by user
      */
-    List<ActionCountDTO> getActionBreakdown(LocalDateTime startTime, LocalDateTime endTime);
+    Map<String, Long> getUserStatistics(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
-     * Get user activity statistics within a time range.
-     *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
-     * @return a list of DTOs containing username and action counts
+     * Get statistics on entity types within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return statistics data by entity type
      */
-    List<UserActivityDTO> getUserActivity(LocalDateTime startTime, LocalDateTime endTime);
+    Map<String, Long> getEntityTypeStatistics(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
-     * Get the most active users within a time range.
-     *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
-     * @param limit the maximum number of users to return
-     * @return a list of DTOs containing username and action counts, sorted by count descending
+     * Get hourly statistics within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return statistics data by hour
      */
-    List<UserActivityDTO> getMostActiveUsers(LocalDateTime startTime, LocalDateTime endTime, int limit);
+    Map<Integer, Long> getHourlyStatistics(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
-     * Get the most modified entities within a time range.
-     *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
-     * @return a map of entity types to their modification counts
+     * Count actions by type within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return count of actions by type
+     */
+    Map<String, Long> countActionsByType(LocalDateTime startTime, LocalDateTime endTime);
+    
+    /**
+     * Get most active users within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @param limit maximum number of users to return
+     * @return map of usernames to action counts
+     */
+    Map<String, Long> getMostActiveUsers(LocalDateTime startTime, LocalDateTime endTime, int limit);
+    
+    /**
+     * Get activity timeline within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return timeline data
+     */
+    Map<LocalDateTime, Long> getActivityTimeline(LocalDateTime startTime, LocalDateTime endTime);
+    
+    /**
+     * Get most modified entities within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return entity modification counts
      */
     Map<String, Long> getMostModifiedEntities(LocalDateTime startTime, LocalDateTime endTime);
     
     /**
-     * Get an hourly activity timeline within a time range.
-     *
-     * @param startTime the start of the time range
-     * @param endTime the end of the time range
-     * @return a map of hours to action counts
+     * Get action breakdown by type within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return action breakdown data
      */
-    Map<Integer, Long> getActivityTimeline(LocalDateTime startTime, LocalDateTime endTime);
+    Map<String, Long> getActionBreakdown(LocalDateTime startTime, LocalDateTime endTime);
+    
+    /**
+     * Get user activity details within a time range
+     * @param startTime start of time range
+     * @param endTime end of time range
+     * @return user activity data by user and action type
+     */
+    Map<String, Map<String, Long>> getUserActivity(LocalDateTime startTime, LocalDateTime endTime);
 }

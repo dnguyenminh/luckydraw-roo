@@ -1,164 +1,139 @@
-import { TableFetchResponse, FieldType, SortType } from './interfaces';
+import { 
+  TableFetchResponse, 
+  Column, 
+  FieldType, 
+  SortType, 
+  ObjectType,
+  RelatedLinkedObjectsMap,
+  RelatedLinkedObject
+} from './interfaces';
 import { mockRegionTable } from './regions';
 import { mockProvinceTable } from './provinces';
 
-// Mock golden hour table data
+// Define columns for the golden hours table
+const goldenHourColumns: Column[] = [
+  { fieldName: 'id', fieldType: FieldType.NUMBER, sortType: SortType.ASCENDING, displayName: 'ID', filterable: true },
+  { fieldName: 'name', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Name', filterable: true },
+  { fieldName: 'startTime', fieldType: FieldType.TIME, sortType: SortType.NONE, displayName: 'Start Time', filterable: true },
+  { fieldName: 'endTime', fieldType: FieldType.TIME, sortType: SortType.NONE, displayName: 'End Time', filterable: true },
+  { fieldName: 'startDate', fieldType: FieldType.DATE, sortType: SortType.NONE, displayName: 'Start Date', filterable: true },
+  { fieldName: 'endDate', fieldType: FieldType.DATE, sortType: SortType.NONE, displayName: 'End Date', filterable: true },
+  { fieldName: 'multiplier', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Multiplier', filterable: true },
+  { fieldName: 'status', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Status', filterable: true }
+];
+
+// Create related linked objects for golden hours
+const goldenHourRelatedObjects: RelatedLinkedObjectsMap = {
+  events: {
+    '1': [
+      { objectType: ObjectType.EVENT, id: 1, name: 'Summer Giveaway' }
+    ],
+    '2': [
+      { objectType: ObjectType.EVENT, id: 1, name: 'Summer Giveaway' }
+    ],
+    '3': [
+      { objectType: ObjectType.EVENT, id: 2, name: 'Winter Wonderland' }
+    ],
+    '4': [
+      { objectType: ObjectType.EVENT, id: 3, name: 'Spring Festival' }
+    ]
+  }
+};
+
+// Create mock golden hours data
 export const mockGoldenHourTable: TableFetchResponse = {
-  totalPages: 2,
+  totalPages: 1,
   currentPage: 0,
   pageSize: 10,
-  totalElements: 12,
-  tableName: "golden_hours",
-  columns: [
-    { 
-      fieldName: "id", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "ID",
-      filterable: false
-    },
-    { 
-      fieldName: "name", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Name",
-      filterable: true
-    },
-    { 
-      fieldName: "startTime", 
-      fieldType: FieldType.TIME, 
-      sortType: SortType.ASCENDING,
-      displayName: "Start Time",
-      filterable: true
-    },
-    { 
-      fieldName: "endTime", 
-      fieldType: FieldType.TIME, 
-      sortType: SortType.ASCENDING,
-      displayName: "End Time",
-      filterable: true
-    },
-    { 
-      fieldName: "startDate", 
-      fieldType: FieldType.DATE, 
-      sortType: SortType.ASCENDING,
-      displayName: "Start Date",
-      filterable: true
-    },
-    { 
-      fieldName: "endDate", 
-      fieldType: FieldType.DATE, 
-      sortType: SortType.ASCENDING,
-      displayName: "End Date",
-      filterable: true
-    },
-    { 
-      fieldName: "multiplier", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "Multiplier",
-      filterable: true
-    },
-    { 
-      fieldName: "status", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Status",
-      filterable: true
-    }
-  ],
+  totalElements: 4,
+  tableName: 'golden_hours',
+  columns: goldenHourColumns,
   rows: [
     {
-      data: { 
-        id: 1, 
-        name: "Evening Rush", 
-        startTime: "18:00", 
-        endTime: "19:00", 
-        startDate: "2023-09-01",
-        endDate: "2023-11-30",
+      data: {
+        id: 1,
+        name: 'Morning Rush',
+        startTime: '08:00:00',
+        endTime: '10:00:00',
+        startDate: '2023-06-01',
+        endDate: '2023-08-31',
         multiplier: 2,
-        status: "Active"
+        status: 'Active'
       }
     },
     {
-      data: { 
-        id: 2, 
-        name: "Lunch Break", 
-        startTime: "12:00", 
-        endTime: "13:00", 
-        startDate: "2023-09-01",
-        endDate: "2023-11-30",
-        multiplier: 1.5,
-        status: "Active"
-      }
-    },
-    {
-      data: { 
-        id: 3, 
-        name: "Morning Coffee", 
-        startTime: "09:00", 
-        endTime: "10:00", 
-        startDate: "2023-09-01",
-        endDate: "2023-11-30",
-        multiplier: 1.5,
-        status: "Active"
-      }
-    },
-    {
-      data: { 
-        id: 4, 
-        name: "Weekend Special", 
-        startTime: "14:00", 
-        endTime: "18:00", 
-        startDate: "2023-09-02",
-        endDate: "2023-11-26",
-        multiplier: 3,
-        status: "Scheduled"
-      }
-    },
-    {
-      data: { 
-        id: 5, 
-        name: "Happy Hour", 
-        startTime: "17:00", 
-        endTime: "20:00", 
-        startDate: "2023-09-15",
-        endDate: "2023-10-15",
+      data: {
+        id: 2,
+        name: 'Lunch Break',
+        startTime: '12:00:00',
+        endTime: '14:00:00',
+        startDate: '2023-06-01',
+        endDate: '2023-08-31',
         multiplier: 2.5,
-        status: "Scheduled"
+        status: 'Active'
+      }
+    },
+    {
+      data: {
+        id: 3,
+        name: 'Evening Special',
+        startTime: '18:00:00',
+        endTime: '20:00:00',
+        startDate: '2023-12-01',
+        endDate: '2024-01-15',
+        multiplier: 3,
+        status: 'Upcoming'
+      }
+    },
+    {
+      data: {
+        id: 4,
+        name: 'Weekend Boost',
+        startTime: '14:00:00',
+        endTime: '16:00:00',
+        startDate: '2023-03-01',
+        endDate: '2023-04-15',
+        multiplier: 2,
+        status: 'Completed'
       }
     }
   ],
+  relatedLinkedObjects: goldenHourRelatedObjects,
+  first: true,
+  last: true,
+  empty: false,
+  numberOfElements: 4,
   originalRequest: {
     page: 0,
     size: 10,
-    sorts: [{ field: "startTime", order: "asc" }],
+    sorts: [],
     filters: [],
-    search: {}
+    search: {},
+    objectType: ObjectType.GOLDEN_HOUR
   },
-  statistics: {},
-  relatedTables: {},
-  first: true,
-  last: false,
-  empty: false,
-  numberOfElements: 5
+  statistics: {
+    totalGoldenHours: 4,
+    activeGoldenHours: 2,
+    upcomingGoldenHours: 1,
+    completedGoldenHours: 1
+  }
 };
 
-// Function to add relationships to golden hours
+// Updated function to add relationships to golden hours
 export function addGoldenHourRelationship(
   goldenHourId: number,
   relationName: string,
-  relationData: any
+  relationObjects: RelatedLinkedObject[]
 ) {
-  if (!mockGoldenHourTable.relatedTables) {
-    mockGoldenHourTable.relatedTables = {};
+  if (!mockGoldenHourTable.relatedLinkedObjects) {
+    mockGoldenHourTable.relatedLinkedObjects = {};
   }
   
-  if (!mockGoldenHourTable.relatedTables[relationName]) {
-    mockGoldenHourTable.relatedTables[relationName] = {};
+  if (!mockGoldenHourTable.relatedLinkedObjects[relationName]) {
+    mockGoldenHourTable.relatedLinkedObjects[relationName] = {};
   }
   
-  mockGoldenHourTable.relatedTables[relationName][goldenHourId] = relationData;
+  mockGoldenHourTable.relatedLinkedObjects[relationName][goldenHourId] = relationObjects;
 }
 
 // Create region-golden hour relationships
@@ -171,25 +146,19 @@ function initializeGoldenHourRegionRelationships() {
     "4": [3, 4]   // Weekend Special is available in East and West regions
   };
   
-  // Set up golden hour -> regions relationships
+  // Update to use relatedLinkedObjects and the new relationship function
   for (const [goldenHourId, regionIds] of Object.entries(goldenHourRegionsMap)) {
-    const regionRows = regionIds.map(regionId => {
-      return mockRegionTable.rows.find(row => row.data.id === regionId);
-    }).filter(Boolean); // Filter out undefined
+    const regionObjects = regionIds.map(regionId => {
+      const regionRow = mockRegionTable.rows.find(row => row.data.id === regionId);
+      return {
+        objectType: ObjectType.REGION,
+        id: regionId,
+        name: regionRow?.data.name || `Unknown Region ${regionId}`
+      };
+    }).filter(Boolean);
     
-    if (regionRows.length > 0) {
-      addGoldenHourRelationship(Number(goldenHourId), "regions", {
-        totalPages: 1,
-        currentPage: 0,
-        pageSize: 10,
-        totalElements: regionRows.length,
-        tableName: "golden_hour_regions",
-        rows: regionRows,
-        first: true,
-        last: true,
-        empty: false,
-        numberOfElements: regionRows.length
-      });
+    if (regionObjects.length > 0) {
+      addGoldenHourRelationship(Number(goldenHourId), "regions", regionObjects);
     }
   }
   
@@ -210,23 +179,28 @@ function initializeGoldenHourProvinceRelationships() {
   
   // Set up golden hour -> provinces relationships
   for (const [goldenHourId, provinceIds] of Object.entries(goldenHourProvincesMap)) {
-    const provinceRows = provinceIds.map(provinceId => {
-      return mockProvinceTable.rows.find(row => row.data.id === provinceId);
-    }).filter(Boolean); // Filter out undefined
+    // Convert to proper RelatedLinkedObject[] format
+    const provinceObjects = provinceIds
+      .map(provinceId => {
+        const provinceRow = mockProvinceTable.rows.find(row => row.data.id === provinceId);
+        if (provinceRow) {
+          // Create a type that matches what we're actually returning
+          type ProvinceLinkedObject = RelatedLinkedObject & { population?: number };
+          
+          return {
+            objectType: ObjectType.PROVINCE,
+            id: provinceId,
+            name: provinceRow.data.name || `Province ${provinceId}`,
+            population: provinceRow.data.population
+          } as ProvinceLinkedObject;
+        }
+        return null;
+      })
+      .filter((obj): obj is RelatedLinkedObject => obj !== null);
     
-    if (provinceRows.length > 0) {
-      addGoldenHourRelationship(Number(goldenHourId), "provinces", {
-        totalPages: 1,
-        currentPage: 0,
-        pageSize: 10,
-        totalElements: provinceRows.length,
-        tableName: "golden_hour_provinces",
-        rows: provinceRows,
-        first: true,
-        last: true,
-        empty: false,
-        numberOfElements: provinceRows.length
-      });
+    if (provinceObjects.length > 0) {
+      // Pass array of RelatedLinkedObject directly
+      addGoldenHourRelationship(Number(goldenHourId), "provinces", provinceObjects);
     }
   }
   
@@ -258,46 +232,27 @@ function initializeGoldenHourRelationships() {
 // Initialize all relationships
 initializeGoldenHourRelationships();
 
-// Mock golden hour details
+// Create mock golden hour details
 export const mockGoldenHourDetails: Record<number, any> = {
   1: {
     id: 1,
-    name: "Evening Rush",
-    description: "Increased rewards during evening rush hour",
-    startTime: "18:00",
-    endTime: "19:00",
-    startDate: "2023-09-01",
-    endDate: "2023-11-30",
+    name: 'Morning Rush',
+    description: 'Increased chances of winning during morning rush hours',
+    startTime: '08:00:00',
+    endTime: '10:00:00',
+    startDate: '2023-06-01',
+    endDate: '2023-08-31',
     multiplier: 2,
-    totalParticipants: 3250,
-    totalSpins: 8720,
-    totalWinners: 2180,
+    totalParticipants: 450,
+    totalSpins: 1200,
+    totalWinners: 85,
     currentEvent: {
       id: 1,
-      name: "Summer Giveaway",
-      startTime: "2023-06-01",
-      endTime: "2023-08-31",
-      status: "Active"
+      name: 'Summer Giveaway',
+      startTime: '2023-06-01T00:00:00Z',
+      endTime: '2023-08-31T23:59:59Z',
+      status: 'Active'
     }
   },
-  2: {
-    id: 2,
-    name: "Lunch Break",
-    description: "Special promotion during lunch hours",
-    startTime: "12:00",
-    endTime: "13:00",
-    startDate: "2023-09-01",
-    endDate: "2023-11-30",
-    multiplier: 1.5,
-    totalParticipants: 2780,
-    totalSpins: 6450,
-    totalWinners: 1425,
-    currentEvent: {
-      id: 1,
-      name: "Summer Giveaway",
-      startTime: "2023-06-01",
-      endTime: "2023-08-31",
-      status: "Active"
-    }
-  }
+  // Additional golden hour details would be included here
 };

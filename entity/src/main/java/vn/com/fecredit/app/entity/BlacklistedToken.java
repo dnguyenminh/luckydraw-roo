@@ -6,9 +6,15 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.listener.EntityAuditListener;
 
 import java.time.LocalDateTime;
 
+/**
+ * BlacklistedToken entity for tracking invalidated authentication tokens.
+ * Used to maintain security by explicitly revoking tokens that are no longer valid,
+ * such as when a user logs out or when a token is compromised.
+ */
 @Entity
 @Table(
     name = "blacklisted_tokens",
@@ -18,6 +24,7 @@ import java.time.LocalDateTime;
         @Index(name = "idx_blacklisted_token_type", columnList = "token_type")
     }
 )
+@EntityListeners(EntityAuditListener.class)
 @Data
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
@@ -26,24 +33,37 @@ import java.time.LocalDateTime;
 @EqualsAndHashCode(callSuper = true)
 public class BlacklistedToken extends AbstractStatusAwareEntity {
 
+    /**
+     * The actual token string that has been blacklisted
+     */
     @NotBlank(message = "Token is required")
     @Column(name = "token", nullable = false)
     private String token;
 
+    /**
+     * Type of the token (e.g., ACCESS, REFRESH)
+     */
     @NotBlank(message = "Token type is required")
     @Column(name = "token_type", nullable = false)
     private String tokenType;
 
+    /**
+     * Time when the token expires and can be removed from the blacklist
+     */
     @NotNull(message = "Expiration time is required")
     @Column(name = "expiration_time", nullable = false)
     private LocalDateTime expirationTime;
 
+    /**
+     * User who owned this token, if known
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 
     /**
      * Check if token is expired
+     *
      * @param checkTime time to check against
      * @return true if expired
      */
@@ -53,6 +73,7 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
 
     /**
      * Check if token is currently expired
+     *
      * @return true if expired
      */
     @Transient
@@ -60,17 +81,28 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
         return isExpired(LocalDateTime.now());
     }
 
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
+    }
+
     /**
      * Validate token state
+     *
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
         if (token == null || token.isBlank()) {
             throw new IllegalStateException("Token must not be empty");
         }
-        
+
         if (tokenType == null || tokenType.isBlank()) {
             throw new IllegalStateException("Token type must not be empty");
         }
@@ -79,7 +111,8 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Expiration time must be specified");
         }
 
-        if (expirationTime.isBefore(LocalDateTime.now())) {
+        // Only check future expiration for new tokens (not persisted yet)
+        if (getId() == null && expirationTime.isBefore(LocalDateTime.now())) {
             throw new IllegalStateException("Expiration time must be in the future");
         }
     }

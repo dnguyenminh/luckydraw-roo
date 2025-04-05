@@ -1,16 +1,17 @@
 package vn.com.fecredit.app.service.base;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.CommonStatus;
-import vn.com.fecredit.app.service.exception.EntityNotFoundException;
 
-import java.util.List;
-import java.util.Optional;
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.service.exception.EntityNotFoundException;
 
 @Slf4j
 @Transactional

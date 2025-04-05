@@ -1,101 +1,54 @@
 package vn.com.fecredit.app.repository;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.context.SpringBootTest; // Add this import
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.transaction.annotation.Transactional;
-
-import vn.com.fecredit.app.entity.*;
-import vn.com.fecredit.app.entity.enums.RoleName;
-import vn.com.fecredit.app.repository.config.TestConfig;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
-@DataJpaTest
-class UserRepositoryTest {
+import vn.com.fecredit.app.entity.User;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.entity.enums.RoleType;
 
-    @Autowired
-    private TestEntityManager entityManager;
+public class UserRepositoryTest extends AbstractRepositoryTest {
 
     @Autowired
     private UserRepository userRepository;
-
+    
     @Test
-    void whenFindByUsername_thenReturnUser() {
-        // given
-        User user = new User();
-        user.setUsername("testuser");
-        user.setPassword("password");
-        user.setEmail("test@example.com");
-        user.setActive(true);
+    public void whenFindByUsername_thenReturnUser() {
+        // Create a User with all required fields properly set
+        User user = User.builder()
+            .username("testuser")
+            .password("password")
+            .email("test@example.com")
+            .fullName("Test User")  // Add the full_name which is required
+            .enabled(true)
+            .accountExpired(false)
+            .accountLocked(false)
+            .credentialsExpired(false)
+            .status(CommonStatus.ACTIVE)
+            .version(0L)
+            .createdAt(LocalDateTime.now())
+            .updatedAt(LocalDateTime.now())
+            .createdBy("test-user")
+            .updatedBy("test-user")
+            .roles(new HashSet<>())
+            .role(RoleType.ROLE_USER) // Set the required role field to avoid null constraint violation
+            .blacklistedTokens(new HashSet<>())
+            .build();
         
-        entityManager.persist(user);
-        entityManager.flush();
-
-        // when
-        User found = userRepository.findByUsername("testuser").orElse(null);
-
-        // then
+        // Save the user
+        userRepository.save(user);
+        
+        // Find the user
+        User found = userRepository.findByUsername(user.getUsername()).orElse(null);
+        
+        // Assert that the user is found
         assertThat(found).isNotNull();
-        assertThat(found.getUsername()).isEqualTo("testuser");
+        assertThat(found.getUsername()).isEqualTo(user.getUsername());
+        assertThat(found.getFullName()).isEqualTo("Test User");
     }
-
-    // Disable other tests for now to make it compile
-    /*
-    @Test
-    void whenFindByRoles_thenReturnCorrectUsers() {
-        // Test implementation
-    }
-    
-    @Test
-    void testUserRoleMethods() {
-        User activeUser = createUser("activeadmin", "admin@example.com", true);
-        User inactiveUser = createUser("inactiveuser", "inactive@example.com", false);
-        
-        Role adminRole = new Role();
-        adminRole.setName(RoleName.ADMIN);
-        entityManager.persist(adminRole);
-        
-        Role userRole = new Role();
-        userRole.setName(RoleName.USER);
-        entityManager.persist(userRole);
-        
-        activeUser.getRoles().add(adminRole);
-        entityManager.persist(activeUser);
-        
-        inactiveUser.getRoles().add(userRole);
-        entityManager.persist(inactiveUser);
-        
-        entityManager.flush();
-        
-        // Test implementation
-    }
-    
-    private User createUser(String username, String email, boolean enabled) {
-        User user = new User();
-        user.setUsername(username);
-        user.setEmail(email);
-        user.setPassword("password");
-        user.setFullName("Test User");
-        user.setEnabled(enabled);
-        user.setAccountExpired(false);
-        user.setAccountLocked(false);
-        user.setCredentialsExpired(false);
-        user.setRoles(new HashSet<>());
-        
-        return user;
-    }
-    */
 }

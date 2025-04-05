@@ -237,10 +237,14 @@ export default function DataTable({
       size: 10,
       sorts: [],
       filters: [],
-      search: {}
+      search: {},
+      objectType: ObjectType[entityType as keyof typeof ObjectType] // Add required objectType property
     },
     statistics: {},
-    relatedTables: {}
+    first: true,
+    last: true,
+    empty: true,
+    numberOfElements: 0
   };
   
   // Use safe initialData (or empty data structure if initialData is null/undefined)
@@ -369,7 +373,8 @@ export default function DataTable({
       size: data.pageSize || 10,
       sorts,
       filters: requestFilters,
-      search
+      search,
+      objectType: ObjectType[entityType as keyof typeof ObjectType] // Add required objectType property
     };
   };
   

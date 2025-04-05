@@ -1,80 +1,111 @@
-import { TableFetchResponse, FieldType, SortType } from './interfaces';
+import { 
+  TableFetchResponse, 
+  Column, 
+  FieldType, 
+  SortType, 
+  ObjectType,
+  RelatedLinkedObjectsMap
+} from './interfaces';
 import { mockUserTable, addUserRelationship } from './users';
 
-// Mock role table data
+// Define columns for the roles table
+const roleColumns: Column[] = [
+  { fieldName: 'id', fieldType: FieldType.NUMBER, sortType: SortType.ASCENDING, displayName: 'ID', filterable: true },
+  { fieldName: 'name', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Name', filterable: true },
+  { fieldName: 'description', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Description', filterable: true },
+  { fieldName: 'userCount', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Users', filterable: false },
+  { fieldName: 'permissionCount', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Permissions', filterable: false }
+];
+
+// Create related linked objects for roles
+const roleRelatedObjects: RelatedLinkedObjectsMap = {
+  users: {
+    '1': [
+      { objectType: ObjectType.USER, id: 1, name: 'admin' }
+    ],
+    '2': [
+      { objectType: ObjectType.USER, id: 2, name: 'manager' },
+      { objectType: ObjectType.USER, id: 4, name: 'supervisor' }
+    ],
+    '3': [
+      { objectType: ObjectType.USER, id: 3, name: 'user1' },
+      { objectType: ObjectType.USER, id: 4, name: 'supervisor' }
+    ]
+  },
+  permissions: {
+    '1': [
+      { objectType: ObjectType.ROLE, id: 1, name: 'FULL_ACCESS' },
+      { objectType: ObjectType.ROLE, id: 2, name: 'USER_MANAGEMENT' },
+      { objectType: ObjectType.ROLE, id: 3, name: 'EVENT_MANAGEMENT' },
+      { objectType: ObjectType.ROLE, id: 4, name: 'REWARD_MANAGEMENT' },
+      { objectType: ObjectType.ROLE, id: 5, name: 'AUDIT_VIEW' }
+    ],
+    '2': [
+      { objectType: ObjectType.ROLE, id: 3, name: 'EVENT_MANAGEMENT' },
+      { objectType: ObjectType.ROLE, id: 4, name: 'REWARD_MANAGEMENT' },
+      { objectType: ObjectType.ROLE, id: 5, name: 'AUDIT_VIEW' }
+    ],
+    '3': [
+      { objectType: ObjectType.ROLE, id: 6, name: 'BASIC_ACCESS' }
+    ]
+  }
+};
+
+// Create mock role data
 export const mockRoleTable: TableFetchResponse = {
   totalPages: 1,
   currentPage: 0,
   pageSize: 10,
-  totalElements: 5,
-  tableName: "roles",
-  columns: [
-    { 
-      fieldName: "id", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "ID",
-      filterable: false
-    },
-    { 
-      fieldName: "name", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Role Name",
-      filterable: true
-    },
-    { 
-      fieldName: "description", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Description",
-      filterable: true
-    },
-    { 
-      fieldName: "userCount", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "Users",
-      filterable: false
-    },
-    { 
-      fieldName: "status", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Status",
-      filterable: true
-    }
-  ],
+  totalElements: 3,
+  tableName: 'roles',
+  columns: roleColumns,
   rows: [
     {
-      data: { id: 1, name: 'Admin', description: 'System administrator with full access', userCount: 3, status: 'Active' }
+      data: {
+        id: 1,
+        name: 'ADMIN',
+        description: 'System administrator with full access',
+        userCount: 1,
+        permissionCount: 5
+      }
     },
     {
-      data: { id: 2, name: 'Manager', description: 'Event manager with management capabilities', userCount: 5, status: 'Active' }
+      data: {
+        id: 2,
+        name: 'MANAGER',
+        description: 'Event and reward management access',
+        userCount: 2,
+        permissionCount: 3
+      }
     },
     {
-      data: { id: 3, name: 'Operator', description: 'System operator with limited access', userCount: 12, status: 'Active' }
-    },
-    {
-      data: { id: 4, name: 'Viewer', description: 'Read-only access to the system', userCount: 8, status: 'Active' }
-    },
-    {
-      data: { id: 5, name: 'Custom Role', description: 'Role with custom permissions', userCount: 2, status: 'Inactive' }
+      data: {
+        id: 3,
+        name: 'USER',
+        description: 'Basic system access',
+        userCount: 2,
+        permissionCount: 1
+      }
     }
   ],
-  originalRequest: {
-    page: 0,
-    size: 10,
-    sorts: [{ field: "name", order: "asc" }],
-    filters: [],
-    search: {}
-  },
-  statistics: {},
-  relatedTables: {},
+  relatedLinkedObjects: roleRelatedObjects,
   first: true,
   last: true,
   empty: false,
-  numberOfElements: 5
+  numberOfElements: 3,
+  originalRequest: {
+    page: 0,
+    size: 10,
+    sorts: [],
+    filters: [],
+    search: {},
+    objectType: ObjectType.ROLE
+  },
+  statistics: {
+    totalRoles: 3,
+    totalUsers: 4,
+    totalPermissions: 6
+  }
 };
 
 // Function to add relationships to roles
@@ -83,15 +114,15 @@ export function addRoleRelationship(
   relationName: string, 
   relationData: any
 ) {
-  if (!mockRoleTable.relatedTables) {
-    mockRoleTable.relatedTables = {};
+  if (!mockRoleTable.relatedLinkedObjects) {
+    mockRoleTable.relatedLinkedObjects = {};
   }
   
-  if (!mockRoleTable.relatedTables[relationName]) {
-    mockRoleTable.relatedTables[relationName] = {};
+  if (!mockRoleTable.relatedLinkedObjects[relationName]) {
+    mockRoleTable.relatedLinkedObjects[relationName] = {};
   }
   
-  mockRoleTable.relatedTables[relationName][roleId] = relationData;
+  mockRoleTable.relatedLinkedObjects[relationName][roleId] = relationData;
 }
 
 // Create role-user relationships
@@ -144,68 +175,39 @@ function initializeRoleUserRelationships() {
     const roleData = mockRoleTable.rows.find(row => row.data.id === roleId);
     
     if (roleData) {
-      addUserRelationship(Number(userId), "role", {
-        totalPages: 1,
-        currentPage: 0,
-        pageSize: 1,
-        totalElements: 1,
-        tableName: "user_role",
-        rows: [roleData],
-        first: true,
-        last: true,
-        empty: false,
-        numberOfElements: 1
-      });
+      // FIX: Convert to proper RelatedLinkedObject[] format
+      const roleObject = {
+        objectType: ObjectType.ROLE,
+        id: roleData.data.id,
+        name: roleData.data.name || `Role_${roleData.data.id}`
+      };
+      
+      // Pass an array of RelatedLinkedObject instead of a table structure
+      addUserRelationship(Number(userId), "role", [roleObject]);
     }
   }
 }
 
-// Mock role details
+// Create mock role details
 export const mockRoleDetails: Record<number, any> = {
   1: {
     id: 1,
-    name: 'Admin',
-    description: 'System administrator with full access',
-    userCount: 3,
-    status: 'Active',
-    created: '2023-01-01',
-    lastModified: '2023-05-15',
+    name: 'ADMIN',
+    description: 'System administrator with full access to all features',
+    created: '2023-01-01T00:00:00Z',
+    lastModified: '2023-01-01T00:00:00Z',
+    users: [
+      { id: 1, username: 'admin', fullName: 'System Administrator' }
+    ],
     permissions: [
-      { id: 1, name: 'view_events', description: 'Can view events', granted: true },
-      { id: 2, name: 'create_events', description: 'Can create events', granted: true },
-      { id: 3, name: 'edit_events', description: 'Can edit events', granted: true },
-      { id: 4, name: 'delete_events', description: 'Can delete events', granted: true },
-      { id: 5, name: 'view_users', description: 'Can view users', granted: true },
-      { id: 6, name: 'create_users', description: 'Can create users', granted: true },
-      { id: 7, name: 'edit_users', description: 'Can edit users', granted: true },
-      { id: 8, name: 'delete_users', description: 'Can delete users', granted: true },
-      { id: 9, name: 'view_reports', description: 'Can view reports', granted: true },
-      { id: 10, name: 'export_reports', description: 'Can export reports', granted: true },
-      { id: 11, name: 'schedule_reports', description: 'Can schedule reports', granted: true }
+      { id: 1, name: 'FULL_ACCESS', description: 'Full system access' },
+      { id: 2, name: 'USER_MANAGEMENT', description: 'User management' },
+      { id: 3, name: 'EVENT_MANAGEMENT', description: 'Event management' },
+      { id: 4, name: 'REWARD_MANAGEMENT', description: 'Reward management' },
+      { id: 5, name: 'AUDIT_VIEW', description: 'Audit log access' }
     ]
   },
-  2: {
-    id: 2,
-    name: 'Manager',
-    description: 'Event manager with management capabilities',
-    userCount: 5,
-    status: 'Active',
-    created: '2023-01-02',
-    lastModified: '2023-06-10',
-    permissions: [
-      { id: 1, name: 'view_events', description: 'Can view events', granted: true },
-      { id: 2, name: 'create_events', description: 'Can create events', granted: true },
-      { id: 3, name: 'edit_events', description: 'Can edit events', granted: true },
-      { id: 4, name: 'delete_events', description: 'Can delete events', granted: false },
-      { id: 5, name: 'view_users', description: 'Can view users', granted: true },
-      { id: 6, name: 'create_users', description: 'Can create users', granted: false },
-      { id: 7, name: 'edit_users', description: 'Can edit users', granted: false },
-      { id: 8, name: 'delete_users', description: 'Can delete users', granted: false },
-      { id: 9, name: 'view_reports', description: 'Can view reports', granted: true },
-      { id: 10, name: 'export_reports', description: 'Can export reports', granted: true },
-      { id: 11, name: 'schedule_reports', description: 'Can schedule reports', granted: false }
-    ]
-  }
+  // Additional role details would be included here
 };
 
 // Initialize relationships between roles and users

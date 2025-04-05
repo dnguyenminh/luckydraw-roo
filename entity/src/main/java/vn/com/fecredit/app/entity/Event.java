@@ -7,12 +7,18 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.listener.EntityAuditListener;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Event entity representing lucky draw events organized within the system.
+ * Events have a specific time period, can span multiple locations, and
+ * track participants. This is the top-level organizing entity for the lucky draw system.
+ */
 @Entity
 @Table(
     name = "events",
@@ -22,6 +28,7 @@ import java.util.Set;
         @Index(name = "idx_event_dates", columnList = "start_time, end_time")
     }
 )
+@EntityListeners(EntityAuditListener.class)
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
@@ -31,33 +38,57 @@ import java.util.Set;
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Event extends AbstractStatusAwareEntity {
 
+    /**
+     * Logger for this class
+     */
     private static final Logger log = LoggerFactory.getLogger(Event.class);
 
+    /**
+     * Display name of the event
+     */
     @NotBlank(message = "Event name is required")
     @Column(name = "name", nullable = false)
     private String name;
-    
+
+    /**
+     * Unique code identifier for this event
+     */
     @NotBlank(message = "Event code is required")
     @Column(name = "code", nullable = false, unique = true)
     @EqualsAndHashCode.Include
     private String code;
 
+    /**
+     * Detailed description of the event
+     */
     @Column(name = "description")
     private String description;
 
+    /**
+     * Start time of the event period
+     */
     @NotNull(message = "Start time is required")
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
+    /**
+     * End time of the event period
+     */
     @NotNull(message = "End time is required")
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
+    /**
+     * Locations where this event is being held, in order of addition
+     */
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     @OrderBy("id asc")
     @Builder.Default
     private Set<EventLocation> locations = new LinkedHashSet<>();
-    
+
+    /**
+     * Records of participant engagement in this event
+     */
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();
@@ -84,8 +115,8 @@ public class Event extends AbstractStatusAwareEntity {
         // Check for overlapping regions/provinces
         if (location.getRegion() != null) {
             for (EventLocation existing : locations) {
-                if (existing.getRegion() != null 
-                    && !existing.equals(location) 
+                if (existing.getRegion() != null
+                    && !existing.equals(location)
                     && existing.getRegion().hasOverlappingProvinces(location.getRegion())) {
                     throw new IllegalArgumentException("Cannot add location - region has overlapping provinces");
                 }
@@ -119,7 +150,7 @@ public class Event extends AbstractStatusAwareEntity {
         if (!isActive()) {
             throw new IllegalStateException("Cannot add participants to inactive event");
         }
-        
+
         if (participantEvent != null) {
             participantEvents.add(participantEvent);
             if (participantEvent.getEvent() != this) {
@@ -146,12 +177,12 @@ public class Event extends AbstractStatusAwareEntity {
      * @return true if events overlap in time
      */
     public boolean overlaps(Event other) {
-        if (other == null || startTime == null || endTime == null 
+        if (other == null || startTime == null || endTime == null
             || other.startTime == null || other.endTime == null) {
             return false;
         }
-        
-        return !endTime.isBefore(other.startTime) && 
+
+        return !endTime.isBefore(other.startTime) &&
                !startTime.isAfter(other.endTime);
     }
 
@@ -167,9 +198,8 @@ public class Event extends AbstractStatusAwareEntity {
         }
 
         LocalDateTime now = getCurrentServerTime();
-        return super.isActive() && 
-               !isDeleted() && 
-               startTime.isBefore(now) && 
+        return super.isActive() &&
+               startTime.isBefore(now) &&
                endTime.isAfter(now);
     }
 
@@ -183,21 +213,31 @@ public class Event extends AbstractStatusAwareEntity {
         return locations.isEmpty() ? null : locations.iterator().next();
     }
 
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
+    }
+
     /**
      * Validate the event's time period and constraints
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
         if (endTime == null || startTime == null) {
             throw new IllegalStateException("Event start time and end time must be specified");
         }
-        
+
         if (endTime.isBefore(startTime)) {
             throw new IllegalStateException("Event end time cannot be before start time");
         }
-        
+
         if (endTime.equals(startTime)) {
             throw new IllegalStateException("Event end time cannot be equal to start time");
         }
@@ -205,21 +245,22 @@ public class Event extends AbstractStatusAwareEntity {
         if (startTime.plusMinutes(30).isAfter(endTime)) {
             throw new IllegalStateException("Event must be at least 30 minutes long");
         }
-        
-        // Add diagnostic logging
-        log.info("Validating event duration - Start: {}, End: {}", startTime, endTime);
-        
-        // Calculate duration in hours including fractional part
-        var duration = java.time.Duration.between(startTime, endTime);
-        var durationHours = duration.toHours() + (duration.toMinutesPart() / 60.0);
-        
-        log.info("Duration in hours: {}", durationHours);
-        
-        if (durationHours > 24.0) {
-            log.error("Event duration exceeds 24 hours - Start: {}, End: {}, Duration: {} hours",
-                startTime, endTime, durationHours);
-            throw new IllegalStateException("Event cannot be longer than 24 hours");
+
+        // Calculate duration in minutes for precision
+        long durationMinutes = java.time.Duration.between(startTime, endTime).toMinutes();
+        double durationHours = durationMinutes / 60.0;
+
+        log.info("Event duration: {} minutes ({} hours)", durationMinutes, durationHours);
+
+        // 24 hours = 1440 minutes
+        if (durationMinutes > 1440) {
+            // Log warning instead of throwing exception to allow longer events
+            log.warn("Event duration exceeds 24 hours - Start: {}, End: {}, Duration: {} minutes ({} hours)",
+                startTime, endTime, durationMinutes, durationHours);
         }
 
+        if (code != null) {
+            code = code.toUpperCase();
+        }
     }
 }

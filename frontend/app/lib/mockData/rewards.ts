@@ -1,112 +1,183 @@
-import { TableFetchResponse, FieldType, SortType } from './interfaces';
+import { 
+  TableFetchResponse, 
+  Column, 
+  FieldType, 
+  SortType, 
+  ObjectType,
+  RelatedLinkedObjectsMap,
+  RelatedLinkedObject
+} from './interfaces';
 import { mockRegionTable } from './regions';
 import { mockProvinceTable } from './provinces';
 
-// Mock reward table data
+// Define columns for the rewards table
+const rewardColumns: Column[] = [
+  { fieldName: 'id', fieldType: FieldType.NUMBER, sortType: SortType.ASCENDING, displayName: 'ID', filterable: true },
+  { fieldName: 'name', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Name', filterable: true },
+  { fieldName: 'value', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Value', filterable: true },
+  { fieldName: 'quantity', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Quantity', filterable: false },
+  { fieldName: 'claimed', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Claimed', filterable: false },
+  { fieldName: 'status', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Status', filterable: true },
+  { fieldName: 'eventName', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Event', filterable: true }
+];
+
+// Create related linked objects for rewards
+const rewardRelatedObjects: RelatedLinkedObjectsMap = {
+  // Winners (participants) of each reward
+  winners: {
+    '1': [ // Gold Medal winners
+      { objectType: ObjectType.PARTICIPANT, id: 1, name: 'John Doe' },
+      { objectType: ObjectType.PARTICIPANT, id: 7, name: 'Frank Miller' }
+    ],
+    '2': [ // Silver Medal winners
+      { objectType: ObjectType.PARTICIPANT, id: 2, name: 'Jane Smith' },
+      { objectType: ObjectType.PARTICIPANT, id: 4, name: 'Alice Brown' },
+      { objectType: ObjectType.PARTICIPANT, id: 8, name: 'Grace Taylor' }
+    ],
+    '5': [ // Cash Prize winners
+      { objectType: ObjectType.PARTICIPANT, id: 10, name: 'Ivy Martinez' }
+    ],
+    '6': [ // Gift Card winners
+      { objectType: ObjectType.PARTICIPANT, id: 4, name: 'Alice Brown' },
+      { objectType: ObjectType.PARTICIPANT, id: 7, name: 'Frank Miller' },
+      { objectType: ObjectType.PARTICIPANT, id: 10, name: 'Ivy Martinez' }
+    ]
+  },
+  // Events associated with each reward
+  events: {
+    '1': [ // Gold Medal events
+      { objectType: ObjectType.EVENT, id: 1, name: 'Summer Giveaway' }
+    ],
+    '2': [ // Silver Medal events
+      { objectType: ObjectType.EVENT, id: 1, name: 'Summer Giveaway' }
+    ],
+    '3': [ // Bronze Medal events
+      { objectType: ObjectType.EVENT, id: 2, name: 'Winter Wonderland' }
+    ],
+    '4': [ // Trophy events
+      { objectType: ObjectType.EVENT, id: 2, name: 'Winter Wonderland' }
+    ],
+    '5': [ // Cash Prize events
+      { objectType: ObjectType.EVENT, id: 3, name: 'Spring Festival' }
+    ],
+    '6': [ // Gift Card events
+      { objectType: ObjectType.EVENT, id: 3, name: 'Spring Festival' }
+    ]
+  }
+};
+
+// Create mock reward data
 export const mockRewardTable: TableFetchResponse = {
-  totalPages: 2,
+  totalPages: 1,
   currentPage: 0,
   pageSize: 10,
-  totalElements: 12,
-  tableName: "rewards",
-  columns: [
-    { 
-      fieldName: "id", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "ID",
-      filterable: false
-    },
-    { 
-      fieldName: "name", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Name",
-      filterable: true
-    },
-    { 
-      fieldName: "value", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "Value",
-      filterable: true
-    },
-    { 
-      fieldName: "quantity", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "Quantity",
-      filterable: false
-    },
-    { 
-      fieldName: "claimed", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "Claimed",
-      filterable: false
-    },
-    { 
-      fieldName: "status", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Status",
-      filterable: true
-    },
-    { 
-      fieldName: "eventName", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Event",
-      filterable: true
-    }
-  ],
+  totalElements: 6,
+  tableName: 'rewards',
+  columns: rewardColumns,
   rows: [
     {
-      data: { id: 1, name: "Gift Card", value: 50, quantity: 100, claimed: 35, status: "Available", eventId: 1, eventName: "Summer Giveaway" }
+      data: {
+        id: 1,
+        name: 'Gold Medal',
+        value: 1000,
+        quantity: 5,
+        claimed: 2,
+        status: 'Active',
+        eventName: 'Summer Giveaway'
+      }
     },
     {
-      data: { id: 2, name: "Free Product", value: 25, quantity: 200, claimed: 75, status: "Available", eventId: 1, eventName: "Summer Giveaway" }
+      data: {
+        id: 2,
+        name: 'Silver Medal',
+        value: 500,
+        quantity: 10,
+        claimed: 3,
+        status: 'Active',
+        eventName: 'Summer Giveaway'
+      }
     },
     {
-      data: { id: 3, name: "Discount Coupon", value: 10, quantity: 500, claimed: 120, status: "Available", eventId: 2, eventName: "Fall Promotion" }
+      data: {
+        id: 3,
+        name: 'Bronze Medal',
+        value: 200,
+        quantity: 20,
+        claimed: 0,
+        status: 'Inactive',
+        eventName: 'Winter Wonderland'
+      }
     },
     {
-      data: { id: 4, name: "Premium Pass", value: 100, quantity: 10, claimed: 10, status: "Depleted", eventId: 1, eventName: "Summer Giveaway" }
+      data: {
+        id: 4,
+        name: 'Trophy',
+        value: 800,
+        quantity: 3,
+        claimed: 0,
+        status: 'Inactive',
+        eventName: 'Winter Wonderland'
+      }
     },
     {
-      data: { id: 5, name: "Gift Voucher", value: 30, quantity: 150, claimed: 45, status: "Available", eventId: 2, eventName: "Fall Promotion" }
+      data: {
+        id: 5,
+        name: 'Cash Prize',
+        value: 1500,
+        quantity: 5,
+        claimed: 1,
+        status: 'Inactive',
+        eventName: 'Spring Festival'
+      }
+    },
+    {
+      data: {
+        id: 6,
+        name: 'Gift Card',
+        value: 300,
+        quantity: 15,
+        claimed: 3,
+        status: 'Inactive',
+        eventName: 'Spring Festival'
+      }
     }
   ],
+  relatedLinkedObjects: rewardRelatedObjects,
+  first: true,
+  last: true,
+  empty: false,
+  numberOfElements: 6,
   originalRequest: {
     page: 0,
     size: 10,
-    sorts: [{ field: "name", order: "asc" }],
+    sorts: [],
     filters: [],
-    search: {}
+    search: {},
+    objectType: ObjectType.REWARD
   },
-  statistics: {},
-  relatedTables: {}, // Initialize empty - will be populated by other modules
-  first: true,
-  last: false,
-  empty: false,
-  numberOfElements: 5
+  statistics: {
+    totalRewards: 6,
+    activeRewards: 2,
+    totalQuantity: 58,
+    claimedQuantity: 9
+  }
 };
 
-// Function to add relationships to rewards
+// Updated function to add relationships to rewards
 export function addRewardRelationship(
   rewardId: number,
   relationName: string,
-  relationData: any
+  relationObjects: RelatedLinkedObject[]
 ) {
-  if (!mockRewardTable.relatedTables) {
-    mockRewardTable.relatedTables = {};
+  if (!mockRewardTable.relatedLinkedObjects) {
+    mockRewardTable.relatedLinkedObjects = {};
   }
   
-  if (!mockRewardTable.relatedTables[relationName]) {
-    mockRewardTable.relatedTables[relationName] = {};
+  if (!mockRewardTable.relatedLinkedObjects[relationName]) {
+    mockRewardTable.relatedLinkedObjects[relationName] = {};
   }
   
-  mockRewardTable.relatedTables[relationName][rewardId] = relationData;
+  mockRewardTable.relatedLinkedObjects[relationName][rewardId] = relationObjects;
 }
 
 // Create region-reward relationships
@@ -122,27 +193,19 @@ function initializeRewardRegionRelationships() {
   
   // Set up reward -> regions relationships
   for (const [rewardId, regionIds] of Object.entries(rewardRegionsMap)) {
-    const regionRows = regionIds.map(regionId => {
-      return mockRegionTable.rows.find(row => row.data.id === regionId);
-    }).filter(Boolean); // Filter out undefined
+    const regionObjects = regionIds.map(regionId => {
+      const regionRow = mockRegionTable.rows.find(row => row.data.id === regionId);
+      return {
+        objectType: ObjectType.REGION,
+        id: regionId,
+        name: regionRow?.data.name || `Unknown Region ${regionId}`
+      };
+    }).filter(Boolean);
     
-    if (regionRows.length > 0) {
-      addRewardRelationship(Number(rewardId), "regions", {
-        totalPages: 1,
-        currentPage: 0,
-        pageSize: 10,
-        totalElements: regionRows.length,
-        tableName: "reward_regions",
-        rows: regionRows,
-        first: true,
-        last: true,
-        empty: false,
-        numberOfElements: regionRows.length
-      });
+    if (regionObjects.length > 0) {
+      addRewardRelationship(Number(rewardId), "regions", regionObjects);
     }
   }
-  
-  // Region -> rewards relationships would be handled in the regions.ts file
 }
 
 // Create province-reward relationships
@@ -158,27 +221,21 @@ function initializeRewardProvinceRelationships() {
   
   // Set up reward -> provinces relationships
   for (const [rewardId, provinceIds] of Object.entries(rewardProvincesMap)) {
-    const provinceRows = provinceIds.map(provinceId => {
-      return mockProvinceTable.rows.find(row => row.data.id === provinceId);
-    }).filter(Boolean); // Filter out undefined
+    // FIX: Convert to proper RelatedLinkedObject[] format
+    const provinceObjects = provinceIds.map(provinceId => {
+      const provinceRow = mockProvinceTable.rows.find(row => row.data.id === provinceId);
+      return {
+        objectType: ObjectType.PROVINCE,
+        id: provinceId,
+        name: provinceRow?.data.name || `Province ${provinceId}`
+      };
+    }).filter(Boolean);
     
-    if (provinceRows.length > 0) {
-      addRewardRelationship(Number(rewardId), "provinces", {
-        totalPages: 1,
-        currentPage: 0,
-        pageSize: 10,
-        totalElements: provinceRows.length,
-        tableName: "reward_provinces",
-        rows: provinceRows,
-        first: true,
-        last: true,
-        empty: false,
-        numberOfElements: provinceRows.length
-      });
+    if (provinceObjects.length > 0) {
+      // Pass array of RelatedLinkedObject directly
+      addRewardRelationship(Number(rewardId), "provinces", provinceObjects);
     }
   }
-  
-  // Province -> rewards relationships would be handled in the provinces.ts file
 }
 
 // Initialize winners and spin history relationships - these we'll keep since they're 
@@ -247,20 +304,21 @@ function initializeWinnersAndSpinHistoryRelationships() {
     ]
   };
   
-  // Add winners to the relatedTables
+  // FIX: Convert winners to RelatedLinkedObject[] format
   Object.entries(rewardWinnersMap).forEach(([rewardId, winners]) => {
-    addRewardRelationship(Number(rewardId), "winners", {
-      totalPages: 1,
-      currentPage: 0,
-      pageSize: 10,
-      totalElements: winners.length,
-      tableName: "reward_winners",
-      rows: winners,
-      first: true,
-      last: true,
-      empty: false,
-      numberOfElements: winners.length
-    });
+    const winnerObjects = winners.map(winner => ({
+      objectType: ObjectType.PARTICIPANT,
+      id: winner.data.id,
+      name: winner.data.name,
+      email: winner.data.email,
+      spinId: winner.data.spinId,
+      timestamp: winner.data.timestamp,
+      claimed: winner.data.claimed,
+      claimDate: winner.data.claimDate
+    }));
+    
+    // Pass array of RelatedLinkedObject directly
+    addRewardRelationship(Number(rewardId), "winners", winnerObjects);
   });
   
   // Set up spin history relationships
@@ -297,20 +355,25 @@ function initializeWinnersAndSpinHistoryRelationships() {
     ]
   };
   
-  // Add spin history to the relatedTables
+  // FIX: Convert spin history to RelatedLinkedObject[] format with required name property
   Object.entries(rewardSpinHistoryMap).forEach(([rewardId, spinHistory]) => {
-    addRewardRelationship(Number(rewardId), "spinHistory", {
-      totalPages: 1,
-      currentPage: 0,
-      pageSize: 10,
-      totalElements: spinHistory.length,
-      tableName: "reward_spin_history",
-      rows: spinHistory,
-      first: true,
-      last: true,
-      empty: false,
-      numberOfElements: spinHistory.length
-    });
+    const spinHistoryObjects = spinHistory.map(spin => ({
+      objectType: ObjectType.SPIN_HISTORY,
+      id: spin.data.id,
+      name: `Spin ${spin.data.id} - ${spin.data.participantName}`, // Add required name property
+      participantName: spin.data.participantName,
+      participantEmail: spin.data.participantEmail,
+      timestamp: spin.data.timestamp,
+      eventName: spin.data.eventName,
+      result: spin.data.result,
+      rewardId: spin.data.rewardId,
+      rewardName: spin.data.rewardName,
+      isWinner: spin.data.isWinner,
+      rewardClaimed: spin.data.rewardClaimed
+    }));
+    
+    // Pass array of RelatedLinkedObject directly
+    addRewardRelationship(Number(rewardId), "spinHistory", spinHistoryObjects);
   });
 }
 
@@ -329,44 +392,45 @@ function initializeRewardRelationships() {
 // Call initializer
 initializeRewardRelationships();
 
-// Mock reward details
+// Create mock reward details
 export const mockRewardDetails: Record<number, any> = {
   1: {
     id: 1,
-    name: "Gift Card",
-    description: "$50 gift card for online shopping",
-    value: 50,
-    quantity: 100,
-    claimed: 35,
-    available: 65,
-    winRate: "10%",
-    totalClaimed: 35,
-    totalWinners: 35,
+    name: 'Gold Medal',
+    description: 'Premium gold-plated medal for top winners',
+    value: 1000,
+    quantity: 5,
+    claimed: 2,
+    available: 3,
+    winRate: '5%',
+    totalClaimed: 2,
+    totalWinners: 2,
     currentEvent: {
       id: 1,
-      name: "Summer Giveaway",
-      startTime: "2023-06-01",
-      endTime: "2023-08-31",
-      status: "Active"
+      name: 'Summer Giveaway',
+      startTime: '2023-06-01T00:00:00Z',
+      endTime: '2023-08-31T23:59:59Z',
+      status: 'Active'
     }
   },
   2: {
     id: 2,
-    name: "Free Product",
-    description: "Free product sample",
-    value: 25,
-    quantity: 200,
-    claimed: 75,
-    available: 125,
-    winRate: "20%",
-    totalClaimed: 75,
-    totalWinners: 75,
+    name: 'Silver Medal',
+    description: 'Silver-plated medal for second-tier winners',
+    value: 500,
+    quantity: 10,
+    claimed: 3,
+    available: 7,
+    winRate: '10%',
+    totalClaimed: 3,
+    totalWinners: 3,
     currentEvent: {
       id: 1,
-      name: "Summer Giveaway",
-      startTime: "2023-06-01",
-      endTime: "2023-08-31",
-      status: "Active"
+      name: 'Summer Giveaway',
+      startTime: '2023-06-01T00:00:00Z',
+      endTime: '2023-08-31T23:59:59Z',
+      status: 'Active'
     }
-  }
+  },
+  // Additional reward details for the other rewards would be included here
 };

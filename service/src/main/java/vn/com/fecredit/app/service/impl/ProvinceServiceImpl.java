@@ -1,16 +1,17 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.Province;
-import vn.com.fecredit.app.entity.CommonStatus;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.ProvinceRepository;
 import vn.com.fecredit.app.service.ProvinceService;
 import vn.com.fecredit.app.service.base.AbstractServiceImpl;
-
-import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @Service

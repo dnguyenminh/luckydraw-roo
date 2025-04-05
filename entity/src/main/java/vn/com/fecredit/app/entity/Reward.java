@@ -1,14 +1,34 @@
 package vn.com.fecredit.app.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-
-import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.base.StatusAware; // Changed from interfaces to base package
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Entity
 @Table(
@@ -39,12 +59,7 @@ public class Reward extends AbstractStatusAwareEntity {
 
     @Column(name = "description")
     private String description;
-
-    @DecimalMin(value = "0", message = "Value must be positive")
-    @Column(name = "value", nullable = false)
-    @Builder.Default
-    private BigDecimal value = BigDecimal.ONE;
-
+  
     @Min(value = 0, message = "Quantity must be non-negative")
     @Column(name = "quantity", nullable = false)
     @Builder.Default
@@ -65,71 +80,62 @@ public class Reward extends AbstractStatusAwareEntity {
     @Builder.Default
     private Set<SpinHistory> spinHistories = new HashSet<>();
 
-    /**
-     * Get remaining available quantity of this reward
-     * @return remaining quantity
-     */
     @Transient
     public int getRemainingQuantity() {
         if (quantity == null) return 0;
-        
+
         long usedQuantity = spinHistories.stream()
             .filter(sh -> sh.getStatus().isActive() && sh.isWin())
             .count();
-            
+
         return (int) Math.max(0, quantity - usedQuantity);
     }
 
-    /**
-     * Check if reward is available to be won
-     * @return true if available
-     */
     @Transient
     public boolean isAvailable() {
         return getStatus().isActive() &&
-               eventLocation != null &&
-               eventLocation.getStatus().isActive() &&
-               getRemainingQuantity() > 0;
+            eventLocation != null &&
+            eventLocation.getStatus().isActive() &&
+            getRemainingQuantity() > 0;
     }
 
-    /**
-     * Set event location with proper bidirectional relationship
-     * @param newLocation the location to set
-     */
     public void setEventLocation(EventLocation newLocation) {
         EventLocation oldLocation = this.eventLocation;
-        
+
         if (oldLocation != null && oldLocation.getRewards() != null) {
             oldLocation.getRewards().remove(this);
         }
-        
+
         this.eventLocation = newLocation;
-        
+
         if (newLocation != null && newLocation.getRewards() != null) {
             newLocation.getRewards().add(this);
         }
     }
 
     @Override
-    public void setStatus(CommonStatus newStatus) {
-        // Call validation logic before setting the status
+    public StatusAware setStatus(CommonStatus newStatus) {
         validateStatusChange(newStatus);
-        super.setStatus(newStatus);
+        return super.setStatus(newStatus);
     }
 
-    @Override
     public void markAsActive() {
         if (eventLocation == null || !eventLocation.getStatus().isActive()) {
             throw new IllegalStateException("Cannot activate reward when event location is inactive");
         }
-        super.markAsActive();
+        super.setStatus(CommonStatus.ACTIVE);
     }
 
-    // Move lifecycle validation to a no-arg method
-    @PrePersist
-    @PreUpdate
-    public void validateBeforeSave() {
-        validateState(); // Reuse the existing validation method
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
     }
 
     public void validateState() {
@@ -153,9 +159,6 @@ public class Reward extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Quantity must be non-negative");
         }
 
-        if (value == null || value.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalStateException("Value must be positive");
-        }
 
         if (winProbability == null || winProbability < 0.0 || winProbability > 1.0) {
             throw new IllegalStateException("Win probability must be between 0 and 1");
@@ -166,11 +169,11 @@ public class Reward extends AbstractStatusAwareEntity {
         }
     }
 
-    // Separate method for status change validation
     private void validateStatusChange(CommonStatus newStatus) {
         if (newStatus != null && newStatus.isActive() &&
             (eventLocation == null || !eventLocation.getStatus().isActive())) {
-            throw new IllegalStateException("Cannot activate reward when event location is inactive");
+            throw new IllegalStateException("Cannot activate reward when event location is inactive. Reward: " +
+                code + ", Location: " + (eventLocation == null ? "null" : eventLocation.getCode()));
         }
     }
 }

@@ -6,6 +6,8 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.base.StatusAware;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -34,7 +36,7 @@ public class EventLocation extends AbstractStatusAwareEntity {
     @NotBlank(message = "Location name is required")
     @Column(name = "name", nullable = false)
     private String name;
-    
+
     @NotBlank(message = "Location code is required")
     @Column(name = "code", nullable = false, unique = true)
     @EqualsAndHashCode.Include
@@ -205,24 +207,22 @@ public class EventLocation extends AbstractStatusAwareEntity {
         if (event != null && event.equals(otherEvent)) {
             return false;
         }
-        
+
         if (event != null && otherEvent != null) {
             return !event.overlaps(otherEvent);
         }
-        
+
         return true;
     }
 
     /**
-     * Mark location as active
-     * @throws IllegalStateException if parent region is inactive
-     */
-    /**
      * Set status and cascade changes to dependent entities
+     *
      * @param newStatus the new status
+     * @return this instance for method chaining
      */
     @Override
-    public void setStatus(CommonStatus newStatus) {
+    public StatusAware setStatus(CommonStatus newStatus) {
         // Check if we can change to active status
         if (newStatus != null && newStatus.isActive() && region != null && !region.getStatus().isActive()) {
             throw new IllegalStateException("Cannot activate location when region is inactive");
@@ -236,16 +236,35 @@ public class EventLocation extends AbstractStatusAwareEntity {
             rewards.forEach(r -> r.setStatus(CommonStatus.INACTIVE));
             goldenHours.forEach(gh -> gh.setStatus(CommonStatus.INACTIVE));
         }
-        
+
         validateState();
+        return this; // Fixed: was returning null
+    }
+
+    /**
+     * Mark the event location as active
+     * This method sets the status to ACTIVE
+     */
+    public void markAsActive() {
+        this.setStatus(CommonStatus.ACTIVE);
+    }
+
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
     }
 
     /**
      * Validate location state
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
         if (code != null) {
             code = code.toUpperCase();
@@ -274,7 +293,7 @@ public class EventLocation extends AbstractStatusAwareEntity {
             log.debug("Region status methods: {}", Arrays.toString(status.getClass().getMethods()));
             log.debug("Region status value: {}", status);
         }
-        
+
         if (getStatus().isActive() && (region == null || !region.getStatus().isActive())) {
             throw new IllegalStateException("Location cannot be active in inactive region");
         }

@@ -1,11 +1,18 @@
 package vn.com.fecredit.app.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class RewardTest {
     private Reward reward;
@@ -43,7 +50,6 @@ class RewardTest {
         reward = Reward.builder()
                 .name("Test Reward")
                 .code("TEST_REWARD")
-                .value(BigDecimal.valueOf(100))
                 .quantity(10)
                 .winProbability(0.5)
                 .eventLocation(location)
@@ -86,12 +92,12 @@ class RewardTest {
     void testRemainingQuantity() {
         assertEquals(10, reward.getRemainingQuantity());
 
-        // Add some winning spins
+        // Add some winning spins using the correct builder syntax
         for (int i = 0; i < 3; i++) {
             SpinHistory spinHistory = SpinHistory.builder()
                     .reward(reward)
                     .spinTime(LocalDateTime.now())
-                    .win(true)
+                    .win(true) // Set directly in builder
                     .status(CommonStatus.ACTIVE)
                     .build();
             reward.getSpinHistories().add(spinHistory);
@@ -146,15 +152,7 @@ class RewardTest {
     void testRewardInitialization() {
         assertNotNull(reward);
         assertEquals("Test Reward", reward.getName());
-        assertEquals(BigDecimal.valueOf(100), reward.getValue());
         assertTrue(reward.getStatus().isActive());
     }
 
-    @Test
-    void testSettingValueBelowZeroShouldFail() {
-        assertThrows(IllegalStateException.class, () -> {
-            reward.setValue(BigDecimal.valueOf(-1));
-            reward.validateState(); // Suppose validateState() checks the value
-        });
-    }
 }

@@ -1,130 +1,172 @@
-import { TableFetchResponse, FieldType, SortType } from './interfaces';
+import { 
+  TableFetchResponse, 
+  Column, 
+  FieldType, 
+  SortType, 
+  ObjectType
+} from './interfaces';
 
-// Mock audit log table data
+// Define columns for the audit log table
+const auditLogColumns: Column[] = [
+  { fieldName: 'id', fieldType: FieldType.NUMBER, sortType: SortType.ASCENDING, displayName: 'ID', filterable: true },
+  { fieldName: 'timestamp', fieldType: FieldType.DATETIME, sortType: SortType.DESCENDING, displayName: 'Time', filterable: true },
+  { fieldName: 'username', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'User', filterable: true },
+  { fieldName: 'action', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Action', filterable: true },
+  { fieldName: 'objectType', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Object Type', filterable: true },
+  { fieldName: 'objectId', fieldType: FieldType.NUMBER, sortType: SortType.NONE, displayName: 'Object ID', filterable: true },
+  { fieldName: 'details', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Details', filterable: true },
+  { fieldName: 'ipAddress', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'IP Address', filterable: true }
+];
+
+// Create mock audit log data
 export const mockAuditLogTable: TableFetchResponse = {
-  totalPages: 10,
+  totalPages: 3,
   currentPage: 0,
-  pageSize: 20,
-  totalElements: 185,
-  tableName: "audit_log",
-  columns: [
-    { 
-      fieldName: "id", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "ID",
-      filterable: false
-    },
-    { 
-      fieldName: "timestamp", 
-      fieldType: FieldType.DATETIME, 
-      sortType: SortType.DESCENDING,
-      displayName: "Timestamp",
-      filterable: true
-    },
-    { 
-      fieldName: "user", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "User",
-      filterable: true
-    },
-    { 
-      fieldName: "action", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Action",
-      filterable: true
-    },
-    { 
-      fieldName: "details", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.NONE,
-      displayName: "Details",
-      filterable: true
-    },
-    { 
-      fieldName: "entityType", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Entity Type",
-      filterable: true
-    },
-    { 
-      fieldName: "entityId", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "Entity ID",
-      filterable: true
-    }
-  ],
+  pageSize: 10,
+  totalElements: 25,
+  tableName: 'audit_log',
+  columns: auditLogColumns,
   rows: [
     {
-      data: { 
-        id: 1, 
-        timestamp: '2023-09-15 14:32:45', 
-        user: 'admin@example.com', 
-        action: 'Update Event', 
-        details: 'Updated event "Summer Giveaway" status to Active',
-        entityType: 'Event',
-        entityId: 1
+      data: {
+        id: 1,
+        timestamp: '2023-06-15T10:25:00Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'EVENT',
+        objectId: 1,
+        details: 'Created event: Summer Giveaway',
+        ipAddress: '192.168.1.100'
       }
     },
     {
-      data: { 
-        id: 2, 
-        timestamp: '2023-09-15 13:25:10', 
-        user: 'admin@example.com', 
-        action: 'Add Reward', 
-        details: 'Added new reward "Gift Card" to Summer Giveaway event',
-        entityType: 'Reward',
-        entityId: 1
+      data: {
+        id: 2,
+        timestamp: '2023-06-15T10:30:15Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'REWARD',
+        objectId: 1,
+        details: 'Created reward: Gold Medal for event: Summer Giveaway',
+        ipAddress: '192.168.1.100'
       }
     },
     {
-      data: { 
-        id: 3, 
-        timestamp: '2023-09-15 11:17:33', 
-        user: 'manager@example.com', 
-        action: 'Delete Participant', 
-        details: 'Deleted participant "Test User" from Summer Giveaway event',
-        entityType: 'Participant',
-        entityId: 10
+      data: {
+        id: 3,
+        timestamp: '2023-06-15T10:35:30Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'REWARD',
+        objectId: 2,
+        details: 'Created reward: Silver Medal for event: Summer Giveaway',
+        ipAddress: '192.168.1.100'
       }
     },
     {
-      data: { 
-        id: 4, 
-        timestamp: '2023-09-14 16:45:22', 
-        user: 'admin@example.com', 
-        action: 'Schedule Golden Hour', 
-        details: 'Scheduled new golden hour "Evening Rush" for Summer Giveaway event',
-        entityType: 'GoldenHour',
-        entityId: 1
+      data: {
+        id: 4,
+        timestamp: '2023-06-15T11:15:45Z',
+        username: 'manager',
+        action: 'UPDATE',
+        objectType: 'EVENT',
+        objectId: 1,
+        details: 'Updated event details for: Summer Giveaway',
+        ipAddress: '192.168.1.101'
       }
     },
     {
-      data: { 
-        id: 5, 
-        timestamp: '2023-09-14 10:08:55', 
-        user: 'manager@example.com', 
-        action: 'Update Reward', 
-        details: 'Updated reward "Gift Card" quantity to 100',
-        entityType: 'Reward',
-        entityId: 1
+      data: {
+        id: 5,
+        timestamp: '2023-06-16T09:20:10Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'GOLDEN_HOUR',
+        objectId: 1,
+        details: 'Created golden hour: Morning Rush for event: Summer Giveaway',
+        ipAddress: '192.168.1.100'
+      }
+    },
+    {
+      data: {
+        id: 6,
+        timestamp: '2023-06-16T09:45:22Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'GOLDEN_HOUR',
+        objectId: 2,
+        details: 'Created golden hour: Lunch Break for event: Summer Giveaway',
+        ipAddress: '192.168.1.100'
+      }
+    },
+    {
+      data: {
+        id: 7,
+        timestamp: '2023-06-20T14:30:50Z',
+        username: 'system',
+        action: 'SYSTEM',
+        objectType: 'SPIN_HISTORY',
+        objectId: 1,
+        details: 'Participant: John Doe won reward: Gold Medal in event: Summer Giveaway',
+        ipAddress: '192.168.1.200'
+      }
+    },
+    {
+      data: {
+        id: 8,
+        timestamp: '2023-06-20T14:45:15Z',
+        username: 'system',
+        action: 'SYSTEM',
+        objectType: 'SPIN_HISTORY',
+        objectId: 2,
+        details: 'Participant: John Doe did not win in event: Summer Giveaway',
+        ipAddress: '192.168.1.200'
+      }
+    },
+    {
+      data: {
+        id: 9,
+        timestamp: '2023-09-10T10:10:00Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'EVENT',
+        objectId: 2,
+        details: 'Created event: Winter Wonderland',
+        ipAddress: '192.168.1.100'
+      }
+    },
+    {
+      data: {
+        id: 10,
+        timestamp: '2023-09-10T10:25:30Z',
+        username: 'admin',
+        action: 'CREATE',
+        objectType: 'REWARD',
+        objectId: 3,
+        details: 'Created reward: Bronze Medal for event: Winter Wonderland',
+        ipAddress: '192.168.1.100'
       }
     }
+    // Additional audit log entries would be included here
   ],
-  originalRequest: {
-    page: 0,
-    size: 20,
-    sorts: [{ field: "timestamp", order: "desc" }],
-    filters: [],
-    search: {}
-  },
-  statistics: {},
+  relatedLinkedObjects: {},
   first: true,
   last: false,
   empty: false,
-  numberOfElements: 20
+  numberOfElements: 10,
+  originalRequest: {
+    page: 0,
+    size: 10,
+    sorts: [],
+    filters: [],
+    search: {},
+    objectType: ObjectType.AUDIT_LOG
+  },
+  statistics: {
+    totalActions: 25,
+    createActions: 12,
+    updateActions: 6,
+    deleteActions: 2,
+    systemActions: 5
+  }
 };

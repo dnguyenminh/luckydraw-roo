@@ -1,309 +1,479 @@
 package vn.com.fecredit.app.service.impl;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.dto.ObjectType;
-import vn.com.fecredit.app.dto.SortRequest;
-import vn.com.fecredit.app.dto.TableFetchRequest;
-import vn.com.fecredit.app.dto.TableFetchResponse;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.service.TableDataService;
-import vn.com.fecredit.app.dto.SortType;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import java.util.*;
-import java.util.stream.Collectors;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.repository.SimpleObjectRepository;
+import vn.com.fecredit.app.service.TableDataService;
+import vn.com.fecredit.app.service.dto.ColumnInfo;
+import vn.com.fecredit.app.service.dto.FetchStatus;
+import vn.com.fecredit.app.service.dto.FieldType;
+import vn.com.fecredit.app.service.dto.FilterRequest;
+import vn.com.fecredit.app.service.dto.FilterType;
+import vn.com.fecredit.app.service.dto.ObjectType;
+import vn.com.fecredit.app.service.dto.SortRequest;
+import vn.com.fecredit.app.service.dto.SortType;
+import vn.com.fecredit.app.service.dto.TabTableRow;
+import vn.com.fecredit.app.service.dto.TableFetchRequest;
+import vn.com.fecredit.app.service.dto.TableFetchResponse;
+import vn.com.fecredit.app.service.dto.TableRow;
+import vn.com.fecredit.app.service.factory.RelatedTablesFactory;
+import vn.com.fecredit.app.service.factory.RepositoryFactory;
 
 /**
- * Implementation of the TableDataService interface for handling data tables,
- * matching the CommonAPIRequestAndResponse.puml specification.
+ * Implementation of the TableDataService for fetching paginated table data.
+ * Supports dynamic entity fetching, sorting, filtering and pagination.
  */
-@Slf4j
 @Service
+@Slf4j
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class TableDataServiceImpl implements TableDataService {
 
     @PersistenceContext
-    private final EntityManager entityManager;
+    private EntityManager entityManager;
+
+    private final RepositoryFactory repositoryFactory;
+
+    private final RelatedTablesFactory relatedTablesFactory;
 
     @Override
-    public TableFetchResponse fetchTableData(TableFetchRequest request) {
+    public TableFetchResponse fetchData(TableFetchRequest request) {
+        if (request == null) {
+            return createErrorResponse("Request cannot be null");
+        }
+
         try {
-            Class<?> entityClass = determineEntityClass(request);
-            JpaRepository<?, Long> repository = getRepository(entityClass);
-            
-            // Create pageable with sorting
-            Pageable pageable = createPageable(request);
-            
-            // Create filter specifications
-            Specification<?> spec = createSpecifications(request, entityClass);
-            
-            // Execute query
-            Page<?> page = executeQuery(repository, spec, pageable);
-            
-            // Convert result to response
-            List<Map<String, Object>> data = page.getContent().stream()
-                    .map(this::convertEntityToMap)
-                    .collect(Collectors.toList());
-            
-            return TableFetchResponse.builder()
-                    .data(data)
-                    .totalRows(page.getTotalElements())
-                    .pageCount(page.getTotalPages())
-                    .currentPage(page.getNumber())
-                    .metadata(new HashMap<>())
-                    .success(true)
-                    .build();
+            // First try to use ObjectType if provided
+            if (request.getObjectType() != null) {
+                return fetchByObjectType(request);
+            }
+            // Fall back to entityName for backward compatibility
+            else if (request.getEntityName() != null) {
+                try {
+                    // Try to map entity name to ObjectType enum
+                    ObjectType objectType = ObjectType.valueOf(request.getEntityName());
+                    request.setObjectType(objectType);
+                    return fetchByObjectType(request);
+                } catch (IllegalArgumentException e) {
+                    // Entity name doesn't match any predefined object type
+                    return createErrorResponse("Unsupported entity: " + request.getEntityName());
+                }
+            } else {
+                return createErrorResponse("No object type or entity name specified");
+            }
         } catch (Exception e) {
             log.error("Error fetching table data", e);
-            return TableFetchResponse.builder()
-                    .success(false)
-                    .errorMessage(e.getMessage())
-                    .data(Collections.emptyList())
-                    .build();
+            return createErrorResponse("Error fetching data: " + e.getMessage());
         }
     }
 
-    @Override
-    public TableFetchResponse fetchRelatedTableData(
-            String entityName,
-            Long entityId,
-            String relationName,
-            TableFetchRequest request) {
-        
+    /**
+     * Fetch data based on ObjectType
+     */
+    private <T extends AbstractStatusAwareEntity> TableFetchResponse fetchByObjectType(TableFetchRequest request) {
+        ObjectType objectType = request.getObjectType();
+        Pageable pageable = createPageable(request);
+
         try {
-            // Get the parent entity
-            Class<?> parentEntityClass = determineEntityClassByName(entityName);
-            Object parentEntity = entityManager.find(parentEntityClass, entityId);
+            // Get the entity class for this object type
+            Class<T> entityClass = repositoryFactory.getEntityClass(objectType);
+
+            // Get the repository for this entity class
+            SimpleObjectRepository<T> repository = repositoryFactory.getRepositoryForClass(entityClass);
+
+            // Get the table name for this object type
+            String tableName = repositoryFactory.getTableNameForObjectType(objectType);
+
+            // Fetch the entities using the generic method
+            return fetchEntities(
+                    request,
+                    pageable,
+                    repository,
+                    tableName,
+                    this::createEntitySpecification,
+                    this::convertEntityToTableRow,
+                    () -> getColumnInfo(objectType));
+        } catch (IllegalArgumentException e) {
+            log.error("Error fetching data for object type {}: {}", objectType, e.getMessage());
+            return createErrorResponse("Unsupported object type: " + objectType);
+        }
+    }
+
+    /**
+     * Get column info based on object type
+     */
+    private Map<String, ColumnInfo> getColumnInfo(ObjectType objectType) {
+        switch (objectType) {
+            case User:
+                return getUserColumnInfo();
+            case Event:
+                return getEventColumnInfo();
+            // Add cases for other entity types
+            default:
+                log.warn("No column info defined for object type: {}", objectType);
+                return new HashMap<>();
+        }
+    }
+
+    /**
+     * Generic method to fetch entities and create a response
+     */
+    private <T extends AbstractStatusAwareEntity> TableFetchResponse fetchEntities(
+            TableFetchRequest request,
+            Pageable pageable,
+            SimpleObjectRepository<T> repository,
+            String tableName,
+            Function<TableFetchRequest, Specification<T>> specificationBuilder,
+            Function<T, TableRow> rowConverter,
+            Supplier<Map<String, ColumnInfo>> columnInfoProvider) {
+
+        Page<T> page;
+        try {
+            // Create specification for filtering
+            Specification<T> spec = specificationBuilder.apply(request);
             
-            if (parentEntity == null) {
-                return TableFetchResponse.builder()
-                        .data(Collections.emptyList())
-                        .totalRows(0)
-                        .pageCount(0)
-                        .currentPage(request.getPage())
-                        .success(true)
-                        .build();
+            // Execute the query using JpaSpecificationExecutor
+            if (repository instanceof JpaSpecificationExecutor) {
+                JpaSpecificationExecutor<T> specExecutor = (JpaSpecificationExecutor<T>) repository;
+                page = specExecutor.findAll(spec, pageable);
+            } else {
+                // Fallback to basic pagination without specifications
+                log.warn("Repository does not support specifications, using basic pagination without filtering");
+                page = repository.findAll(pageable);
             }
-            
-            // Get the related entities through reflection
-            List<?> relatedEntities = getRelatedEntities(parentEntity, relationName);
-            
-            // Apply paging
-            int pageSize = request.getSize() > 0 ? request.getSize() : 
-                           (request.getPageSize() > 0 ? request.getPageSize() : 10);
-            int page = request.getPage();
-            int fromIndex = page * pageSize;
-            int toIndex = Math.min(fromIndex + pageSize, relatedEntities.size());
-            
-            if (fromIndex >= relatedEntities.size()) {
-                fromIndex = 0;
-                page = 0;
-            }
-            
-            List<?> pagedEntities = fromIndex < relatedEntities.size() ? 
-                                    relatedEntities.subList(fromIndex, toIndex) : 
-                                    Collections.emptyList();
-            
-            // Convert to maps for the response
-            List<Map<String, Object>> data = pagedEntities.stream()
-                    .map(this::convertEntityToMap)
-                    .collect(Collectors.toList());
-            
-            // Calculate pagination info
-            int pageCount = (int) Math.ceil((double) relatedEntities.size() / pageSize);
-            
-            return TableFetchResponse.builder()
-                    .data(data)
-                    .totalRows(relatedEntities.size())
-                    .pageCount(pageCount)
-                    .currentPage(page)
-                    .metadata(new HashMap<>())
-                    .success(true)
-                    .build();
         } catch (Exception e) {
-            log.error("Error fetching related table data", e);
-            return TableFetchResponse.builder()
-                    .success(false)
-                    .errorMessage(e.getMessage())
-                    .data(Collections.emptyList())
-                    .build();
+            log.error("Error executing query: {}", e.getMessage(), e);
+            return createErrorResponse("Error executing query: " + e.getMessage());
+        }
+
+        // Convert to response format
+        List<TableRow> rows = page.getContent().stream()
+                .map(rowConverter)
+                .collect(Collectors.toList());
+
+        // Create response
+        TableFetchResponse response = new TableFetchResponse();
+        response.setStatus(page.isEmpty() ? FetchStatus.NO_DATA : FetchStatus.SUCCESS);
+        response.setTotalPage(page.getTotalPages());
+        response.setCurrentPage(page.getNumber());
+        response.setPageSize(page.getSize());
+        response.setTotalElements(page.getTotalElements());
+        response.setTableName(tableName);
+        response.setOriginalRequest(request);
+        response.setRows(rows);
+
+        // Add column metadata
+        response.setFieldNameMap(columnInfoProvider.get());
+
+        return response;
+    }
+
+    /**
+     * Create a generic specification for entity filtering
+     */
+    private <T> Specification<T> createEntitySpecification(TableFetchRequest request) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Apply filters
+            applyFilters(request, predicates, criteriaBuilder, root);
+
+            // Apply search
+            applySearch(request, predicates, criteriaBuilder, root);
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+
+    /**
+     * Apply filters from the request to the specification
+     */
+    private <T> void applyFilters(
+            TableFetchRequest request,
+            List<Predicate> predicates,
+            CriteriaBuilder cb,
+            Root<T> root) {
+
+        if (request.getFilters() != null && !request.getFilters().isEmpty()) {
+            for (FilterRequest filter : request.getFilters()) {
+                String field = filter.getField();
+                FilterType filterType = filter.getFilterType();
+
+                if (field != null && filterType != null) {
+                    addPredicateForField(predicates, cb, root, field, filterType,
+                            filter.getMinValue(), filter.getMaxValue());
+                }
+            }
         }
     }
-    
+
     /**
-     * Determine the entity class based on the request.
+     * Apply search parameters from the request to the specification
      */
-    private Class<?> determineEntityClass(TableFetchRequest request) {
-        if (request.getObjectType() != null) {
-            return getEntityClassFromObjectType(request.getObjectType());
-        } else if (request.getEntityName() != null && !request.getEntityName().isEmpty()) {
-            return determineEntityClassByName(request.getEntityName());
-        }
-        
-        throw new IllegalArgumentException("Missing objectType or entityName in request");
-    }
-    
-    /**
-     * Get entity class based on ObjectType enum.
-     */
-    private Class<?> getEntityClassFromObjectType(ObjectType objectType) {
-        String packageName = "vn.com.fecredit.app.entity";
-        String className = objectType.name().charAt(0) + objectType.name().substring(1).toLowerCase();
-        
-        try {
-            return Class.forName(packageName + "." + className);
-        } catch (ClassNotFoundException e) {
-            log.error("Failed to find entity class for ObjectType: {}", objectType, e);
-            throw new IllegalArgumentException("Invalid objectType: " + objectType);
+    private <T> void applySearch(
+            TableFetchRequest request,
+            List<Predicate> predicates,
+            CriteriaBuilder cb,
+            Root<T> root) {
+
+        if (request.getSearch() != null && !request.getSearch().isEmpty()) {
+            for (Map.Entry<String, String> entry : request.getSearch().entrySet()) {
+                String field = entry.getKey();
+                String value = entry.getValue();
+
+                if (field != null && value != null && !value.isEmpty()) {
+                    predicates.add(cb.like(
+                            cb.lower(root.get(field)),
+                            "%" + value.toLowerCase() + "%"));
+                }
+            }
         }
     }
-    
+
     /**
-     * Determine entity class by name string.
+     * Add a predicate based on field and filter type
      */
-    private Class<?> determineEntityClassByName(String entityName) {
-        String packageName = "vn.com.fecredit.app.entity";
-        String className = entityName.substring(0, 1).toUpperCase() + entityName.substring(1);
-        
-        try {
-            return Class.forName(packageName + "." + className);
-        } catch (ClassNotFoundException e) {
-            log.error("Failed to find entity class for name: {}", entityName, e);
-            throw new IllegalArgumentException("Invalid entity name: " + entityName);
+    private <T> void addPredicateForField(List<Predicate> predicates,
+            CriteriaBuilder cb,
+            Root<T> root,
+            String field,
+            FilterType filterType,
+            String minValue,
+            String maxValue) {
+        switch (filterType) {
+            case EQUALS:
+                if (minValue != null) {
+                    predicates.add(cb.equal(root.get(field), minValue));
+                }
+                break;
+            case NOT_EQUALS: // Fixed - was missing case label
+                if (minValue != null) {
+                    predicates.add(cb.notEqual(root.get(field), minValue));
+                }
+                break;
+            case LESS_THAN:
+                if (minValue != null) {
+                    predicates.add(cb.lessThan(root.get(field).as(String.class), minValue));
+                }
+                break;
+            case LESS_THAN_OR_EQUALS:
+                if (minValue != null) {
+                    predicates.add(cb.lessThanOrEqualTo(root.get(field).as(String.class), minValue));
+                }
+                break;
+            case GREATER_THAN:
+                if (minValue != null) {
+                    predicates.add(cb.greaterThan(root.get(field).as(String.class), minValue));
+                }
+                break;
+            case GREATER_THAN_OR_EQUALS:
+                if (minValue != null) {
+                    predicates.add(cb.greaterThanOrEqualTo(root.get(field).as(String.class), minValue));
+                }
+                break;
+            case BETWEEN:
+                if (minValue != null && maxValue != null) {
+                    predicates.add(cb.between(root.get(field).as(String.class), minValue, maxValue));
+                }
+                break;
+            case IN:
+                if (minValue != null && minValue.contains(",")) {
+                    predicates.add(root.get(field).in((Object[]) minValue.split(",")));
+                }
+                break;
+            case NOT_IN:
+                if (minValue != null && minValue.contains(",")) {
+                    predicates.add(cb.not(root.get(field).in((Object[]) minValue.split(","))));
+                }
+                break;
+            default:
+                // Use case-insensitive LIKE as default
+                if (minValue != null) {
+                    predicates.add(cb.like(
+                            cb.lower(root.get(field)),
+                            "%" + minValue.toLowerCase() + "%"));
+                }
+                break;
         }
     }
-    
+
     /**
-     * Get the appropriate repository for the entity class.
+     * Create a TableRow from any entity using reflection
+     * 
+     * @param entity the entity to convert
+     * @return TableRow containing the entity's properties
      */
-    @SuppressWarnings("unchecked")
-    private JpaRepository<?, Long> getRepository(Class<?> entityClass) {
-        // This would normally be implemented with a map of entity classes to repositories
-        // For now, we can use reflection to find and instantiate the repository
-        throw new UnsupportedOperationException("Repository lookup not implemented yet");
+    private <T> TableRow convertEntityToTableRow(T entity) {
+        Map<String, Object> data = new HashMap<>();
+
+        if (entity != null) {
+            log.debug("Processing entity of type: {}", entity.getClass().getName());
+            // Get all methods from the entity class
+            Method[] methods = entity.getClass().getMethods();
+
+            for (Method method : methods) {
+                String methodName = method.getName();
+                // Only process getter methods (except getClass())
+                if (methodName.startsWith("get") &&
+                        !methodName.equals("getClass") &&
+                        method.getParameterCount() == 0) {
+
+                    try {
+                        // Extract property name from getter method (remove "get" and lowercase first
+                        // character)
+                        String propertyName = methodName.substring(3);
+                        propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
+
+                        // Invoke the getter method to get the value
+                        Object value = method.invoke(entity);
+                        log.debug("Extracted property: {} with value: {}", propertyName, value);
+
+                        // Add property and its value to the data map
+                        data.put(propertyName, value);
+                    } catch (Exception e) {
+                        log.warn("Failed to extract property via method {}: {}", methodName, e.getMessage());
+                    }
+                }
+                // Also handle is/has methods for booleans
+                else if ((methodName.startsWith("is") || methodName.startsWith("has")) &&
+                        method.getParameterCount() == 0 &&
+                        (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
+                    try {
+                        // Extract property name (remove "is"/"has" and lowercase first character)
+                        String propertyName = methodName.startsWith("is") ? methodName.substring(2)
+                                : methodName.substring(3);
+                        propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
+
+                        // Invoke the method to get the boolean value
+                        Object value = method.invoke(entity);
+                        log.debug("Extracted boolean property: {} with value: {}", propertyName, value);
+
+                        // Add property and its value to the data map
+                        data.put(propertyName, value);
+                    } catch (Exception e) {
+                        log.warn("Failed to extract boolean property via method {}: {}", methodName, e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // Check if the entity has related tables to determine the type of row to return
+        if (relatedTablesFactory.hasRelatedTables(entity)) {
+            TabTableRow tabRow = new TabTableRow(data);
+
+            // Add related tables from the factory
+            List<String> relatedTables = relatedTablesFactory.getRelatedTables(entity);
+            for (String tableName : relatedTables) {
+                tabRow.addRelatedTable(tableName);
+            }
+
+            return tabRow;
+        } else {
+            // Create the regular TableRow with the extracted data
+            TableRow row = new TableRow();
+            row.setData(data);
+            return row;
+        }
     }
-    
+
     /**
-     * Create pageable object with sorting from the request.
+     * Define column metadata for User entities
+     */
+    private Map<String, ColumnInfo> getUserColumnInfo() {
+        Map<String, ColumnInfo> columnInfo = new HashMap<>();
+        columnInfo.put("id", new ColumnInfo("id", FieldType.NUMBER.name(), SortType.ASCENDING));
+        columnInfo.put("username", new ColumnInfo("username", FieldType.STRING.name(), SortType.ASCENDING));
+        columnInfo.put("email", new ColumnInfo("email", FieldType.STRING.name(), SortType.ASCENDING));
+        columnInfo.put("fullName", new ColumnInfo("fullName", FieldType.STRING.name(), SortType.ASCENDING));
+        columnInfo.put("role", new ColumnInfo("role", FieldType.STRING.name(), SortType.NONE));
+        columnInfo.put("enabled", new ColumnInfo("enabled", FieldType.BOOLEAN.name(), SortType.NONE));
+        columnInfo.put("status", new ColumnInfo("status", FieldType.STRING.name(), SortType.NONE));
+        return columnInfo;
+    }
+
+    /**
+     * Define column metadata for Event entities
+     */
+    private Map<String, ColumnInfo> getEventColumnInfo() {
+        Map<String, ColumnInfo> columnInfo = new HashMap<>();
+        columnInfo.put("id", new ColumnInfo("id", FieldType.NUMBER.name(), SortType.ASCENDING));
+        columnInfo.put("name", new ColumnInfo("name", FieldType.STRING.name(), SortType.ASCENDING));
+        columnInfo.put("code", new ColumnInfo("code", FieldType.STRING.name(), SortType.ASCENDING));
+        columnInfo.put("description", new ColumnInfo("description", FieldType.STRING.name(), SortType.NONE));
+        columnInfo.put("startTime", new ColumnInfo("startTime", FieldType.DATETIME.name(), SortType.ASCENDING));
+        columnInfo.put("endTime", new ColumnInfo("endTime", FieldType.DATETIME.name(), SortType.ASCENDING));
+        columnInfo.put("status", new ColumnInfo("status", FieldType.STRING.name(), SortType.NONE));
+        return columnInfo;
+    }
+
+    /**
+     * Create a pageable object from the request for sorting and pagination
      */
     private Pageable createPageable(TableFetchRequest request) {
-        int pageSize = request.getSize() > 0 ? request.getSize() : 
-                       (request.getPageSize() > 0 ? request.getPageSize() : 10);
-        int page = request.getPage();
-        
-        // Create sort objects
-        Sort sort = Sort.unsorted();
-        
+        List<Order> orders = new ArrayList<>();
+
+        // Process sort requests
         if (request.getSorts() != null && !request.getSorts().isEmpty()) {
-            List<Sort.Order> orders = request.getSorts().stream()
-                    .filter(sortRequest -> sortRequest.getType() != SortType.NONE)
-                    .map(sortRequest -> 
-                        sortRequest.getType() == SortType.ASCENDING ? 
-                            Sort.Order.asc(sortRequest.getField()) : 
-                            Sort.Order.desc(sortRequest.getField())
-                    )
-                    .collect(Collectors.toList());
-            
-            if (!orders.isEmpty()) {
-                sort = Sort.by(orders);
+            for (SortRequest sortRequest : request.getSorts()) {
+                Direction direction = Direction.ASC;
+                if (sortRequest.getSortType() == SortType.DESCENDING) {
+                    direction = Direction.DESC;
+                }
+                orders.add(new Order(direction, sortRequest.getField()));
             }
-        } else if (request.getSortBy() != null && !request.getSortBy().isEmpty()) {
-            // Legacy sorting
-            List<Sort.Order> orders = request.getSortBy().stream()
-                    .map(field -> request.isAscending() ? 
-                            Sort.Order.asc(field) : 
-                            Sort.Order.desc(field))
-                    .collect(Collectors.toList());
-            
-            sort = Sort.by(orders);
         }
-        
-        return PageRequest.of(page, pageSize, sort);
+
+        Sort sort = orders.isEmpty() ? Sort.unsorted() : Sort.by(orders);
+        return PageRequest.of(request.getPage(), request.getSize(), sort);
     }
-    
+
     /**
-     * Create filter specifications from request.
+     * Create an error response with message
      */
-    private Specification<?> createSpecifications(TableFetchRequest request, Class<?> entityClass) {
-        // Simple implementation for now
-        return (root, query, criteriaBuilder) -> criteriaBuilder.conjunction();
+    private TableFetchResponse createErrorResponse(String message) {
+        log.error("Table data fetch error: {}", message);
+
+        TableFetchResponse response = new TableFetchResponse();
+        response.setStatus(FetchStatus.ERROR);
+        response.setMessage(message);
+        response.setTotalPage(0);
+        response.setCurrentPage(0);
+        response.setPageSize(0);
+        response.setTotalElements(0L);
+        response.setRows(new ArrayList<>());
+        return response;
     }
-    
+
     /**
-     * Execute query with repository and specifications.
+     * Functional interface for providing column info
      */
-    @SuppressWarnings("unchecked")
-    private <T> Page<T> executeQuery(JpaRepository<?, Long> repository, Specification<?> spec, Pageable pageable) {
-        // This would be implemented to use the appropriate repository methods
-        throw new UnsupportedOperationException("Query execution not implemented yet");
-    }
-    
-    /**
-     * Create response DTO from page result.
-     */
-    private TableFetchResponse createResponseFromPage(Page<?> page, TableFetchRequest request) {
-        List<Map<String, Object>> data = page.getContent().stream()
-                .map(this::convertEntityToMap)
-                .collect(Collectors.toList());
-        
-        return TableFetchResponse.builder()
-                .data(data)
-                .totalRows(page.getTotalElements())
-                .pageCount(page.getTotalPages())
-                .currentPage(page.getNumber())
-                .metadata(new HashMap<>())
-                .build();
-    }
-    
-    /**
-     * Convert an entity object to a map.
-     */
-    private Map<String, Object> convertEntityToMap(Object entity) {
-        // This would be implemented to convert entity to map
-        // For now, just return a simple representation
-        if (entity instanceof AbstractStatusAwareEntity) {
-            AbstractStatusAwareEntity statusAwareEntity = (AbstractStatusAwareEntity) entity;
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", statusAwareEntity.getId());
-            map.put("status", statusAwareEntity.getStatus());
-            map.put("createdAt", statusAwareEntity.getCreatedAt());
-            map.put("updatedAt", statusAwareEntity.getUpdatedAt());
-            return map;
-        }
-        
-        return new HashMap<>();
-    }
-    
-    /**
-     * Get related entities from a parent entity through reflection.
-     */
-    private List<?> getRelatedEntities(Object parentEntity, String relationName) {
-        try {
-            // Try to get the getter method for the relation
-            String methodName = "get" + relationName.substring(0, 1).toUpperCase() + relationName.substring(1);
-            java.lang.reflect.Method getter = parentEntity.getClass().getMethod(methodName);
-            
-            Object result = getter.invoke(parentEntity);
-            if (result instanceof Collection<?>) {
-                return new ArrayList<>((Collection<?>) result);
-            } else if (result != null) {
-                return Collections.singletonList(result);
-            }
-        } catch (Exception e) {
-            log.error("Failed to get related entities for relation: {}", relationName, e);
-        }
-        
-        return Collections.emptyList();
+    @FunctionalInterface
+    private interface Supplier<T> {
+        T get();
     }
 }

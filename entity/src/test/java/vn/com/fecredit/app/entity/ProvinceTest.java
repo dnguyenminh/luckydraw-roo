@@ -1,9 +1,16 @@
 package vn.com.fecredit.app.entity;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class ProvinceTest {
 
@@ -94,7 +101,7 @@ class ProvinceTest {
     void testValidation() {
         // Test code normalization
         province.setCode("lowercase_code");
-        province.validateState();
+        province.validate();
         assertEquals("LOWERCASE_CODE", province.getCode());
 
         // Test missing region
@@ -102,13 +109,46 @@ class ProvinceTest {
             .name("Invalid")
             .code("INVALID")
             .build();
-        assertThrows(IllegalStateException.class, () -> invalid.validateState(),
+        assertThrows(IllegalArgumentException.class, () -> invalid.validate(),
             "Should not validate without region");
 
         // Test Province status independent of Region status
         region.setStatus(CommonStatus.INACTIVE);
         province.setStatus(CommonStatus.ACTIVE);
-        assertDoesNotThrow(() -> province.validateState(),
+        assertDoesNotThrow(() -> province.validate(),
             "Should allow Province status independent of Region status");
+    }
+
+    @Test
+    void testValidateWithNullName() {
+        Province province = new Province();
+        province.setCode("TEST");
+        province.setRegion(new Region());
+        
+        assertThrows(IllegalArgumentException.class, () -> {
+            province.validate();
+        });
+    }
+
+    @Test
+    void testValidateWithNullCode() {
+        Province province = new Province();
+        province.setName("Test Province");
+        province.setRegion(new Region());
+        
+        assertThrows(IllegalArgumentException.class, () -> {
+            province.validate();
+        });
+    }
+
+    @Test
+    void testValidateWithNullRegion() {
+        Province province = new Province();
+        province.setName("Test Province");
+        province.setCode("TEST");
+        
+        assertThrows(IllegalArgumentException.class, () -> {
+            province.validate();
+        });
     }
 }

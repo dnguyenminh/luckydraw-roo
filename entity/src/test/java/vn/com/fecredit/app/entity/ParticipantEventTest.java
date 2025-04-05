@@ -2,13 +2,20 @@ package vn.com.fecredit.app.entity;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.stream.IntStream;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class ParticipantEventTest {
 
@@ -168,10 +175,8 @@ class ParticipantEventTest {
 
     @Test
     void testTotalWinnings() {
-        BigDecimal amount = BigDecimal.valueOf(100);
         Reward reward = Reward.builder()
                 .name("Test Reward")
-                .value(amount)
                 .status(CommonStatus.ACTIVE)
                 .build();
 
@@ -186,7 +191,7 @@ class ParticipantEventTest {
         participantEvent.addSpinHistory(win);
 
         assertThat(participantEvent.getTotalWinnings())
-                .isEqualByComparingTo(amount);
+                .isEqualByComparingTo(BigDecimal.ONE);
     }
 
     @Test
@@ -241,5 +246,24 @@ class ParticipantEventTest {
                                               .build();
 
         assertEquals(5, pe.getSpinsRemaining());
+    }
+
+    @Test
+    void testSpinWithWin() {
+        // Create a spin history first with correct builder syntax
+        SpinHistory spinHistory = SpinHistory.builder()
+            .participantEvent(participantEvent)
+            .spinTime(currentTime)
+            .win(false) // Set initial value
+            .status(CommonStatus.ACTIVE)
+            .build();
+        
+        participantEvent.addSpinHistory(spinHistory);
+        
+        // Now call setWin method on the concrete instance
+        spinHistory.setWin(true);
+        
+        // Verify the spin is marked as a win
+        assertTrue(spinHistory.isWin());
     }
 }

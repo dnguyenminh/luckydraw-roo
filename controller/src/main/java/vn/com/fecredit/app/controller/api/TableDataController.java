@@ -1,52 +1,35 @@
 package vn.com.fecredit.app.controller.api;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import vn.com.fecredit.app.dto.TableFetchRequest;
-import vn.com.fecredit.app.dto.TableFetchResponse;
-import vn.com.fecredit.app.service.TableDataService;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import vn.com.fecredit.app.service.TableDataService;
+import vn.com.fecredit.app.service.dto.TableFetchRequest;
+import vn.com.fecredit.app.service.dto.TableFetchResponse;
 
 /**
- * REST Controller for handling table data requests
+ * REST controller for handling table data requests.
+ * Provides endpoints for fetching paginated, sorted, and filtered data.
  */
 @RestController
-@RequestMapping("/api/data")
+@RequestMapping("/api/table-data")
 @RequiredArgsConstructor
 public class TableDataController {
-
+    
     private final TableDataService tableDataService;
-
+    
     /**
-     * Fetch table data based on the provided request
-     * 
+     * Fetch table data based on request parameters
      * @param request the table fetch request
-     * @return the table data response
+     * @return response containing the requested data
      */
-    @PostMapping("/table")
-    public ResponseEntity<TableFetchResponse> fetchTableData(@Valid @RequestBody TableFetchRequest request) {
-        TableFetchResponse response = tableDataService.fetchTableData(request);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
-     * Fetch related table data for an entity
-     * 
-     * @param entityName the entity name
-     * @param entityId the entity ID
-     * @param relationName the relation name
-     * @param request the table fetch request
-     * @return the related table data
-     */
-    @PostMapping("/table/{entityName}/{entityId}/{relationName}")
-    public ResponseEntity<TableFetchResponse> fetchRelatedTableData(
-            @PathVariable String entityName,
-            @PathVariable Long entityId,
-            @PathVariable String relationName,
-            @Valid @RequestBody TableFetchRequest request) {
-        TableFetchResponse response = tableDataService.fetchRelatedTableData(entityName, entityId, relationName, request);
+    @PostMapping("/fetch")
+    public ResponseEntity<TableFetchResponse> fetchTableData(@RequestBody TableFetchRequest request) {
+        TableFetchResponse response = tableDataService.fetchData(request);
         return ResponseEntity.ok(response);
     }
 }

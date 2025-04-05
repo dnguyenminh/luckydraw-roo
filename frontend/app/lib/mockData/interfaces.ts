@@ -33,12 +33,12 @@ export enum ObjectType {
 }
 
 export interface TableFetchRequest {
-  objectType?: ObjectType; // Added to match the updated PUML diagram
   page: number;
   size: number;
-  sorts: SortRequest[];
-  filters: FilterRequest[];
+  sorts: {field: string; order: string}[];
+  filters: {field: string; value: any; operator: string}[];
   search: Record<string, string>;
+  objectType: ObjectType; // Remove the optional marker (?)
 }
 
 // Enums for field and sort types
@@ -59,7 +59,7 @@ export enum FieldType {
 }
 
 // Column information structure
-export interface ColumnInfo {
+export interface Column {
   fieldName: string;
   fieldType: FieldType;
   sortType: SortType;
@@ -69,7 +69,7 @@ export interface ColumnInfo {
 
 // Table row structure
 export interface TableRow {
-  data: any; // Actual row data
+  data: Record<string, any>; // Actual row data
 }
 
 // Extended table row with related tables
@@ -84,13 +84,27 @@ export interface TableInfo {
   pageSize: number;
   totalElements: number;
   tableName: string;
-  columns?: ColumnInfo[]; // Type info for columns
+  columns?: Column[]; // Type info for columns
   rows: TableRow[];
-  relatedTables?: Record<string, Record<string, TableInfo>>; // Related tables at TableInfo level
+  relatedLinkedObjects?: RelatedLinkedObjectsMap; // Only use related linked objects
   first?: boolean;
   last?: boolean;
   empty?: boolean;
   numberOfElements?: number;
+}
+
+// Define interface for related linked objects
+export interface RelatedLinkedObject {
+  objectType: ObjectType;
+  id: number | string;
+  name: string;
+  [key: string]: any; // Additional properties
+}
+
+export interface RelatedLinkedObjectsMap {
+  [relationName: string]: {
+    [entityId: string]: RelatedLinkedObject[];
+  };
 }
 
 // Chart information structure
@@ -108,7 +122,7 @@ export interface StatisticInfo {
 // Table fetch response - extends TableInfo with additional fields
 export interface TableFetchResponse extends TableInfo {
   originalRequest: TableFetchRequest;
-  statistics: Record<string, any>;
+  statistics: any;
 }
 
 // Entity interfaces

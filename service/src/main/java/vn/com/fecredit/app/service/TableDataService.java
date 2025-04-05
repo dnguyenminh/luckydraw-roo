@@ -1,33 +1,18 @@
 package vn.com.fecredit.app.service;
 
-import vn.com.fecredit.app.dto.TableFetchRequest;
-import vn.com.fecredit.app.dto.TableFetchResponse;
+import vn.com.fecredit.app.service.dto.TableFetchRequest;
+import vn.com.fecredit.app.service.dto.TableFetchResponse;
 
 /**
- * Service for handling table data operations
+ * Service interface for fetching table data based on various criteria.
+ * Provides methods for retrieving paginated, filtered, and sorted data.
  */
 public interface TableDataService {
+    
     /**
-     * Fetch table data based on the provided request
-     * 
-     * @param request the table fetch request
-     * @return the table data response
+     * Fetch data based on request parameters
+     * @param request the request containing search criteria, pagination, and sort information
+     * @return response containing the requested data and metadata
      */
-    TableFetchResponse fetchTableData(TableFetchRequest request);
-
-    /**
-     * Fetch related table data
-     * 
-     * @param entityName the entity name
-     * @param entityId the entity ID
-     * @param relationName the relation name
-     * @param request the table fetch request
-     * @return the related table data
-     */
-    TableFetchResponse fetchRelatedTableData(
-        String entityName, 
-        Long entityId, 
-        String relationName, 
-        TableFetchRequest request
-    );
+    TableFetchResponse fetchData(TableFetchRequest request);
 }

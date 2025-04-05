@@ -2,7 +2,12 @@ import {
   TableFetchRequest, 
   TableFetchResponse,
   ObjectType,
-  mockEventTable, 
+  RelatedLinkedObject
+} from '../mockData/interfaces';
+import { stringToObjectType } from '../mockData/utils';
+
+import { 
+  mockEventTable,
   mockParticipantTable,
   mockRegionTable,
   mockProvinceTable,
@@ -12,7 +17,7 @@ import {
   mockSpinHistoryTable,
   mockUserTable,
   mockRoleTable
-} from '@/app/lib/mockData';
+} from '../mockData/index';
 
 // Configuration for API endpoints
 export const apiConfig = {
@@ -294,15 +299,16 @@ export async function fetchTableData(
   }
 }
 
-// Generic fetch function that handles any entity type
+// Updated fetchEntityData to remove redundant parameter
 export async function fetchEntityData(
-  entityType: keyof typeof ObjectType,
   request: TableFetchRequest
 ): Promise<TableFetchResponse> {
-  // Add objectType to the request
-  request.objectType = ObjectType[entityType as keyof typeof ObjectType];
+  // Validate that objectType is provided in the request
+  if (!request.objectType) {
+    throw new Error('objectType is required in the request');
+  }
   
-  // Use the refactored fetchTableData function that doesn't need a table name
+  // Use the fetchTableData function directly since objectType is already in the request
   return fetchTableData(request);
 }
 
@@ -310,25 +316,24 @@ export async function fetchEntityData(
 function getObjectTypeForEntityName(entityName: string): ObjectType | undefined {
   // Convert string like 'event' to ObjectType.EVENT
   const upperCaseEntityName = entityName.toUpperCase();
-  return Object.values(ObjectType).find(
-    obj => obj === upperCaseEntityName || obj === entityName
-  );
+  return ObjectType[upperCaseEntityName as keyof typeof ObjectType];
 }
 
-// Helper function for related tables
-export async function fetchRelatedTableData(
+// Helper function for related data - UPDATED to use relatedLinkedObjects
+export async function fetchRelatedData(
   sourceEntityType: string,
   parentId: number,
   relationName: string,
   request?: TableFetchRequest
-): Promise<TableFetchResponse> {
+): Promise<RelatedLinkedObject[]> {
   // Use default request if not provided
   const fetchRequest = request || {
     page: 0,
     size: 10,
     sorts: [],
     filters: [],
-    search: {}
+    search: {},
+    objectType: stringToObjectType(sourceEntityType)
   };
   
   // Get the source entity's API endpoint
@@ -339,40 +344,68 @@ export async function fetchRelatedTableData(
   
   // Get parent table
   const parentTable = mockTables[sourceEndpoint];
-  if (!parentTable || !parentTable.relatedTables) {
-    throw new Error(`No mock data found for entity: ${sourceEntityType} or no related tables`);
+  if (!parentTable) {
+    throw new Error(`No mock data found for entity: ${sourceEntityType}`);
   }
   
-  // Get the related table for this parent ID
-  const relatedTablesForType = parentTable.relatedTables[relationName];
-  if (!relatedTablesForType) {
-    throw new Error(`No related tables of type ${relationName} found for ${sourceEntityType}`);
+  // Get the related linked objects for this parent ID
+  if (!parentTable.relatedLinkedObjects) {
+    return []; // No related objects available
   }
   
-  const relatedTable = relatedTablesForType[parentId];
-  if (!relatedTable) {
-    // Return empty result
-    return {
-      totalPages: 0,
-      currentPage: 0,
-      pageSize: fetchRequest.size,
-      totalElements: 0,
-      tableName: `${sourceEndpoint}_${relationName}`,
-      rows: [],
-      originalRequest: fetchRequest,
-      statistics: {},
-      first: true,
-      last: true,
-      empty: true,
-      numberOfElements: 0
-    };
+  // Get the related objects for this relation type
+  const relatedObjectsForType = parentTable.relatedLinkedObjects[relationName];
+  if (!relatedObjectsForType) {
+    return []; // No related objects of this type
+  }
+  
+  // Get objects for this specific parent
+  const relatedObjects = relatedObjectsForType[parentId];
+  if (!relatedObjects) {
+    return []; // No related objects for this parent ID
   }
   
   // Clone to avoid modifications to the original
-  const result = JSON.parse(JSON.stringify(relatedTable)) as TableFetchResponse;
+  return JSON.parse(JSON.stringify(relatedObjects));
+}
+
+// This function maintains backward compatibility with old code that expects table format
+export async function fetchRelatedTableData(
+  sourceEntityType: string,
+  parentId: number,
+  relationName: string,
+  request?: TableFetchRequest
+): Promise<TableFetchResponse> {
+  // Get related linked objects
+  const relatedObjects = await fetchRelatedData(sourceEntityType, parentId, relationName, request);
   
-  // Set the original request
-  result.originalRequest = fetchRequest;
+  // Use default request if not provided
+  const fetchRequest: TableFetchRequest = request || {
+    page: 0,
+    size: 10,
+    sorts: [],
+    filters: [],
+    search: {},
+    objectType: stringToObjectType(sourceEntityType) // Ensure objectType is always included
+  };
+  
+  // Convert to table format
+  const result: TableFetchResponse = {
+    totalPages: 1,
+    currentPage: 0,
+    pageSize: relatedObjects.length,
+    totalElements: relatedObjects.length,
+    tableName: `${sourceEntityType}_${relationName}`,
+    rows: relatedObjects.map(obj => ({
+      data: { ...obj }
+    })),
+    originalRequest: fetchRequest, // Now properly typed as TableFetchRequest
+    statistics: {},
+    first: true,
+    last: true,
+    empty: relatedObjects.length === 0,
+    numberOfElements: relatedObjects.length
+  };
   
   return result;
 }

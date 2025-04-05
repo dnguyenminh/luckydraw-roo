@@ -1,55 +1,54 @@
 package vn.com.fecredit.app.service;
 
-import vn.com.fecredit.app.entity.AuditLog;
-import vn.com.fecredit.app.entity.CommonStatus;
-import vn.com.fecredit.app.entity.enums.ActionType;
-import vn.com.fecredit.app.service.base.AbstractService;
-
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+import vn.com.fecredit.app.entity.AuditLog;
+import vn.com.fecredit.app.entity.enums.ActionType;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
- * Service for managing audit logs.
+ * Service interface for audit logging and retrieval.
+ * Provides methods for recording and querying system actions.
  */
-public interface AuditService extends AbstractService<AuditLog> {
+public interface AuditService {
     
     /**
-     * Log an action performed by a user.
-     *
-     * @param actionType the type of action performed
-     * @param entityType the type of entity affected
-     * @param entityId the ID of the entity affected
-     * @param username the username of the user who performed the action
-     * @param details additional details about the action
-     * @return the created audit log entry
+     * Log an action in the system
+     * @param actionType the type of action
+     * @param objectType the type of object
+     * @param objectId the object's ID
+     * @param details additional details
+     * @param username the user who performed the action
+     * @return the created audit log
      */
-    AuditLog logAction(ActionType actionType, String entityType, Long entityId, 
-                       String username, String details);
+    AuditLog logAction(ActionType actionType, String objectType, Long objectId, String details, String username);
     
     /**
-     * Find audit logs by username.
-     *
-     * @param username the username to search for
-     * @return a list of audit logs for the specified user
+     * Find audit logs by entity type and ID
+     * @param entityType the entity type
+     * @param id the entity ID
+     * @return matching audit logs
+     */
+    List<AuditLog> findByEntityTypeAndId(String entityType, Long id);
+    
+    /**
+     * Find audit logs by username
+     * @param username the username
+     * @return matching audit logs
      */
     List<AuditLog> findByUsername(String username);
     
     /**
-     * Find audit logs by action type.
-     *
-     * @param actionType the action type to search for
-     * @return a list of audit logs for the specified action type
+     * Find audit logs by action type
+     * @param actionType the action type
+     * @return matching audit logs
      */
     List<AuditLog> findByActionType(ActionType actionType);
-    
-    /**
-     * Find audit logs by entity type and ID.
-     *
-     * @param entityType the entity type to search for
-     * @param entityId the entity ID to search for
-     * @return a list of audit logs for the specified entity
-     */
-    List<AuditLog> findByEntityTypeAndId(String entityType, Long entityId);
     
     /**
      * Find audit logs within a time range.
@@ -83,4 +82,31 @@ public interface AuditService extends AbstractService<AuditLog> {
      * @return the saved audit logs
      */
     List<AuditLog> saveAll(List<AuditLog> auditLogs);
+    
+    /**
+     * Save an audit log
+     * @param auditLog the audit log to save
+     * @return the saved audit log
+     */
+    AuditLog save(AuditLog auditLog);
+    
+    /**
+     * Find an audit log by ID
+     * @param id the audit log ID
+     * @return optional containing the audit log if found
+     */
+    Optional<AuditLog> findById(Long id);
+    
+    /**
+     * Find all audit logs
+     * @return list of all audit logs
+     */
+    List<AuditLog> findAll();
+    
+    /**
+     * Find all audit logs with pagination
+     * @param pageable pagination information
+     * @return page of audit logs
+     */
+    Page<AuditLog> findAll(Pageable pageable);
 }

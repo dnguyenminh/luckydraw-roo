@@ -1,297 +1,237 @@
-import { TableFetchResponse, FieldType, SortType } from './interfaces';
-import { addParticipantRelationship } from './participants';
+import { 
+  TableFetchResponse, 
+  Column, 
+  FieldType, 
+  SortType, 
+  ObjectType,
+  RelatedLinkedObjectsMap,
+  RelatedLinkedObject
+} from './interfaces';
+// Temporarily comment out the import to avoid circular references
+// Import participant relationship function from a utility file instead
+// import { addParticipantRelationship } from './participants'; 
 
-// Mock spin history table data
+// Define columns for the spin history table
+const spinHistoryColumns: Column[] = [
+  { fieldName: 'id', fieldType: FieldType.NUMBER, sortType: SortType.ASCENDING, displayName: 'ID', filterable: true },
+  { fieldName: 'participantName', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Participant', filterable: true },
+  { fieldName: 'participantEmail', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Email', filterable: true },
+  { fieldName: 'eventName', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Event', filterable: true },
+  { fieldName: 'timestamp', fieldType: FieldType.DATETIME, sortType: SortType.DESCENDING, displayName: 'Time', filterable: true },
+  { fieldName: 'reward', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Reward', filterable: true },
+  { fieldName: 'provinceName', fieldType: FieldType.STRING, sortType: SortType.NONE, displayName: 'Province', filterable: true },
+  { fieldName: 'goldenHour', fieldType: FieldType.BOOLEAN, sortType: SortType.NONE, displayName: 'Golden Hour', filterable: true }
+];
+
+// Create related linked objects for spin history
+const spinHistoryRelatedObjects: RelatedLinkedObjectsMap = {
+  // No related objects needed for spin history in this example
+};
+
+// Create mock spin history data
 export const mockSpinHistoryTable: TableFetchResponse = {
-  totalPages: 25,
+  totalPages: 2,
   currentPage: 0,
-  pageSize: 20,
-  totalElements: 487,
-  tableName: "spin_history",
-  columns: [
-    { 
-      fieldName: "id", 
-      fieldType: FieldType.NUMBER, 
-      sortType: SortType.ASCENDING,
-      displayName: "ID",
-      filterable: false
-    },
-    { 
-      fieldName: "participantName", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Participant Name",
-      filterable: true
-    },
-    { 
-      fieldName: "participantEmail", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Email",
-      filterable: true
-    },
-    { 
-      fieldName: "timestamp", 
-      fieldType: FieldType.DATETIME, 
-      sortType: SortType.DESCENDING,
-      displayName: "Date & Time",
-      filterable: true
-    },
-    { 
-      fieldName: "eventName", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Event",
-      filterable: true
-    },
-    { 
-      fieldName: "result", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Result",
-      filterable: true
-    },
-    { 
-      fieldName: "province", 
-      fieldType: FieldType.STRING, 
-      sortType: SortType.ASCENDING,
-      displayName: "Province",
-      filterable: true
-    },
-    { 
-      fieldName: "isWinner", 
-      fieldType: FieldType.BOOLEAN, 
-      sortType: SortType.ASCENDING,
-      displayName: "Is Winner",
-      filterable: true
-    },
-    { 
-      fieldName: "rewardClaimed", 
-      fieldType: FieldType.BOOLEAN, 
-      sortType: SortType.ASCENDING,
-      displayName: "Claimed",
-      filterable: true
-    }
-  ],
+  pageSize: 10,
+  totalElements: 15,
+  tableName: 'spin_history',
+  columns: spinHistoryColumns,
   rows: [
     {
-      data: { 
-        id: 1, 
-        participantName: 'John Smith',
-        participantEmail: 'john.smith@example.com',
-        timestamp: '2023-09-15 14:32:45',
-        result: 'Gift Card ($50)',
-        province: 'Western Province',
+      data: {
+        id: 1,
+        participantName: 'John Doe',
+        participantEmail: 'john.doe@example.com',
         eventName: 'Summer Giveaway',
-        isWinner: true,
-        rewardClaimed: true
+        timestamp: '2023-06-15T10:30:00Z',
+        reward: 'Gold Medal',
+        provinceName: 'Province A',
+        goldenHour: true
       }
     },
     {
-      data: { 
-        id: 2, 
-        participantName: 'Jane Doe',
-        participantEmail: 'jane.doe@example.com',
-        timestamp: '2023-09-15 12:15:22',
-        result: 'Try Again',
-        province: 'Eastern Province',
+      data: {
+        id: 2,
+        participantName: 'John Doe',
+        participantEmail: 'john.doe@example.com',
         eventName: 'Summer Giveaway',
-        isWinner: false,
-        rewardClaimed: false
+        timestamp: '2023-06-20T14:45:00Z',
+        reward: null,
+        provinceName: 'Province A',
+        goldenHour: true
       }
     },
     {
-      data: { 
-        id: 3, 
-        participantName: 'Robert Johnson',
-        participantEmail: 'robert.j@example.com',
-        timestamp: '2023-09-14 17:45:11',
-        result: 'Free Product',
-        province: 'Northern Province',
-        eventName: 'Fall Promotion',
-        isWinner: true,
-        rewardClaimed: false
-      }
-    },
-    {
-      data: { 
-        id: 4, 
-        participantName: 'Sarah Williams',
-        participantEmail: 'sarah.w@example.com',
-        timestamp: '2023-09-14 09:22:38',
-        result: 'Discount Coupon (10%)',
-        province: 'Central Province',
+      data: {
+        id: 3,
+        participantName: 'Jane Smith',
+        participantEmail: 'jane.smith@example.com',
         eventName: 'Summer Giveaway',
-        isWinner: true,
-        rewardClaimed: true
+        timestamp: '2023-06-18T09:15:00Z',
+        reward: 'Silver Medal',
+        provinceName: 'Province A',
+        goldenHour: true
       }
     },
     {
-      data: { 
-        id: 5, 
-        participantName: 'Michael Brown',
-        participantEmail: 'michael.b@example.com',
-        timestamp: '2023-09-13 16:07:29',
-        result: 'Try Again',
-        province: 'Western Province',
-        eventName: 'Fall Promotion',
-        isWinner: false,
-        rewardClaimed: false
+      data: {
+        id: 4,
+        participantName: 'Bob Johnson',
+        participantEmail: 'bob.johnson@example.com',
+        eventName: 'Spring Festival',
+        timestamp: '2023-03-10T11:20:00Z',
+        reward: 'Gift Card',
+        provinceName: 'Province B',
+        goldenHour: false
+      }
+    },
+    {
+      data: {
+        id: 5,
+        participantName: 'Bob Johnson',
+        participantEmail: 'bob.johnson@example.com',
+        eventName: 'Spring Festival',
+        timestamp: '2023-03-15T16:35:00Z',
+        reward: null,
+        provinceName: 'Province B',
+        goldenHour: true
+      }
+    },
+    {
+      data: {
+        id: 6,
+        participantName: 'Alice Brown',
+        participantEmail: 'alice.brown@example.com',
+        eventName: 'Summer Giveaway',
+        timestamp: '2023-06-22T08:50:00Z',
+        reward: 'Silver Medal',
+        provinceName: 'Province B',
+        goldenHour: true
+      }
+    },
+    {
+      data: {
+        id: 7,
+        participantName: 'Alice Brown',
+        participantEmail: 'alice.brown@example.com',
+        eventName: 'Spring Festival',
+        timestamp: '2023-03-20T15:40:00Z',
+        reward: 'Gift Card',
+        provinceName: 'Province B',
+        goldenHour: true
+      }
+    },
+    {
+      data: {
+        id: 8,
+        participantName: 'Frank Miller',
+        participantEmail: 'frank.miller@example.com',
+        eventName: 'Summer Giveaway',
+        timestamp: '2023-06-25T09:10:00Z',
+        reward: 'Gold Medal',
+        provinceName: 'Province D',
+        goldenHour: true
+      }
+    },
+    {
+      data: {
+        id: 9,
+        participantName: 'Frank Miller',
+        participantEmail: 'frank.miller@example.com',
+        eventName: 'Spring Festival',
+        timestamp: '2023-04-05T13:25:00Z',
+        reward: 'Gift Card',
+        provinceName: 'Province D',
+        goldenHour: false
+      }
+    },
+    {
+      data: {
+        id: 10,
+        participantName: 'Grace Taylor',
+        participantEmail: 'grace.taylor@example.com',
+        eventName: 'Summer Giveaway',
+        timestamp: '2023-06-30T16:05:00Z',
+        reward: 'Silver Medal',
+        provinceName: 'Province D',
+        goldenHour: true
       }
     }
+    // Additional spin history entries would be included here
   ],
-  originalRequest: {
-    page: 0,
-    size: 20,
-    sorts: [{ field: "timestamp", order: "desc" }],
-    filters: [],
-    search: {}
-  },
-  statistics: { charts: {} },
+  relatedLinkedObjects: spinHistoryRelatedObjects,
   first: true,
   last: false,
   empty: false,
-  numberOfElements: 20
-};
-
-// Import spin history mock data from participants.ts to avoid circular dependencies
-import { mockParticipantSpinHistory } from './participants';
-
-// Detailed spin history for specific participants
-export const participantSpinHistory: Record<string, TableFetchResponse> = {
-  "1": {
-    totalPages: 1,
-    currentPage: 0,
-    pageSize: 10,
-    totalElements: 5,
-    tableName: "participant_spin_history",
-    columns: [
-      { 
-        fieldName: "id", 
-        fieldType: FieldType.NUMBER, 
-        sortType: SortType.ASCENDING,
-        displayName: "ID",
-        filterable: false
-      },
-      { 
-        fieldName: "timestamp", 
-        fieldType: FieldType.DATETIME, 
-        sortType: SortType.DESCENDING,
-        displayName: "Date & Time",
-        filterable: true
-      },
-      { 
-        fieldName: "eventName", 
-        fieldType: FieldType.STRING, 
-        sortType: SortType.ASCENDING,
-        displayName: "Event",
-        filterable: true
-      },
-      { 
-        fieldName: "result", 
-        fieldType: FieldType.STRING, 
-        sortType: SortType.ASCENDING,
-        displayName: "Result",
-        filterable: true
-      },
-      { 
-        fieldName: "isWinner", 
-        fieldType: FieldType.BOOLEAN, 
-        sortType: SortType.ASCENDING,
-        displayName: "Is Winner",
-        filterable: true
-      },
-      { 
-        fieldName: "rewardClaimed", 
-        fieldType: FieldType.BOOLEAN, 
-        sortType: SortType.ASCENDING,
-        displayName: "Claimed",
-        filterable: true
-      }
-    ],
-    rows: [
-      {
-        data: { 
-          id: 101, 
-          timestamp: '2023-09-15 14:32:45',
-          eventId: 1,
-          eventName: 'Summer Giveaway',
-          result: 'Gift Card ($50)',
-          isWinner: true,
-          rewardId: 1,
-          rewardName: 'Gift Card',
-          rewardClaimed: true
-        }
-      },
-      // ...other rows
-    ],
-    originalRequest: {
-      page: 0,
-      size: 10,
-      sorts: [{ field: "timestamp", order: "desc" }],
-      filters: [],
-      search: {}
-    },
-    statistics: {},
-    first: true,
-    last: true,
-    empty: false,
-    numberOfElements: 5
+  numberOfElements: 10,
+  originalRequest: {
+    page: 0,
+    size: 10,
+    sorts: [],
+    filters: [],
+    search: {},
+    objectType: ObjectType.SPIN_HISTORY
   },
-  "2": {
-    // ...similar data for participant 2
-    totalPages: 1,
-    currentPage: 0,
-    pageSize: 10,
-    totalElements: 3,
-    tableName: "participant_spin_history",
-    columns: [
-      // Same columns as above
-    ],
-    rows: [
-      {
-        data: { 
-          id: 201, 
-          timestamp: '2023-09-15 09:22:15',
-          eventName: 'Fall Promotion',
-          result: 'Gift Voucher ($30)',
-          isWinner: true,
-          rewardClaimed: true
-        }
-      },
-      // ...other rows
-    ],
-    originalRequest: {
-      page: 0,
-      size: 10,
-      sorts: [{ field: "timestamp", order: "desc" }],
-      filters: [],
-      search: {}
-    },
-    statistics: {},
-    first: true,
-    last: true,
-    empty: false,
-    numberOfElements: 3
+  statistics: {
+    totalSpins: 15,
+    winningSpins: 9,
+    goldenHourSpins: 8,
+    regularSpins: 7
   }
 };
 
-// Function to initialize relationships between spin histories and participants
-function initializeSpinHistoryParticipantRelationships() {
-  // Link spin histories to participants
-  const participantIds = ["1", "2"];
-  
-  participantIds.forEach(participantId => {
-    const participantSpins = participantSpinHistory[participantId];
-    if (participantSpins) {
-      // Add this spin history to the participant's related tables
-      addParticipantRelationship(
-        Number(participantId),
-        "spinHistory",
-        participantSpins
-      );
+// Create participant-specific spin history
+export const participantSpinHistory: Record<number, any> = {
+  1: [ // Spin history for John Doe
+    {
+      id: 1,
+      eventName: 'Summer Giveaway',
+      timestamp: '2023-06-15T10:30:00Z',
+      reward: 'Gold Medal',
+      goldenHour: true
+    },
+    {
+      id: 2,
+      eventName: 'Summer Giveaway',
+      timestamp: '2023-06-20T14:45:00Z',
+      reward: null,
+      goldenHour: true
     }
-  });
+  ],
+  2: [ // Spin history for Jane Smith
+    {
+      id: 3,
+      eventName: 'Summer Giveaway',
+      timestamp: '2023-06-18T09:15:00Z',
+      reward: 'Silver Medal',
+      goldenHour: true
+    }
+  ],
+  // Additional participant spin histories would be included here
+};
+
+// Function to add relationships to spin history
+export function addSpinHistoryRelationship(
+  spinHistoryId: number,
+  relationName: string,
+  relationObjects: RelatedLinkedObject[]
+) {
+  if (!mockSpinHistoryTable.relatedLinkedObjects) {
+    mockSpinHistoryTable.relatedLinkedObjects = {};
+  }
+  
+  if (!mockSpinHistoryTable.relatedLinkedObjects[relationName]) {
+    mockSpinHistoryTable.relatedLinkedObjects[relationName] = {};
+  }
+  
+  mockSpinHistoryTable.relatedLinkedObjects[relationName][spinHistoryId] = relationObjects;
+}
+
+// Modify the initialization function to avoid circular dependencies
+function initializeSpinHistoryParticipantRelationships() {
+  // This function would be called later after resolving circular dependencies
+  // or through a separate initialization utility
+  console.log('Spin history relationships will be initialized separately');
 }
 
 // Initialize relationships when module is loaded

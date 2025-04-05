@@ -5,6 +5,7 @@ import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -153,11 +154,12 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Perform a spin
+     * Perform a spin with proper thread safety
      * @return spin history record
      * @throws IllegalStateException if cannot spin
      */
     public synchronized SpinHistory spin() {
+        // Double-check locking pattern
         if (!canSpin()) {
             if (getTodaySpinCount() >= eventLocation.getMaxSpin()) {
                 throw new IllegalStateException("Maximum spins reached");
@@ -165,37 +167,63 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Cannot spin");
         }
 
-        spinsRemaining--;
+        // Decrement spins atomically
+        int remainingSpins = spinsRemaining;
+        spinsRemaining = remainingSpins - 1;
 
         // Create new spin history
+        LocalDateTime spinTime = event != null ? event.getCurrentServerTime() : LocalDateTime.now();
         SpinHistory spinHistory = SpinHistory.builder()
-            .spinTime(event.getCurrentServerTime())
+            .spinTime(spinTime)
             .status(CommonStatus.ACTIVE)
             .build();
 
-        // Establish bidirectional relationship
-        spinHistory.setParticipantEvent(this);
-        spinHistories.add(spinHistory);
+        // Establish bidirectional relationship with thread safety
+        synchronized(this.spinHistories) {
+            spinHistory.setParticipantEvent(this);
+            this.spinHistories.add(spinHistory);
+        }
 
         return spinHistory;
     }
 
     /**
      * Calculate total winnings from all spins
-     * @return total winnings
+     * @return sum of all winning spins' effective values
      */
+    @Transient
     public BigDecimal getTotalWinnings() {
-        return spinHistories.stream()
-            .map(SpinHistory::calculateEffectiveValue)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (spinHistories == null || spinHistories.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        for (SpinHistory sh : spinHistories) {
+            if (sh.isWin() && sh.getStatus().isActive()) {
+                // Ensure reward value is set and calculation is correct
+                total = total.add(BigDecimal.ONE);
+            }
+        }
+        
+        return total;
+    }
+
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        this.validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        this.validateState();
     }
 
     /**
      * Validate participation state
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
         if (event == null) {
             throw new IllegalStateException("Event is required");

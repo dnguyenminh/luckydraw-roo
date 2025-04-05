@@ -1,9 +1,8 @@
 package vn.com.fecredit.app.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
@@ -11,20 +10,32 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * GoldenHour entity representing special time periods during events
+ * when reward values are multiplied.
+ */
 @Entity
-@Table(name = "golden_hours", indexes = {
+@Table(
+    name = "golden_hours",
+    indexes = {
         @Index(name = "idx_golden_hour_location", columnList = "event_location_id"),
-        @Index(name = "idx_golden_hour_status", columnList = "status"),
-        @Index(name = "idx_golden_hour_time", columnList = "start_time, end_time")
-})
+        @Index(name = "idx_golden_hour_time", columnList = "start_time, end_time"),
+        @Index(name = "idx_golden_hour_status", columnList = "status")
+    }
+)
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true)
-@EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
+@ToString(callSuper = true, exclude = "eventLocation")
+@EqualsAndHashCode(callSuper = true)
 public class GoldenHour extends AbstractStatusAwareEntity {
+
+    @NotNull(message = "Event location is required")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_location_id", nullable = false)
+    private EventLocation eventLocation;
 
     @NotNull(message = "Start time is required")
     @Column(name = "start_time", nullable = false)
@@ -35,113 +46,108 @@ public class GoldenHour extends AbstractStatusAwareEntity {
     private LocalDateTime endTime;
 
     @DecimalMin(value = "1.0", message = "Multiplier must be at least 1.0")
-    @DecimalMax(value = "10.0", message = "Multiplier must be at most 10.0")
-    @Column(name = "multiplier", nullable = false, precision = 5, scale = 2)
+    @Column(name = "multiplier", nullable = false)
     @Builder.Default
     private BigDecimal multiplier = BigDecimal.ONE;
 
-    @NotNull(message = "Location is required")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_location_id", nullable = false)
-    private EventLocation eventLocation;
-
-    public EventLocation getEventLocation() {
-        return eventLocation;
+    /**
+     * Check if the given time falls within this golden hour
+     * @param checkTime the time to check
+     * @return true if the time is within the golden hour period
+     */
+    @Transient
+    public boolean isActive(LocalDateTime checkTime) {
+        return getStatus().isActive() &&
+               !checkTime.isBefore(startTime) &&
+               !checkTime.isAfter(endTime);
     }
 
     /**
-     * Set location with proper bidirectional relationship management
-     * 
-     * @param newLocation the location to set
+     * Check if this golden hour is currently active
+     * @return true if currently active
+     */
+    @Transient
+    public boolean isCurrentlyActive() {
+        LocalDateTime now = LocalDateTime.now();
+        if (eventLocation != null && eventLocation.getEvent() != null) {
+            now = eventLocation.getEvent().getCurrentServerTime();
+        }
+        return isActive(now);
+    }
+
+    /**
+     * Check if this golden hour overlaps with another golden hour
+     * @param other the other golden hour to check
+     * @return true if the golden hours overlap in time
+     */
+    public boolean overlaps(GoldenHour other) {
+        if (other == null || startTime == null || endTime == null 
+            || other.startTime == null || other.endTime == null) {
+            return false;
+        }
+        
+        // Two time periods overlap if the start of one is before the end of the other
+        // and the end of the first is after the start of the other
+        return !endTime.isBefore(other.startTime) && !startTime.isAfter(other.endTime);
+    }
+
+    /**
+     * Set the eventLocation with proper bidirectional relationship management
+     * @param newLocation the new event location
      */
     public void setEventLocation(EventLocation newLocation) {
         EventLocation oldLocation = this.eventLocation;
-
-        // Remove from old location
+        
         if (oldLocation != null && oldLocation.getGoldenHours() != null) {
             oldLocation.getGoldenHours().remove(this);
         }
-
+        
         this.eventLocation = newLocation;
-
-        // Add to new location
+        
         if (newLocation != null && newLocation.getGoldenHours() != null) {
             newLocation.getGoldenHours().add(this);
         }
     }
 
-    /**
-     * Check if golden hour is active at the given time
-     * 
-     * @param time the time to check
-     * @return true if golden hour is active
-     */
-    public boolean isActive(LocalDateTime time) {
-        return getStatus().isActive() &&
-                !time.isBefore(startTime) &&
-                !time.isAfter(endTime);
+    @Override
+    public void doPrePersist() {
+        super.doPrePersist();
+        validateState();
+    }
+
+    @Override
+    public void doPreUpdate() {
+        super.doPreUpdate();
+        validateState();
     }
 
     /**
-     * Check if golden hour is currently active
-     * 
-     * @return true if active
-     */
-    @Transient
-    public boolean isActive() {
-        return isActive(LocalDateTime.now());
-    }
-
-    /**
-     * Check if this golden hour overlaps with another
-     * 
-     * @param other the other golden hour to check
-     * @return true if there is overlap
-     */
-    public boolean overlaps(GoldenHour other) {
-        if (other == null || eventLocation == null || other.getEventLocation() == null) {
-            return false;
-        }
-
-        return eventLocation.equals(other.getEventLocation()) &&
-                !endTime.isBefore(other.getStartTime()) &&
-                !startTime.isAfter(other.getEndTime());
-    }
-
-    /**
-     * Validate golden hour state
-     * 
+     * Validate the golden hour state
      * @throws IllegalStateException if validation fails
      */
-    @PrePersist
-    @PreUpdate
     public void validateState() {
-        if (startTime == null || endTime == null) {
-            throw new IllegalStateException("Start time and end time must be specified");
+        if (startTime == null) {
+            throw new IllegalStateException("Start time is required");
         }
-
-        if (endTime.isBefore(startTime)) {
+        
+        if (endTime == null) {
+            throw new IllegalStateException("End time is required");
+        }
+        
+        if (endTime.isBefore(startTime) || endTime.isEqual(startTime)) {
             throw new IllegalStateException("End time must be after start time");
         }
-
+        
         if (eventLocation == null) {
-            throw new IllegalStateException("Location must be specified");
+            throw new IllegalStateException("Event location is required");
         }
-
-        // Validate time window is within event time
-        Event event = eventLocation.getEvent();
-        if (event != null) {
-            if (startTime.isBefore(event.getStartTime())) {
-                throw new IllegalStateException("Golden hour cannot start before event");
-            }
-            if (endTime.isAfter(event.getEndTime())) {
-                throw new IllegalStateException("Golden hour cannot end after event");
-            }
+        
+        if (getStatus().isActive() && !eventLocation.getStatus().isActive()) {
+            throw new IllegalStateException("Cannot activate golden hour for inactive event location");
         }
-
-        if (multiplier == null || multiplier.compareTo(BigDecimal.ONE) < 0
-                || multiplier.compareTo(BigDecimal.valueOf(10)) > 0) {
-            throw new IllegalStateException("Multiplier must be between 1.0 and 10.0");
+        
+        if (multiplier == null || multiplier.compareTo(BigDecimal.ONE) < 0) {
+            throw new IllegalStateException("Multiplier must be at least 1.0");
         }
     }
 }

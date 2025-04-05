@@ -5,9 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.com.fecredit.app.entity.Reward;
-import vn.com.fecredit.app.entity.SpinHistory;
 import vn.com.fecredit.app.service.RewardService;
-import vn.com.fecredit.app.service.SpinHistoryService;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,12 +15,10 @@ import java.util.Optional;
 public class RewardController {
 
     private final RewardService rewardService;
-    private final SpinHistoryService spinHistoryService;
 
     @Autowired
-    public RewardController(RewardService rewardService, SpinHistoryService spinHistoryService) {
+    public RewardController(RewardService rewardService) {
         this.rewardService = rewardService;
-        this.spinHistoryService = spinHistoryService;
     }
 
     @GetMapping
@@ -69,21 +65,4 @@ public class RewardController {
         List<Reward> rewards = rewardService.findByEventId(eventId);
         return new ResponseEntity<>(rewards, HttpStatus.OK);
     }
-
-//    @PostMapping("/{rewardId}/draw/{eventId}")
-//    public ResponseEntity<Winner> drawWinner(@PathVariable("rewardId") Long rewardId,
-//                                             @PathVariable("eventId") Long eventId) {
-//        try {
-//            Winner winner = rewardService.drawWinner(rewardId, eventId);
-//            return new ResponseEntity<>(winner, HttpStatus.OK);
-//        } catch (IllegalStateException e) {
-//            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-//        }
-//    }
-//
-//    @GetMapping("/winners/{eventId}")
-//    public ResponseEntity<List<Winner>> getWinnersByEventId(@PathVariable("eventId") Long eventId) {
-//        List<Winner> winners = winnerService.findWinnersByEventId(eventId);
-//        return new ResponseEntity<>(winners, HttpStatus.OK);
-//    }
 }

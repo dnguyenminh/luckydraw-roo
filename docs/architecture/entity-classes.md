@@ -189,6 +189,12 @@ classDiagram
         +CommonStatus status
     }
 
+    class Permission {
+        +String name
+        +Integer displayOrder
+        +CommonStatus status
+    }
+
     class BlacklistedToken {
         +String token
         +LocalDateTime expiryTime
@@ -197,6 +203,7 @@ classDiagram
 
     User "1" --> "*" BlacklistedToken : invalidates
     User "*" --> "*" Role : has assigned
+    Role "*" --> "*" Permission : has assigned
 ```
 
 ### User
@@ -206,6 +213,11 @@ classDiagram
 - One-to-many relationship with BlacklistedToken
 
 ### Role
+- Represents user role (ADMIN, USER, etc.)
+- Contains permissions and display order
+- Many-to-many relationship with User
+
+### Permission
 - Represents user role (ADMIN, USER, etc.)
 - Contains permissions and display order
 - Many-to-many relationship with User
@@ -257,3 +269,24 @@ All entities inherit from base classes providing:
    - Role-based access control
    - Token invalidation support
    - Audit trail for all operations
+
+## Support Entities
+
+### AuditLog
+
+The AuditLog entity tracks changes to domain objects in the system, providing a comprehensive audit trail for compliance, security, and debugging purposes.
+
+**Key attributes:**
+- objectType: The type of object being audited (e.g., "User", "Event")
+- objectId: The ID of the specific object instance that was changed
+- oldValue: JSON or string representation of the object's state before changes
+- newValue: JSON or string representation of the object's state after changes
+- valueType: The data type of the value being audited (helps with deserialization)
+- updateTime: When the change occurred
+- changedBy: User who made the change (from AbstractStatusAwareEntity.updatedBy)
+
+**Relationships:** None (designed as a standalone audit record)
+
+**Key methods:**
+- createAuditEntry: Static factory method to create audit log entries
+- compareValues: Utility method to check if values are different

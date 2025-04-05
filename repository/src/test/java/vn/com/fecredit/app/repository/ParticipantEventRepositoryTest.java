@@ -1,244 +1,257 @@
 package vn.com.fecredit.app.repository;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
-import org.springframework.boot.test.context.SpringBootTest;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.repository.config.TestConfig;
-import vn.com.fecredit.app.entity.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Optional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import vn.com.fecredit.app.entity.Event;
+import vn.com.fecredit.app.entity.EventLocation;
+import vn.com.fecredit.app.entity.Participant;
+import vn.com.fecredit.app.entity.ParticipantEvent;
+import vn.com.fecredit.app.entity.Province;
+import vn.com.fecredit.app.entity.Region;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-@SpringBootTest // Add this annotation
-@ContextConfiguration(classes = TestConfig.class)
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@DataJpaTest
+// @ContextConfiguration(classes = TestConfig.class)
 @ActiveProfiles("test")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@Transactional // Add this annotation to ensure all test methods run in a transaction
-public class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
+class ParticipantEventRepositoryTest {
 
-    @Autowired
-    private ParticipantEventRepository participantEventRepository;
+        @Autowired
+        private ParticipantEventRepository participantEventRepository;
 
-    @PersistenceContext
-    private EntityManager entityManager;
+        @Autowired
+        private ParticipantRepository participantRepository;
 
-    private final LocalDateTime now = LocalDateTime.now();
-    private Participant participant1;
-    private Participant participant2;
-    private Event event1;
-    private Event event2;
+        @Autowired
+        private EventRepository eventRepository;
 
-    @BeforeEach
-    void setUp() {
-        cleanDatabase();
-        createTestData();
-    }
+        @Autowired
+        private RegionRepository regionRepository;
 
-    private void cleanDatabase() {
-        entityManager.createNativeQuery("DELETE FROM participant_events").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM participants").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM provinces").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM events").executeUpdate();
-        entityManager.flush();
-    }
+        @Autowired
+        private ProvinceRepository provinceRepository;
 
-    private void createTestData() {
-        // Create region and province first
-        Region region = createAndSaveRegion();
-        Province province = createAndSaveProvince(region);
-        
-        participant1 = createAndSaveParticipant("P001", "John Doe", province);
-        participant2 = createAndSaveParticipant("P002", "Jane Smith", province);
+        @Autowired
+        private EventLocationRepository eventLocationRepository;
 
-        System.out.println("\n=== Creating test events with guaranteed unique codes ===");
-        event1 = createAndSaveEvent("Event 1", now.plusDays(1), now.plusDays(2));
-        event2 = createAndSaveEvent("Event 2", now.plusDays(3), now.plusDays(4));
-        System.out.println("=== Events created successfully ===\n");
+        @PersistenceContext
+        private EntityManager entityManager;
 
-        // Store participant events directly in the database without keeping references
-        createAndSaveParticipantEvent(participant1, event1, CommonStatus.ACTIVE);
-        createAndSaveParticipantEvent(participant1, event2, CommonStatus.ACTIVE);
-        createAndSaveParticipantEvent(participant2, event1, CommonStatus.INACTIVE);
+        private Event event1;
+        private Event event2;
+        private Participant participant1;
+        private Participant participant2;
+        private EventLocation location1;
+        private ParticipantEvent participantEvent1;
+        private ParticipantEvent participantEvent2;
+        private ParticipantEvent participantEvent3;
 
-        entityManager.flush();
-        entityManager.clear();
-    }
+        @BeforeEach
+        void setUp() {
+                // Clear all tables first to avoid issues with references
+                participantEventRepository.deleteAllInBatch();
+                eventLocationRepository.deleteAllInBatch();
+                participantRepository.deleteAllInBatch();
+                eventRepository.deleteAllInBatch();
+                provinceRepository.deleteAllInBatch();
+                regionRepository.deleteAllInBatch();
+                entityManager.flush();
+                // Create timestamp for consistent audit fields
+                LocalDateTime now = LocalDateTime.now();
+                // Create region
+                Region region = Region.builder()
+                                .name("Test Region")
+                                .code("TEST-REGION")
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                // Add these required audit fields
+                region.setCreatedBy("test");
+                region.setUpdatedBy("test");
+                region.setCreatedAt(now);
+                region.setUpdatedAt(now);
+                region = regionRepository.save(region);
 
-    private Region createAndSaveRegion() {
-        Region region = Region.builder()
-                .name("Test Region")
-                .code("TEST_REG" + System.currentTimeMillis())
-                .status(CommonStatus.ACTIVE)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .provinces(new HashSet<>())
-                .eventLocations(new HashSet<>())
-                .build();
-        entityManager.persist(region);
-        return region;
-    }
+                // Create province
+                Province province = Province.builder()
+                                .name("Test Province")
+                                .code("TEST-PROV")
+                                .region(region)
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                // Add these required audit fields
+                province.setCreatedBy("test");
+                province.setUpdatedBy("test");
+                province.setCreatedAt(now);
+                province.setUpdatedAt(now);
+                province = provinceRepository.save(province);
 
-    private Province createAndSaveProvince(Region region) {
-        Province province = Province.builder()
-                .name("Test Province")
-                .code("TEST_PROV" + System.currentTimeMillis())
-                .region(region)
-                .status(CommonStatus.ACTIVE)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .participants(new HashSet<>())
-                .build();
-        entityManager.persist(province);
-        region.getProvinces().add(province);
-        return province;
-    }
+                // Create events
+                event1 = Event.builder()
+                                .name("Test Event 1")
+                                .code("EVENT1")
+                                .description("Test Event Description 1")
+                                .startTime(now.minusDays(1))
+                                .endTime(now.plusDays(7))
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                event1.setCreatedBy("test");
+                event1.setUpdatedBy("test");
+                event1.setCreatedAt(now);
+                event1.setUpdatedAt(now);
 
-    private Participant createAndSaveParticipant(String code, String name, Province province) {
-        Participant participant = Participant.builder()
-                .code(code)
-                .name(name)
-                .province(province) // Added province
-                .status(CommonStatus.ACTIVE)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .participantEvents(new HashSet<>())
-                .build();
-        entityManager.persist(participant);
-        province.getParticipants().add(participant); // Add to province's participants
-        return participant;
-    }
+                event2 = Event.builder()
+                                .name("Test Event 2")
+                                .code("EVENT2")
+                                .description("Test Event Description 2")
+                                .startTime(now.plusDays(10))
+                                .endTime(now.plusDays(20))
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                event2.setCreatedBy("test");
+                event2.setUpdatedBy("test");
+                event2.setCreatedAt(now);
+                event2.setUpdatedAt(now);
 
-    private static long eventCounter = 0;
-    
-    private Event createAndSaveEvent(String name, LocalDateTime startTime, LocalDateTime endTime) {
-        String eventCode = String.format("EVENT_%d_%d", System.currentTimeMillis(), ++eventCounter);
-        System.out.println("Creating event '" + name + "' with code: " + eventCode);
-        
-        Event event = Event.builder()
-                .name(name)
-                .code(eventCode)
-                .startTime(startTime)
-                .endTime(endTime)
-                .status(CommonStatus.ACTIVE)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .locations(new LinkedHashSet<>()) // Initialize collections
-                .participantEvents(new HashSet<>())
-                .build();
-        entityManager.persist(event);
-        return event;
-    }
+                event1 = eventRepository.save(event1);
+                event2 = eventRepository.save(event2);
 
-    private ParticipantEvent createAndSaveParticipantEvent(
-            Participant participant, Event event, CommonStatus status) {
-        // Need to create an event location for the participant event
-        Region region = createAndSaveRegion();
-        EventLocation eventLocation = EventLocation.builder()
-                .name("Test Location")
-                .code("TEST_LOC" + System.currentTimeMillis())
-                .region(region)
-                .event(event)
-                .maxSpin(100)
-                .status(CommonStatus.ACTIVE)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .participantEvents(new HashSet<>())
-                .rewards(new HashSet<>())
-                .goldenHours(new HashSet<>())
-                .build();
-        entityManager.persist(eventLocation);
-        event.getLocations().add(eventLocation);
-        region.getEventLocations().add(eventLocation);
-        
-        ParticipantEvent participantEvent = ParticipantEvent.builder()
-                .participant(participant)
-                .event(event)
-                .eventLocation(eventLocation) // Add event location
-                .spinsRemaining(5)
-                .status(status)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .spinHistories(new ArrayList<>())
-                .build();
+                // Create event location
+                location1 = EventLocation.builder()
+                                .name("Test Location")
+                                .code("LOC1")
+                                .region(region)
+                                .event(event1)
+                                .maxSpin(10)
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                location1.setCreatedBy("test");
+                location1.setUpdatedBy("test");
+                location1.setCreatedAt(now);
+                location1.setUpdatedAt(now);
+                location1 = eventLocationRepository.save(location1);
 
-        entityManager.persist(participantEvent);
-        participant.getParticipantEvents().add(participantEvent);
-        event.getParticipantEvents().add(participantEvent);
-        eventLocation.getParticipantEvents().add(participantEvent);
-        return participantEvent;
-    }
+                // Create participants
+                participant1 = Participant.builder()
+                                .name("Test Participant 1")
+                                .code("PART1")
+                                .phone("123456789")
+                                .province(province)
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                participant1.setCreatedBy("test");
+                participant1.setUpdatedBy("test");
+                participant1.setCreatedAt(now);
+                participant1.setUpdatedAt(now);
 
-    @Test
-    void findByEventId_ShouldReturnParticipantEvents() {
-        List<ParticipantEvent> participants = participantEventRepository.findByEventId(event1.getId());
+                participant2 = Participant.builder()
+                                .name("Test Participant 2")
+                                .code("PART2")
+                                .phone("987654321")
+                                .province(province)
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                participant2.setCreatedBy("test");
+                participant2.setUpdatedBy("test");
+                participant2.setCreatedAt(now);
+                participant2.setUpdatedAt(now);
 
-        assertThat(participants)
-                .hasSize(2)
-                .extracting(pe -> pe.getParticipant().getCode())
-                .containsExactlyInAnyOrder("P001", "P002");
-    }
+                participant1 = participantRepository.save(participant1);
+                participant2 = participantRepository.save(participant2);
 
-    @Test
-    void findByParticipantAndEvent_ShouldReturnParticipantEvent() {
-        Optional<ParticipantEvent> result = participantEventRepository.findByParticipantAndEvent(
-                participant1, event1);
+                // Create participant events
+                participantEvent1 = ParticipantEvent.builder()
+                                .participant(participant1)
+                                .event(event1)
+                                .eventLocation(location1)
+                                .spinsRemaining(5)
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                participantEvent1.setCreatedBy("test");
+                participantEvent1.setUpdatedBy("test");
+                participantEvent1.setCreatedAt(now);
+                participantEvent1.setUpdatedAt(now);
 
-        assertThat(result).isPresent();
+                participantEvent2 = ParticipantEvent.builder()
+                                .participant(participant2)
+                                .event(event1)
+                                .eventLocation(location1)
+                                .spinsRemaining(3)
+                                .status(CommonStatus.ACTIVE)
+                                .build();
+                participantEvent2.setCreatedBy("test");
+                participantEvent2.setUpdatedBy("test");
+                participantEvent2.setCreatedAt(now);
+                participantEvent2.setUpdatedAt(now);
 
-    }
+                participantEvent3 = ParticipantEvent.builder()
+                                .participant(participant1)
+                                .event(event2)
+                                .eventLocation(location1)
+                                .spinsRemaining(0)
+                                .status(CommonStatus.INACTIVE)
+                                .build();
+                participantEvent3.setCreatedBy("test");
+                participantEvent3.setUpdatedBy("test");
+                participantEvent3.setCreatedAt(now);
+                participantEvent3.setUpdatedAt(now);
 
-    @Test
-    void countByEvent_ShouldReturnCorrectCount() {
-        long count1 = participantEventRepository.countByEvent(event1);
-        assertThat(count1).isEqualTo(2);
+                participantEvent1 = participantEventRepository.save(participantEvent1);
+                participantEvent2 = participantEventRepository.save(participantEvent2);
+                participantEvent3 = participantEventRepository.save(participantEvent3);
 
-        long count2 = participantEventRepository.countByEvent(event2);
-        assertThat(count2).isEqualTo(1);
-    }
+                entityManager.flush();
+                entityManager.clear();
+        }
 
-    @Test
-    void countByEventAndStatus_ShouldReturnCorrectCount() {
-        long activeCount = participantEventRepository.countByEventAndStatus(
-                event1, CommonStatus.ACTIVE);
-        assertThat(activeCount).isEqualTo(1);
+        @Test
+        void findByParticipantAndEvent_ShouldReturnParticipantEvent() {
+                // When
+                var result = participantEventRepository.findByParticipantAndEvent(participant1, event1);
 
-        long inactiveCount = participantEventRepository.countByEventAndStatus(
-                event1, CommonStatus.INACTIVE);
-        assertThat(inactiveCount).isEqualTo(1);
-    }
+                // Then
+                assertThat(result).isPresent();
+                assertThat(result.get().getSpinsRemaining()).isEqualTo(5);
+        }
+
+        @Test
+        void findByEventId_ShouldReturnParticipantEvents() {
+                // When
+                var result = participantEventRepository.findByEventId(event1.getId());
+
+                // Then
+                assertThat(result).hasSize(2);
+                assertThat(result).extracting("participant.name")
+                                .containsExactlyInAnyOrder("Test Participant 1", "Test Participant 2");
+        }
+
+        @Test
+        void countByEvent_ShouldReturnCorrectCount() {
+                // When
+                long count = participantEventRepository.countByEvent(event1);
+
+                // Then
+                assertThat(count).isEqualTo(2);
+        }
+
+        @Test
+        void countByEventAndStatus_ShouldReturnCorrectCount() {
+                // When
+                long activeCount = participantEventRepository.countByEventAndStatus(event1, CommonStatus.ACTIVE);
+                long inactiveCount = participantEventRepository.countByEventAndStatus(event2, CommonStatus.INACTIVE);
+
+                // Then
+                assertThat(activeCount).isEqualTo(2);
+                assertThat(inactiveCount).isEqualTo(1);
+        }
 }
