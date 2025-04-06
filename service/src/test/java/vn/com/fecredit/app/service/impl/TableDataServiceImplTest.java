@@ -38,7 +38,7 @@ import vn.com.fecredit.app.service.factory.RelatedTablesFactory;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
 
 @SuppressWarnings({"unchecked", "rawtypes"})
-class TableDataServiceImplTest extends AbstractServiceTest {
+public class TableDataServiceImplTest extends AbstractServiceTest {
 
     @Mock
     private EntityManager entityManager;

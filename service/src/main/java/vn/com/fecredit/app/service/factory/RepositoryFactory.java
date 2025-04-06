@@ -136,7 +136,6 @@ public class RepositoryFactory {
      * @return entity class
      * @throws IllegalArgumentException if object type is not supported
      */
-    @SuppressWarnings("unchecked")
     public <T extends AbstractStatusAwareEntity> Class<T> getEntityClass(ObjectType objectType) {
         return getEntityClassFromString("vn.com.fecredit.app." + objectType.toString());
     }

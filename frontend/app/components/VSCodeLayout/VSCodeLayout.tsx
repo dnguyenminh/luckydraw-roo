@@ -20,7 +20,7 @@ export default function VSCodeLayout({ children }: VSCodeLayoutProps) {
     <div className={styles.vscodeContainer}>
       <Toolbar toggleSidebar={toggleSidebar} />
       <div className={styles.mainContent}>
-        <Sidebar collapsed={sidebarCollapsed} />
+        <Sidebar />
         <div className={styles.contentArea}>
           {children}
         </div>

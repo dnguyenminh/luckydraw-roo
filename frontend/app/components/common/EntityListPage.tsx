@@ -1,134 +1,243 @@
 'use client';
 
-import { useState } from 'react';
-import ShellLayout from '@/app/components/VSCodeLayout/ShellLayout';
-import DataTable from '@/app/components/common/DataTable';
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ObjectType } from '@/app/lib/mockData'; // Import ObjectType enum
+import ShellLayout from '../VSCodeLayout/ShellLayout';
+import DataTable from './DataTable';
+import { fetchTableData } from '@/app/lib/api/tableService';
+import { ObjectType, TableFetchRequest, TableFetchResponse } from '@/app/lib/api/interfaces';
+import { Card, CardContent } from '@/components/ui/card';
+import { ChevronDown, Filter, Plus, BarChart2, Users, Gift, Clock, Award } from 'lucide-react';
 
-interface StatCard {
+interface StatsCard {
   label: string;
-  value: string | number;
-  color?: 'default' | 'green' | 'yellow' | 'blue' | 'red';
-}
-
-interface Tab {
-  id: string;
-  label: string;
+  value: number | string;
+  color?: 'blue' | 'green' | 'yellow' | 'red';
+  icon?: React.ReactNode;
 }
 
 interface EntityListPageProps {
   title: string;
-  entityType: keyof typeof ObjectType; // Update to use ObjectType keys
+  entityType: keyof typeof ObjectType;
   breadcrumbPath: string;
   description?: string;
-  statsCards: StatCard[];
-  tabs: Tab[];
+  statsCards?: StatsCard[];
+  tabs?: { id: string; label: string }[];
   addButtonLabel?: string;
   onAddButtonClick?: () => void;
-  additionalActions?: React.ReactNode;
 }
 
 export default function EntityListPage({
   title,
   entityType,
   breadcrumbPath,
-  description = `Manage all ${title.toLowerCase()} in the system`,
+  description = '',
   statsCards = [],
-  tabs = [
-    { id: 'all', label: 'All' },
-    { id: 'active', label: 'Active' },
-    { id: 'inactive', label: 'Inactive' }
-  ],
+  tabs = [],
   addButtonLabel,
   onAddButtonClick,
-  additionalActions
 }: EntityListPageProps) {
-  const [activeTab, setActiveTab] = useState(tabs.length > 0 ? tabs[0].id : 'all');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   
-  const getColorClass = (color: StatCard['color']) => {
-    switch(color) {
-      case 'green': return 'text-green-500';
-      case 'yellow': return 'text-yellow-500';
-      case 'blue': return 'text-blue-500';
-      case 'red': return 'text-red-500';
-      default: return '';
+  const [activeTab, setActiveTab] = useState<string>(tabs.length > 0 ? tabs[0].id : 'all');
+  const [tableData, setTableData] = useState<TableFetchResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load data when component mounts or when tab changes
+  useEffect(() => {
+    loadData();
+  }, [activeTab]);
+
+  // Function to load data based on the current tab
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Create a filter based on the active tab if needed
+      const filters = [];
+      if (activeTab !== 'all' && activeTab !== 'details') {
+        // Example of how you might filter based on tabs
+        // This will depend on your API's filtering capabilities
+        filters.push({
+          field: 'status', // Assuming 'status' is a filterable field
+          operator: 'eq',
+          value: activeTab,
+        });
+      }
+      
+      // Create the request object
+      const request: TableFetchRequest = {
+        page: 0,
+        size: 10,
+        sorts: [
+          {
+            field: 'id',
+            sortType: 'DESCENDING',
+          },
+        ],
+        filters,
+        search: {},
+        objectType: ObjectType[entityType] // Use the correct ObjectType reference
+      };
+      
+      const response = await fetchTableData(request);
+      setTableData(response);
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError('Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get icon based on color
+  const getCardIcon = (color?: string, defaultIcon?: React.ReactNode) => {
+    if (defaultIcon) return defaultIcon;
+    
+    switch (color) {
+      case 'blue':
+        return <Users className="h-5 w-5" />;
+      case 'green':
+        return <Gift className="h-5 w-5" />;
+      case 'yellow':
+        return <Clock className="h-5 w-5" />;
+      default:
+        return <BarChart2 className="h-5 w-5" />;
+    }
+  };
+
+  // Helper function to get card background color
+  const getCardColorClass = (color?: string) => {
+    switch (color) {
+      case 'blue':
+        return 'bg-gradient-to-br from-[#2a4365] to-[#2c5282] text-white';
+      case 'green':
+        return 'bg-gradient-to-br from-[#276749] to-[#2f855a] text-white';
+      case 'yellow':
+        return 'bg-gradient-to-br from-[#975a16] to-[#b7791f] text-white';
+      case 'red':
+        return 'bg-gradient-to-br from-[#9b2c2c] to-[#c53030] text-white';
+      default:
+        return 'bg-[#252526] text-[#cccccc]';
     }
   };
 
   return (
     <ShellLayout>
-      <main className="container mx-auto py-6 px-4">
+      <div className="container mx-auto py-6 px-4">
+        {/* Breadcrumb */}
         <Breadcrumb className="mb-6">
           <BreadcrumbItem>
             <BreadcrumbLink href="/">Home</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbItem isCurrentPage>
-            <BreadcrumbLink href={`/${breadcrumbPath}`}>{title}</BreadcrumbLink>
+            <BreadcrumbLink>{title}</BreadcrumbLink>
           </BreadcrumbItem>
         </Breadcrumb>
         
+        {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">{title} Management</h1>
-          {additionalActions}
+          <div>
+            <h1 className="text-2xl font-bold">{title}</h1>
+            {description && <p className="text-gray-400 mt-1">{description}</p>}
+          </div>
+          
+          {addButtonLabel && (
+            <button
+              onClick={onAddButtonClick}
+              className="bg-[#007acc] text-white px-3 py-2 rounded flex items-center hover:bg-[#0069ac]"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {addButtonLabel}
+            </button>
+          )}
         </div>
         
+        {/* Stats Cards */}
         {statsCards.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>{title} Statistics</CardTitle>
-              {description && <CardDescription>{description}</CardDescription>}
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {statsCards.map((stat, index) => (
-                  <div key={index} className="bg-[#2d2d2d] p-4 rounded-md flex flex-col items-center">
-                    <p className={`text-2xl font-bold ${getColorClass(stat.color)}`}>{stat.value}</p>
-                    <p className="text-sm text-gray-400">{stat.label}</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            {statsCards.map((card, index) => (
+              <Card key={index} className={getCardColorClass(card.color)}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-sm font-medium opacity-80">{card.label}</h3>
+                      <p className="text-2xl font-bold mt-1">{card.value}</p>
+                    </div>
+                    <div className={`p-2 rounded-full ${card.color ? 'bg-white bg-opacity-20' : 'bg-[#3c3c3c]'}`}>
+                      {getCardIcon(card.color, card.icon)}
+                    </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
         
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>{title}</CardTitle>
-              {tabs.length > 0 && (
-                <div className="flex space-x-2">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      className={`px-3 py-1 rounded ${activeTab === tab.id
-                        ? 'bg-[#007acc] text-white'
-                        : 'bg-[#2d2d2d] text-gray-300 hover:bg-[#3c3c3c]'}`}
-                      onClick={() => setActiveTab(tab.id)}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+        {/* Tabs */}
+        {tabs.length > 0 && (
+          <div className="mb-6">
+            <div className="flex space-x-1 rounded-lg bg-[#252525] p-1 w-fit">
+              {tabs.map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-md ${
+                    activeTab === tab.id
+                      ? 'bg-[#37373d] text-white shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
-          </CardHeader>
-          <CardContent>
-            <DataTable 
+          </div>
+        )}
+        
+        {/* Data Table */}
+        <div className="bg-[#252526] rounded-lg shadow p-4">
+          <div className="mb-4">
+            <div className="flex justify-between items-center">
+              <h2 className="font-semibold">
+                {tabs.find(tab => tab.id === activeTab)?.label || title} List
+              </h2>
+              <button className="text-gray-400 hover:text-white flex items-center">
+                <Filter className="h-4 w-4 mr-1" />
+                Filter
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </button>
+            </div>
+          </div>
+          
+          {/* Data Table Component */}
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="animate-spin h-8 w-8 border-4 border-[#007acc] border-t-transparent rounded-full mr-3"></div>
+              <p className="text-gray-400">Loading {title.toLowerCase()}...</p>
+            </div>
+          ) : error ? (
+            <div className="bg-[#442222] text-red-300 p-4 rounded text-center">
+              {error}
+            </div>
+          ) : (
+            <DataTable
+              data={tableData}
               entityType={entityType}
-              detailViewMode="tabs"
-              activeTab={activeTab}
-              statusField="status"
+              showDetailView={true}
               addItemButton={addButtonLabel ? {
                 label: addButtonLabel,
-                onClick: onAddButtonClick || (() => console.log(`Add ${entityType} clicked`))
-              } : undefined}
-              urlStatePrefix={breadcrumbPath}
+                onClick: onAddButtonClick || (() => {}),
+              } : false}
             />
-          </CardContent>
-        </Card>
-      </main>
+          )}
+        </div>
+      </div>
     </ShellLayout>
   );
 }

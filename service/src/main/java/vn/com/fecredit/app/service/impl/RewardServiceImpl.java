@@ -4,13 +4,16 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.Reward;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.RewardRepository;
+import vn.com.fecredit.app.service.EventLocationService;
 import vn.com.fecredit.app.service.RewardService;
 import vn.com.fecredit.app.service.base.AbstractServiceImpl;
 import vn.com.fecredit.app.service.exception.EntityNotFoundException;
@@ -21,10 +24,13 @@ import vn.com.fecredit.app.service.exception.EntityNotFoundException;
 public class RewardServiceImpl extends AbstractServiceImpl<Reward> implements RewardService {
 
     private final RewardRepository rewardRepository;
+    private final EventLocationService eventLocationService;
 
-    public RewardServiceImpl(RewardRepository rewardRepository) {
+    @Autowired
+    public RewardServiceImpl(RewardRepository rewardRepository, EventLocationService eventLocationService) {
         super(rewardRepository);
         this.rewardRepository = rewardRepository;
+        this.eventLocationService = eventLocationService;
     }
 
     @Override
@@ -48,46 +54,65 @@ public class RewardServiceImpl extends AbstractServiceImpl<Reward> implements Re
     @Override
     @Transactional(readOnly = true)
     public List<Reward> findAvailableRewardsByLocation(Long locationId) {
-        return rewardRepository.findAvailableRewardsByLocation(locationId);
+        return rewardRepository.findAvailableRewardsForLocation(locationId);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public boolean isRewardAvailable(Long rewardId) {
-        return findById(rewardId)
-            .map(reward -> CommonStatus.ACTIVE.equals(reward.getStatus()) && reward.getQuantity() > 0)
-            .orElse(false);
+    public Reward create(Reward reward, Long eventLocationId) {
+        EventLocation eventLocation = eventLocationService.findById(eventLocationId)
+                .orElseThrow(() -> new EntityNotFoundException("EventLocation not found with ID: " + eventLocationId));
+        
+        reward.setEventLocation(eventLocation);
+        
+        // Validate state before saving
+        reward.validateState();
+        
+        return rewardRepository.save(reward);
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public boolean hasAvailableQuantity(Long rewardId) {
-        return findById(rewardId)
-            .map(reward -> reward.getQuantity() > 0)
-            .orElse(false);
+    public Reward update(Long id, Reward rewardData) {
+        Reward existingReward = findById(id).orElse(null);
+        
+        // Update properties if provided
+        if (rewardData.getName() != null) {
+            existingReward.setName(rewardData.getName());
+        }
+        
+        if (rewardData.getCode() != null) {
+            existingReward.setCode(rewardData.getCode());
+        }
+        
+        if (rewardData.getDescription() != null) {
+            existingReward.setDescription(rewardData.getDescription());
+        }
+        
+        // Update status if provided
+        if (rewardData.getStatus() != null) {
+            existingReward.setStatus(rewardData.getStatus());
+        }
+        
+        return rewardRepository.save(existingReward);
     }
 
     @Override
-    @Transactional
-    public Reward decreaseQuantity(Long rewardId, int amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("Decrease amount must be positive");
-        }
-        
-        Reward reward = findById(rewardId)
-            .orElseThrow(() -> new EntityNotFoundException("Reward not found with id: " + rewardId));
-            
-        if (reward.getQuantity() < amount) {
-            throw new IllegalStateException("Not enough quantity available for reward: " + rewardId);
-        }
-        
-        reward.setQuantity(reward.getQuantity() - amount);
-        
-        // If quantity reaches zero, consider disabling the reward
-        if (reward.getQuantity() == 0) {
-            log.info("Reward {} has zero quantity remaining", rewardId);
-        }
-        
+    public int getRemainingQuantity(Long rewardId) {
+        Reward reward = findById(rewardId).orElseThrow(() -> 
+            new EntityNotFoundException("Reward not found with ID: " + rewardId));
+        return reward.getRemainingQuantity();
+    }
+
+    @Override
+    public Reward activate(Long id) {
+        Reward reward = findById(id).orElseThrow();
+        reward.setStatus(CommonStatus.ACTIVE);
+        return rewardRepository.save(reward);
+    }
+
+    @Override
+    public Reward deactivate(Long id) {
+        Reward reward = findById(id).orElseThrow();
+        reward.setStatus(CommonStatus.INACTIVE);
         return rewardRepository.save(reward);
     }
 

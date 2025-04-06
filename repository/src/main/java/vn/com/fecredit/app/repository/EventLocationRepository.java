@@ -1,71 +1,81 @@
 package vn.com.fecredit.app.repository;
 
-import java.util.List;
-import java.util.Optional;
-
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
-@Repository
-public interface EventLocationRepository extends SimpleObjectRepository<EventLocation> {
+import java.util.List;
+import java.util.Optional;
 
-      Optional<EventLocation> findByCode(String code);
+public interface EventLocationRepository extends JpaRepository<EventLocation, Long> {
+       Optional<EventLocation> findByCode(String code);
 
-      boolean existsByCode(String code);
+       List<EventLocation> findByEventId(Long eventId);
 
-      List<EventLocation> findByStatus(CommonStatus status);
+       List<EventLocation> findByRegionId(Long regionId);
 
-      // Methods accepting Entity
-      List<EventLocation> findByEvent(Event event);
+       List<EventLocation> findByStatus(CommonStatus status);
 
-      List<EventLocation> findByRegion(Region region);
+       List<EventLocation> findByEventIdAndStatus(Long eventId, CommonStatus status);
 
-      @Query("SELECT DISTINCT el FROM EventLocation el " +
-                  "LEFT JOIN FETCH el.event " +
-                  "LEFT JOIN FETCH el.region " +
-                  "WHERE el.event = :event " +
-                  "AND el.status = :status")
-      List<EventLocation> findByEventAndStatus(@Param("event") Event event,
-                  @Param("status") CommonStatus status);
+       /**
+        * Find all event locations for a specific event with the given status
+        * 
+        * @param event  the event
+        * @param status the status
+        * @return list of event locations matching the criteria
+        */
+       List<EventLocation> findByEventAndStatus(Event event, CommonStatus status);
 
-      List<EventLocation> findByRegionId(Long regionId);
+       /**
+        * Find all event locations for a specific event
+        * 
+        * @param event the event
+        * @return list of event locations for the given event
+        */
+       List<EventLocation> findByEvent(Event event);
 
-      List<EventLocation> findByEventIdAndStatus(Long eventId, CommonStatus status);
+       /**
+        * Find all event locations for a specific region
+        * 
+        * @param region the region
+        * @return list of event locations in the region
+        */
+       List<EventLocation> findByRegion(Region region);
 
-      @Query("SELECT DISTINCT el FROM EventLocation el " +
-                  "LEFT JOIN FETCH el.event " +
-                  "LEFT JOIN FETCH el.region " +
-                  "WHERE el.event.id = :eventId " +
-                  "AND el.status = 'ACTIVE' " +
-                  "AND el.maxSpin >= 3")
-      List<EventLocation> findActiveSpinLocations(@Param("eventId") Long eventId);
+       /**
+        * Find all active locations with available spin capacity for a specific event
+        * 
+        * @param eventId the event ID to filter by
+        * @return list of active locations available for spinning for the specified
+        *         event
+        */
+       @Query("SELECT el FROM EventLocation el WHERE el.status = 'ACTIVE' AND el.maxSpin > 0 " +
+                     "AND el.event.id = :eventId ORDER BY el.id")
+       List<EventLocation> findActiveSpinLocations(@Param("eventId") Long eventId);
 
-      @Query("SELECT COUNT(el) > 0 FROM EventLocation el " +
-                  "WHERE el.event.id = :eventId " +
-                  "AND el.region.id = :regionId " +
-                  "AND el.status = 'ACTIVE'")
-      boolean existsActiveLocationInRegion(@Param("eventId") Long eventId,
-                  @Param("regionId") Long regionId);
+       /**
+        * Find all active locations with available spin capacity across all events
+        * 
+        * @return list of active locations available for spinning
+        */
+       @Query("SELECT el FROM EventLocation el WHERE el.status = 'ACTIVE' AND el.maxSpin > 0 " +
+                     "ORDER BY el.id")
+       List<EventLocation> findActiveSpinLocations();
 
-      @Query("SELECT COUNT(pe) < el.maxSpin FROM EventLocation el " +
-                  "LEFT JOIN el.participantEvents pe " +
-                  "WITH pe.status = 'ACTIVE' " +
-                  "WHERE el.id = :locationId " +
-                  "GROUP BY el.id, el.maxSpin")
-      boolean hasAvailableCapacity(@Param("locationId") Long locationId);
-
-      /**
-       * Find all event locations for a specific event ID
-       * 
-       * @param eventId the ID of the event
-       * @return list of event locations
-       */
-      @Query("SELECT el FROM EventLocation el WHERE el.event.id = :eventId")
-      List<EventLocation> findByEventId(@Param("eventId") Long eventId);
+       /**
+        * Check if there's an active location for the given event in the specified
+        * region
+        * 
+        * @param eventId  the event ID
+        * @param regionId the region ID
+        * @return true if an active location exists in the region for the event
+        */
+       @Query("SELECT CASE WHEN COUNT(el) > 0 THEN true ELSE false END FROM EventLocation el " +
+                     "WHERE el.event.id = :eventId AND el.region.id = :regionId AND el.status = 'ACTIVE'")
+       boolean existsActiveLocationInRegion(Long eventId, Long regionId);
 }

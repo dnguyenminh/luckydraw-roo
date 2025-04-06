@@ -1,12 +1,15 @@
-import { 
-  TableFetchRequest, 
+import {
+  TableFetchRequest,
   TableFetchResponse,
   ObjectType,
-  RelatedLinkedObject
-} from '../mockData/interfaces';
+  SortType,
+  FetchStatus,
+  StatisticsInfo,
+  FilterType
+} from './interfaces';
 import { stringToObjectType } from '../mockData/utils';
 
-import { 
+import {
   mockEventTable,
   mockParticipantTable,
   mockRegionTable,
@@ -23,13 +26,13 @@ import {
 export const apiConfig = {
   // Base URL for API requests - can be updated based on environment
   baseUrl: process.env.NEXT_PUBLIC_API_BASE_URL || 'https://api.example.com/v1',
-  
+
   // Whether to use mock data instead of making real API requests
   useMockData: process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true' || true,
-  
+
   // Request timeout in milliseconds
   timeout: 30000,
-  
+
   // Additional headers to include with all requests
   headers: {
     'Content-Type': 'application/json'
@@ -69,39 +72,44 @@ export const objectTypeToEndpoint: Record<ObjectType, string> = {
   [ObjectType.EVENT]: 'events',
   [ObjectType.REGION]: 'regions',
   [ObjectType.PROVINCE]: 'provinces',
-  [ObjectType.REWARD]: 'rewards', 
+  [ObjectType.REWARD]: 'rewards',
   [ObjectType.GOLDEN_HOUR]: 'golden_hours',
   [ObjectType.PARTICIPANT]: 'participants',
   [ObjectType.SPIN_HISTORY]: 'spin_history',
   [ObjectType.AUDIT_LOG]: 'audit_log',
-  [ObjectType.STATIS]: 'statistics',
+  [ObjectType.STATISTICS]: 'statistics', // Changed from STATIS to STATISTICS
   [ObjectType.USER]: 'users',
-  [ObjectType.ROLE]: 'roles'
+  [ObjectType.ROLE]: 'roles',
+  [ObjectType.PERMISSION]: 'permissions',
+  [ObjectType.CONFIGURATION]: 'configurations',
+  [ObjectType.BLACKLISTED_TOKEN]: 'blacklisted_tokens',
+  [ObjectType.EVENT_LOCATION]: 'event_locations',
+  [ObjectType.PARTICIPANT_EVENT]: 'participant_events'
 };
 
 // Helper function to construct full API URLs
 export function getApiUrl(endpoint: string): string {
   // Remove trailing slash from base URL if present
-  const baseUrl = apiConfig.baseUrl.endsWith('/') 
-    ? apiConfig.baseUrl.slice(0, -1) 
+  const baseUrl = apiConfig.baseUrl.endsWith('/')
+    ? apiConfig.baseUrl.slice(0, -1)
     : apiConfig.baseUrl;
-  
+
   // Add leading slash to endpoint if missing
-  const formattedEndpoint = endpoint.startsWith('/') 
-    ? endpoint 
+  const formattedEndpoint = endpoint.startsWith('/')
+    ? endpoint
     : `/${endpoint}`;
-  
+
   return `${baseUrl}${formattedEndpoint}`;
 }
 
 // Function to filter rows based on search term
 function filterRowsBySearch(rows: any[], searchTerm: string): any[] {
   if (!searchTerm) return rows;
-  
+
   const searchLower = searchTerm.toLowerCase();
   return rows.filter(row => {
     // Check each field in the row data
-    return Object.values(row.data).some(value => 
+    return Object.values(row.data).some(value =>
       value && String(value).toLowerCase().includes(searchLower)
     );
   });
@@ -110,15 +118,15 @@ function filterRowsBySearch(rows: any[], searchTerm: string): any[] {
 // Function to filter rows based on filters
 function filterRowsByFilters(rows: any[], filters: any[]): any[] {
   if (!filters || filters.length === 0) return rows;
-  
+
   return rows.filter(row => {
     // All filters must pass for a row to be included
     return filters.every(filter => {
       const fieldValue = row.data[filter.field];
-      
+
       // Skip if the field doesn't exist
       if (fieldValue === undefined) return true;
-      
+
       // Handle different operators
       switch (filter.operator) {
         case 'eq': // equals
@@ -145,116 +153,129 @@ function filterRowsByFilters(rows: any[], filters: any[]): any[] {
 // Function to sort rows
 function sortRows(rows: any[], sortField: string, sortOrder: string): any[] {
   if (!sortField) return rows;
-  
+
   return [...rows].sort((a, b) => {
     const aValue = a.data[sortField];
     const bValue = b.data[sortField];
-    
+
     // Handle undefined values
     if (aValue === undefined && bValue === undefined) return 0;
     if (aValue === undefined) return 1;
     if (bValue === undefined) return -1;
-    
+
     // Compare based on type
     if (typeof aValue === 'number' && typeof bValue === 'number') {
       return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
     }
-    
+
     // Default string comparison
     const aString = String(aValue).toLowerCase();
     const bString = String(bValue).toLowerCase();
-    return sortOrder === 'asc' 
+    return sortOrder === 'asc'
       ? aString.localeCompare(bString)
       : bString.localeCompare(aString);
   });
 }
 
-// Fetch table data based on request params - REFACTORED to use objectType
-export async function fetchTableData(
-  request: TableFetchRequest
-): Promise<TableFetchResponse> {
+// Mock implementation for now - you would replace this with real API calls
+export async function fetchTableData(request: TableFetchRequest): Promise<TableFetchResponse> {
   // Use mock data if configured
   if (apiConfig.useMockData) {
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 500));
-    
+
     // Get the endpoint from objectType in the request
     if (!request.objectType) {
       throw new Error('objectType is required in the request');
     }
-    
+
     // Get the API endpoint from objectType
     const endpoint = objectTypeToEndpoint[request.objectType];
     if (!endpoint) {
       throw new Error(`No API endpoint mapping found for objectType: ${request.objectType}`);
     }
-    
+
     // Get the base table data
     const baseTable = mockTables[endpoint];
     if (!baseTable) {
       throw new Error(`No mock data found for endpoint: ${endpoint}`);
     }
-    
+
     // Clone the table to avoid modifying the original
     const result = JSON.parse(JSON.stringify(baseTable)) as TableFetchResponse;
-    
+
+    // Ensure required fields are present
+    if (!result.status) result.status = FetchStatus.SUCCESS;
+    if (!result.message) result.message = "Success";
+    if (!result.fieldNameMap) result.fieldNameMap = {};
+
     // Store the original request
     result.originalRequest = request;
-    
+
     // Filter rows by search term (if any)
     let filteredRows = baseTable.rows;
+
+    // Handle the new search structure
     if (request.search && Object.keys(request.search).length > 0) {
-      // Handle global search
-      if (request.search.global) {
-        filteredRows = filterRowsBySearch(filteredRows, request.search.global);
-      }
-      
-      // Handle field-specific searches
-      for (const [field, term] of Object.entries(request.search)) {
-        if (field !== 'global') {
-          filteredRows = filteredRows.filter(row => 
-            row.data[field] && 
-            String(row.data[field]).toLowerCase().includes(term.toLowerCase())
-          );
-        }
+      // For backwards compatibility, handle global search if needed
+      const searchCriteria = Object.values(request.search).reduce((acc, item) => {
+        return { ...acc, ...item.searchCriteria };
+      }, {});
+
+      // Filter based on search criteria
+      for (const [field, value] of Object.entries(searchCriteria)) {
+        filteredRows = filteredRows.filter(row => {
+          if (!row.data[field]) return false;
+          const rowValue = String(row.data[field]).toLowerCase();
+          const searchValue = String(value).toLowerCase();
+          return rowValue.includes(searchValue);
+        });
       }
     }
-    
+
     // Filter rows by filters (if any)
     if (request.filters && request.filters.length > 0) {
       filteredRows = filterRowsByFilters(filteredRows, request.filters);
     }
-    
+
     // Sort rows (if requested)
     if (request.sorts && request.sorts.length > 0) {
-      // Apply primary sort
+      // Apply primary sort (adapting from sortType to expected order)
       const primarySort = request.sorts[0];
-      filteredRows = sortRows(filteredRows, primarySort.field, primarySort.order);
+      const sortOrder = primarySort.sortType === SortType.ASCENDING ? 'asc' : 'desc';
+      filteredRows = sortRows(filteredRows, primarySort.field, sortOrder);
     }
-    
+
     // Update total elements count
     result.totalElements = filteredRows.length;
-    
-    // Calculate total pages
-    result.totalPages = Math.max(1, Math.ceil(filteredRows.length / request.size));
-    
+
+    // Calculate total pages - use totalPage instead of totalPages
+    result.totalPage = Math.max(1, Math.ceil(filteredRows.length / request.size));
+
     // Set current page (ensure it's valid)
     result.currentPage = Math.min(
-      Math.max(0, request.page), 
-      result.totalPages - 1
+      Math.max(0, request.page),
+      result.totalPage - 1 // Use totalPage instead of totalPages
     );
-    
+
     // Paginate the rows
     const startIndex = result.currentPage * request.size;
     const endIndex = startIndex + request.size;
     result.rows = filteredRows.slice(startIndex, endIndex);
-    
+
     // Set page metadata
     result.first = result.currentPage === 0;
-    result.last = result.currentPage === result.totalPages - 1;
+    result.last = result.currentPage === result.totalPage - 1; // Use totalPage instead of totalPages
     result.empty = result.rows.length === 0;
     result.numberOfElements = result.rows.length;
-    
+
+    // Ensure statistics has the required charts property
+    if (!result.statistics?.charts) {
+      result.statistics = {
+        charts: {}
+      };
+    }
+
     return result;
   } else {
     // For real API requests
@@ -263,16 +284,16 @@ export async function fetchTableData(
       if (!request.objectType) {
         throw new Error('objectType is required in the request');
       }
-      
+
       // Get the API endpoint from objectType
       const endpointPath = objectTypeToEndpoint[request.objectType];
       if (!endpointPath) {
         throw new Error(`No API endpoint mapping found for objectType: ${request.objectType}`);
       }
-      
+
       // Construct the full API URL
       const apiUrl = getApiUrl(endpointPath);
-      
+
       // Make the actual API request
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -286,11 +307,11 @@ export async function fetchTableData(
         body: JSON.stringify(request),
         signal: AbortSignal.timeout(apiConfig.timeout)
       });
-      
+
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
       }
-      
+
       return await response.json() as TableFetchResponse;
     } catch (error) {
       console.error('API request failed:', error);
@@ -307,7 +328,7 @@ export async function fetchEntityData(
   if (!request.objectType) {
     throw new Error('objectType is required in the request');
   }
-  
+
   // Use the fetchTableData function directly since objectType is already in the request
   return fetchTableData(request);
 }
@@ -317,95 +338,4 @@ function getObjectTypeForEntityName(entityName: string): ObjectType | undefined 
   // Convert string like 'event' to ObjectType.EVENT
   const upperCaseEntityName = entityName.toUpperCase();
   return ObjectType[upperCaseEntityName as keyof typeof ObjectType];
-}
-
-// Helper function for related data - UPDATED to use relatedLinkedObjects
-export async function fetchRelatedData(
-  sourceEntityType: string,
-  parentId: number,
-  relationName: string,
-  request?: TableFetchRequest
-): Promise<RelatedLinkedObject[]> {
-  // Use default request if not provided
-  const fetchRequest = request || {
-    page: 0,
-    size: 10,
-    sorts: [],
-    filters: [],
-    search: {},
-    objectType: stringToObjectType(sourceEntityType)
-  };
-  
-  // Get the source entity's API endpoint
-  const sourceEndpoint = entityApiEndpoints[sourceEntityType.toLowerCase()];
-  if (!sourceEndpoint) {
-    throw new Error(`No API endpoint mapping found for entity: ${sourceEntityType}`);
-  }
-  
-  // Get parent table
-  const parentTable = mockTables[sourceEndpoint];
-  if (!parentTable) {
-    throw new Error(`No mock data found for entity: ${sourceEntityType}`);
-  }
-  
-  // Get the related linked objects for this parent ID
-  if (!parentTable.relatedLinkedObjects) {
-    return []; // No related objects available
-  }
-  
-  // Get the related objects for this relation type
-  const relatedObjectsForType = parentTable.relatedLinkedObjects[relationName];
-  if (!relatedObjectsForType) {
-    return []; // No related objects of this type
-  }
-  
-  // Get objects for this specific parent
-  const relatedObjects = relatedObjectsForType[parentId];
-  if (!relatedObjects) {
-    return []; // No related objects for this parent ID
-  }
-  
-  // Clone to avoid modifications to the original
-  return JSON.parse(JSON.stringify(relatedObjects));
-}
-
-// This function maintains backward compatibility with old code that expects table format
-export async function fetchRelatedTableData(
-  sourceEntityType: string,
-  parentId: number,
-  relationName: string,
-  request?: TableFetchRequest
-): Promise<TableFetchResponse> {
-  // Get related linked objects
-  const relatedObjects = await fetchRelatedData(sourceEntityType, parentId, relationName, request);
-  
-  // Use default request if not provided
-  const fetchRequest: TableFetchRequest = request || {
-    page: 0,
-    size: 10,
-    sorts: [],
-    filters: [],
-    search: {},
-    objectType: stringToObjectType(sourceEntityType) // Ensure objectType is always included
-  };
-  
-  // Convert to table format
-  const result: TableFetchResponse = {
-    totalPages: 1,
-    currentPage: 0,
-    pageSize: relatedObjects.length,
-    totalElements: relatedObjects.length,
-    tableName: `${sourceEntityType}_${relationName}`,
-    rows: relatedObjects.map(obj => ({
-      data: { ...obj }
-    })),
-    originalRequest: fetchRequest, // Now properly typed as TableFetchRequest
-    statistics: {},
-    first: true,
-    last: true,
-    empty: relatedObjects.length === 0,
-    numberOfElements: relatedObjects.length
-  };
-  
-  return result;
 }

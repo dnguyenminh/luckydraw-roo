@@ -49,6 +49,17 @@ public class EventLocation extends AbstractStatusAwareEntity {
     @Column(name = "max_spin", nullable = false)
     @Builder.Default
     private Integer maxSpin = 100;
+    
+    @Min(value = 0, message = "Quantity must be non-negative")
+    @Column(name = "quantity", nullable = false)
+    @Builder.Default
+    private Integer quantity = 1;
+
+    @DecimalMin(value = "0.0", message = "Win probability must be between 0 and 1")
+    @DecimalMax(value = "1.0", message = "Win probability must be between 0 and 1")
+    @Column(name = "win_probability", nullable = false)
+    @Builder.Default
+    private Double winProbability = 0.1;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id")
@@ -284,6 +295,14 @@ public class EventLocation extends AbstractStatusAwareEntity {
 
         if (maxSpin == null || maxSpin < 1) {
             throw new IllegalStateException("Maximum spins must be at least 1");
+        }
+        
+        if (quantity == null || quantity < 0) {
+            throw new IllegalStateException("Quantity must be non-negative");
+        }
+
+        if (winProbability == null || winProbability < 0.0 || winProbability > 1.0) {
+            throw new IllegalStateException("Win probability must be between 0 and 1");
         }
 
         // Debug logging for class loading issue

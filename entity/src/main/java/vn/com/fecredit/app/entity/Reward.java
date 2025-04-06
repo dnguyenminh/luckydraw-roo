@@ -13,9 +13,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -31,20 +28,17 @@ import vn.com.fecredit.app.entity.base.StatusAware; // Changed from interfaces t
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Entity
-@Table(
-    name = "rewards",
-    indexes = {
+@Table(name = "rewards", indexes = {
         @Index(name = "idx_reward_code", columnList = "code", unique = true),
         @Index(name = "idx_reward_location", columnList = "event_location_id"),
         @Index(name = "idx_reward_status", columnList = "status")
-    }
-)
+})
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {"spinHistories", "eventLocation"})
+@ToString(callSuper = true, exclude = { "spinHistories", "eventLocation" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Reward extends AbstractStatusAwareEntity {
 
@@ -59,17 +53,6 @@ public class Reward extends AbstractStatusAwareEntity {
 
     @Column(name = "description")
     private String description;
-  
-    @Min(value = 0, message = "Quantity must be non-negative")
-    @Column(name = "quantity", nullable = false)
-    @Builder.Default
-    private Integer quantity = 1;
-
-    @DecimalMin(value = "0.0", message = "Win probability must be between 0 and 1")
-    @DecimalMax(value = "1.0", message = "Win probability must be between 0 and 1")
-    @Column(name = "win_probability", nullable = false)
-    @Builder.Default
-    private Double winProbability = 0.1;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_location_id", nullable = false)
@@ -82,21 +65,32 @@ public class Reward extends AbstractStatusAwareEntity {
 
     @Transient
     public int getRemainingQuantity() {
-        if (quantity == null) return 0;
+        if (eventLocation == null || eventLocation.getQuantity() == null)
+            return 0;
 
         long usedQuantity = spinHistories.stream()
-            .filter(sh -> sh.getStatus().isActive() && sh.isWin())
-            .count();
+                .filter(sh -> sh.getStatus().isActive() && sh.isWin())
+                .count();
 
-        return (int) Math.max(0, quantity - usedQuantity);
+        return (int) Math.max(0, eventLocation.getQuantity() - usedQuantity);
+    }
+
+    @Transient
+    public Double getWinProbability() {
+        return eventLocation != null ? eventLocation.getWinProbability() : 0.0;
+    }
+    
+    @Transient
+    public Integer getQuantity() {
+        return eventLocation != null ? eventLocation.getQuantity() : 0;
     }
 
     @Transient
     public boolean isAvailable() {
         return getStatus().isActive() &&
-            eventLocation != null &&
-            eventLocation.getStatus().isActive() &&
-            getRemainingQuantity() > 0;
+                eventLocation != null &&
+                eventLocation.getStatus().isActive() &&
+                getRemainingQuantity() > 0;
     }
 
     public void setEventLocation(EventLocation newLocation) {
@@ -155,15 +149,6 @@ public class Reward extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Event location is required");
         }
 
-        if (quantity == null || quantity < 0) {
-            throw new IllegalStateException("Quantity must be non-negative");
-        }
-
-
-        if (winProbability == null || winProbability < 0.0 || winProbability > 1.0) {
-            throw new IllegalStateException("Win probability must be between 0 and 1");
-        }
-
         if (getStatus() != null && getStatus().isActive() && !eventLocation.getStatus().isActive()) {
             throw new IllegalStateException("Cannot be active when event location is inactive");
         }
@@ -171,9 +156,9 @@ public class Reward extends AbstractStatusAwareEntity {
 
     private void validateStatusChange(CommonStatus newStatus) {
         if (newStatus != null && newStatus.isActive() &&
-            (eventLocation == null || !eventLocation.getStatus().isActive())) {
+                (eventLocation == null || !eventLocation.getStatus().isActive())) {
             throw new IllegalStateException("Cannot activate reward when event location is inactive. Reward: " +
-                code + ", Location: " + (eventLocation == null ? "null" : eventLocation.getCode()));
+                    code + ", Location: " + (eventLocation == null ? "null" : eventLocation.getCode()));
         }
     }
 }

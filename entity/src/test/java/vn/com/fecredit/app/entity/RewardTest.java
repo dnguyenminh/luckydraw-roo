@@ -50,8 +50,6 @@ class RewardTest {
         reward = Reward.builder()
                 .name("Test Reward")
                 .code("TEST_REWARD")
-                .quantity(10)
-                .winProbability(0.5)
                 .eventLocation(location)
                 .status(CommonStatus.ACTIVE)
                 .description("Reward for testing")
@@ -90,7 +88,10 @@ class RewardTest {
 
     @Test
     void testRemainingQuantity() {
-        assertEquals(10, reward.getRemainingQuantity());
+        EventLocation location = reward.getEventLocation();
+        location.setQuantity(10); // Changed from reward.setQuantity(10)
+
+        assertEquals(10, location.getQuantity());
 
         // Add some winning spins using the correct builder syntax
         for (int i = 0; i < 3; i++) {
@@ -103,43 +104,48 @@ class RewardTest {
             reward.getSpinHistories().add(spinHistory);
         }
 
-        assertEquals(7, reward.getRemainingQuantity());
+        assertEquals(7, reward.getRemainingQuantity()); // Updated to use remaining quantity method
     }
 
     @Test
-    void testAvailability() {
+    void testIsAvailable() {
+        EventLocation location = reward.getEventLocation();
+        location.setQuantity(5);
+        location.setStatus(CommonStatus.ACTIVE);
+        reward.setStatus(CommonStatus.ACTIVE);
+
         assertTrue(reward.isAvailable());
 
-        // Set quantity to 0
-        reward.setQuantity(0);
+        // Test with quantity = 0
+        location.setQuantity(0);
         assertFalse(reward.isAvailable());
 
         // Set back to positive but inactive
-        reward.setQuantity(10);
-        reward.setStatus(CommonStatus.INACTIVE);
+        location.setQuantity(10);
+        location.setStatus(CommonStatus.INACTIVE);
         assertFalse(reward.isAvailable());
+    }
+
+    @Test
+    void testWinProbabilityValidation() {
+        EventLocation location = reward.getEventLocation();
+        location.setWinProbability(-0.1);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
+
+        location.setWinProbability(1.1);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
+    }
+
+    @Test
+    void testQuantityValidation() {
+        EventLocation location = reward.getEventLocation();
+        location.setQuantity(-5);
+        assertThrows(IllegalStateException.class, () -> location.validateState());
     }
 
     @Test
     void testValidation() {
         assertDoesNotThrow(() -> reward.validateState());
-
-        // Test invalid win probability
-        assertThrows(IllegalStateException.class, () -> {
-            reward.setWinProbability(-0.1);
-            reward.validateState();
-        });
-
-        assertThrows(IllegalStateException.class, () -> {
-            reward.setWinProbability(1.1);
-            reward.validateState();
-        });
-
-        // Test invalid quantity
-        assertThrows(IllegalStateException.class, () -> {
-            reward.setQuantity(-1);
-            reward.validateState();
-        });
 
         // Test missing location
         assertThrows(IllegalStateException.class, () -> {

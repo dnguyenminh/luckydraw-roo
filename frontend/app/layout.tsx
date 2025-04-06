@@ -1,17 +1,17 @@
 import React from 'react';
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Sidebar from './components/VSCodeLayout/Sidebar';
 import SidebarDetector from './components/Debug/SidebarDetector';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
 });
 
@@ -26,15 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="bg-[#1e1e1e] text-white font-sans">
         {/* Debug component to detect duplicate sidebars */}
-        <SidebarDetector />
+        {typeof SidebarDetector === 'function' ? <SidebarDetector /> : null}
         
         <div className="flex h-screen">
           {/* Main Sidebar Navigation with fixed base width */}
           <div id="main-sidebar" className="flex-shrink-0 bg-[#252526] border-r border-[#3c3c3c] overflow-hidden">
-            <Sidebar />
+            {typeof Sidebar === 'function' ? <Sidebar /> : null}
           </div>
           
           {/* Main Content */}

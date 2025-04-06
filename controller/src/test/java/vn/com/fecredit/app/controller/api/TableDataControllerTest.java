@@ -8,102 +8,86 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import vn.com.fecredit.app.controller.config.TestConfig;
-import vn.com.fecredit.app.controller.util.TestApplication;
 import vn.com.fecredit.app.service.TableDataService;
+import vn.com.fecredit.app.service.dto.FetchStatus;
+import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
-import vn.com.fecredit.app.service.dto.SortRequest;
-import vn.com.fecredit.app.service.dto.SortType;
-import vn.com.fecredit.app.service.dto.FetchStatus;
-import vn.com.fecredit.app.service.dto.TableRow;
 
-@WebMvcTest(TableDataController.class)
-@ContextConfiguration(classes = {TestApplication.class, TestConfig.class})
-class TableDataControllerTest {
+/**
+ * Unit test for TableDataController
+ * This approach does not load the full Spring context
+ */
+public class TableDataControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @MockBean
+    
+    @Mock
     private TableDataService tableDataService;
-
-    private TableFetchRequest fetchRequest;
-    private TableFetchResponse fetchResponse;
-
+    
+    @InjectMocks
+    private TableDataController tableDataController;
+    
+    private ObjectMapper objectMapper = new ObjectMapper();
+    
+    private TableFetchRequest request;
+    private TableFetchResponse successResponse;
+    
     @BeforeEach
     void setUp() {
-        // Set up test request
-        fetchRequest = new TableFetchRequest();
-        fetchRequest.setEntityName("testEntity");
-        fetchRequest.setPage(0);
-        fetchRequest.setSize(10);
+        // Initialize mocks
+        MockitoAnnotations.openMocks(this);
         
-        List<SortRequest> sorts = new ArrayList<>();
-        sorts.add(new SortRequest("id", SortType.ASCENDING.toString()));
-        fetchRequest.setSorts(sorts);
+        // Set up MockMvc
+        mockMvc = MockMvcBuilders
+                .standaloneSetup(tableDataController)
+                .build();
         
-        // Set up test response with proper initialization
-        List<Map<String, Object>> content = new ArrayList<>();
-        Map<String, Object> item = new HashMap<>();
-        item.put("id", 1L);
-        item.put("name", "Test Item");
-        content.add(item);
+        // Create a sample request
+        request = new TableFetchRequest();
+        request.setObjectType(ObjectType.User);
+        request.setPage(0);
+        request.setSize(10);
+        request.setFilters(new ArrayList<>());
+        request.setSorts(new ArrayList<>());
+        request.setSearch(new HashMap<>());
         
-        // Create response using available constructor
-        fetchResponse = new TableFetchResponse();
-        fetchResponse.setStatus(FetchStatus.SUCCESS);  // Updated to use enum
-        fetchResponse.setTotalElements(1L);
-        fetchResponse.setCurrentPage(0);
-        fetchResponse.setPageSize(10);
-        fetchResponse.setTotalPage(1);
-        
-        // Create the rows in the proper format
-        List<Map<String, Object>> rows = new ArrayList<>();
-        rows.add(item);
-        
-        // Convert the List<Map<String, Object>> to List<TableRow>
-        List<TableRow> tableRows = rows.stream()
-            .map(map -> {
-                TableRow row = new TableRow();
-                row.setData(map);
-                return row;
-            })
-            .collect(Collectors.toList());
-        fetchResponse.setRows(tableRows);
+        // Create a sample response
+        successResponse = new TableFetchResponse();
+        successResponse.setStatus(FetchStatus.SUCCESS);
+        successResponse.setCurrentPage(0);
+        successResponse.setPageSize(10);
+        successResponse.setTotalElements(100L);
+        successResponse.setTotalPage(10);
+        successResponse.setRows(new ArrayList<>());
     }
-
+    
     @Test
-    void fetchData_ShouldReturnTableData() throws Exception {
-        // Given
-        when(tableDataService.fetchData(any())).thenReturn(fetchResponse);  // Updated method name
+    void testFetchData() throws Exception {
+        // Setup mock
+        when(tableDataService.fetchData(any(TableFetchRequest.class))).thenReturn(successResponse);
         
-        // When/Then
+        // Perform test
         mockMvc.perform(post("/api/table-data/fetch")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(fetchRequest)))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.content").isArray())
-            .andExpect(jsonPath("$.content[0].id").value(1))
-            .andExpect(jsonPath("$.content[0].name").value("Test Item"))
-            .andExpect(jsonPath("$.totalElements").value(1));
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.currentPage").value(0))
+                .andExpect(jsonPath("$.pageSize").value(10))
+                .andExpect(jsonPath("$.totalElements").value(100))
+                .andExpect(jsonPath("$.totalPage").value(10));
     }
 }

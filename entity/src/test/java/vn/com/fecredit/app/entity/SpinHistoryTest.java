@@ -52,8 +52,6 @@ class SpinHistoryTest {
         Reward.builder()
                 .name("Test Reward")
                 .code("TEST_REWARD")
-                .quantity(10)
-                .winProbability(0.5)
                 .eventLocation(location)
                 .status(CommonStatus.ACTIVE)
                 .build();

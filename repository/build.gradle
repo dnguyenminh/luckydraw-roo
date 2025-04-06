@@ -12,45 +12,45 @@ dependencies {
     // Implementation dependencies
     implementation project(':entity')
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    
+
     // Add Lombok dependency
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
-    
+
     // Test dependencies
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'com.h2database:h2'
-    
+
     // Add Lombok for tests
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
     withSourcesJar()
 }
 
 test {
     useJUnitPlatform()
-    
+
     // Enhanced test logging
     testLogging {
         showStandardStreams = true
         events "passed", "failed", "skipped"
         exceptionFormat = 'full'
     }
-    
+
     // Force test ordering to prevent interdependencies
     systemProperty 'junit.jupiter.testmethod.order.default', 'org.junit.jupiter.api.MethodOrderer$OrderAnnotation'
-    
+
     // Add a finalizer task that runs after each test class to clean resources
-    afterTest { desc, result -> 
+    afterTest { desc, result ->
         println "Finished test: ${desc.className}.${desc.name} with result: ${result.resultType}"
     }
-    
+
     // Force garbage collection after tests to prevent memory issues
     finalizedBy('cleanTest')
 }

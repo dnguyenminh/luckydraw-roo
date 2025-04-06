@@ -4,11 +4,10 @@ buildscript {
 }
 
 plugins {
-    id 'org.springframework.boot' version '3.2.0' apply false
-    id 'io.spring.dependency-management' version '1.1.3' apply false
+    id 'org.springframework.boot' version '3.4.4' apply false
+    id 'io.spring.dependency-management' version '1.1.7' apply false
     id 'java'
-    // Comment out the Node plugin for now to avoid errors
-    // id 'com.github.node-gradle.node' version '7.0.1'
+    id 'com.github.node-gradle.node' version '3.5.1' apply false
     // Temporarily comment out checkstyle until we fix it
     // id 'checkstyle'
 }
@@ -17,15 +16,15 @@ plugins {
 allprojects {
     group = 'vn.com.fecredit.app'
     version = '0.0.1-SNAPSHOT'
-    
+
     repositories {
         mavenCentral()
     }
-    
+
     // Temporarily comment out checkstyle configuration
     /*
     apply plugin: 'checkstyle'
-    
+
     checkstyle {
         toolVersion = '10.12.4'
         configFile = rootProject.file('config/checkstyle/checkstyle.xml')
@@ -40,16 +39,16 @@ allprojects {
 subprojects {
     apply plugin: 'java'
     apply plugin: 'io.spring.dependency-management'
-    
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
-    
+
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+
     dependencyManagement {
         imports {
             mavenBom("org.springframework.boot:spring-boot-dependencies:3.2.0")
         }
     }
-    
+
     // Define the developmentOnly configuration for all subprojects
     configurations {
         developmentOnly
@@ -57,21 +56,21 @@ subprojects {
             extendsFrom developmentOnly
         }
     }
-    
+
     dependencies {
         // Common dependencies can go here
         developmentOnly 'org.springframework.boot:spring-boot-devtools'
-        
+
         // Add these dependency alignments to all subprojects
         implementation 'org.hibernate.orm:hibernate-core:6.2.7.Final'
         implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
-        
+
         // Testing dependencies
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'org.mockito:mockito-core:5.3.1'
         testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
     }
-    
+
     // Add compiler options to suppress common warnings
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
@@ -79,9 +78,29 @@ subprojects {
             '-parameters'
         ]
     }
-    
+
     test {
         useJUnitPlatform()
+    }
+}
+
+// Define webapp-specific configuration
+if (project.findProject(':webapp') != null) {
+    project(':webapp') {
+        apply plugin: 'com.github.node-gradle.node'
+        
+        node {
+            version = '16.13.1'
+            download = true
+            workDir = file("${project.buildDir}/nodejs")
+            npmWorkDir = file("${project.buildDir}/npm")
+        }
+        
+        tasks.register('npmBuild', Exec) {
+            description = 'Run npm build'
+            workingDir = projectDir
+            commandLine 'npm', 'run', 'build'
+        }
     }
 }
 
@@ -103,53 +122,96 @@ dependencies {
     implementation project(':repository')
     implementation project(':service')
     implementation project(':controller')
-    
+
     // Database
     runtimeOnly 'com.h2database:h2'
-    
+
     // Development tools
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    
+
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 
-// Comment out Node-related configurations to fix build errors
-/*
-node {
-    version = '16.17.0'
-    npmVersion = '8.15.0'
-    download = true
-    workDir = file("${project.buildDir}/nodejs")
-    npmWorkDir = file("${project.buildDir}/npm")
+// Only define these tasks if the frontend directory exists
+def frontendDir = file("${project.projectDir}/frontend")
+if (frontendDir.exists()) {
+    tasks.register('installFrontend', Exec) {
+        description = 'Install frontend dependencies'
+        workingDir = frontendDir
+        commandLine = getOsSpecificCommand(['npm', 'install'])
+    }
+
+    tasks.register('buildFrontend', Exec) {
+        description = 'Build frontend'
+        workingDir = frontendDir
+        commandLine = getOsSpecificCommand(['npm', 'run', 'build'])
+        dependsOn installFrontend
+    }
+
+    tasks.register('copyFrontendBuild', Copy) {
+        description = 'Copy frontend build to static resources'
+        from "${project.projectDir}/frontend/out"
+        into "${project.buildDir}/resources/main/static"
+        dependsOn buildFrontend
+        // Only run if the output directory exists
+        onlyIf { file("${project.projectDir}/frontend/out").exists() }
+    }
+
+    bootJar {
+        dependsOn copyFrontendBuild
+    }
+
+    bootRun {
+        dependsOn copyFrontendBuild
+    }
+    
+    // Fix for the task dependency issue - add explicit dependency on copyFrontendBuild
+    tasks.named('resolveMainClassName') {
+        dependsOn copyFrontendBuild
+    }
+    
+    // Add explicit dependency from jar task to copyFrontendBuild with proper input/output declaration
+    tasks.named('jar') {
+        dependsOn copyFrontendBuild
+        from copyFrontendBuild.outputs
+        doFirst {
+            println "Including frontend resources from: ${project.buildDir}/resources/main/static"
+        }
+    }
+} else {
+    // If frontend doesn't exist, provide empty tasks
+    tasks.register('installFrontend') {
+        description = 'Dummy task for projects without frontend'
+    }
+    
+    tasks.register('buildFrontend') {
+        description = 'Dummy task for projects without frontend'
+    }
+    
+    tasks.register('copyFrontendBuild') {
+        description = 'Dummy task for projects without frontend'
+    }
+    
+    // Fix for the task dependency issue - make sure resolveMainClassName depends on the dummy task too
+    tasks.named('resolveMainClassName') {
+        dependsOn tasks.named('copyFrontendBuild')
+    }
+    
+    // Add dependency for jar task on the dummy copyFrontendBuild task
+    tasks.named('jar') {
+        dependsOn tasks.named('copyFrontendBuild')
+        doFirst {
+            println "No frontend resources to include (frontend directory not found)"
+        }
+    }
 }
 
-task installFrontend(type: NpmTask) {
-    description = 'Install frontend dependencies'
-    workingDir = file("${project.projectDir}/frontend")
-    args = ['install']
-}
-
-task buildFrontend(type: NpmTask) {
-    description = 'Build frontend'
-    workingDir = file("${project.projectDir}/frontend")
-    args = ['run', 'build']
-    dependsOn installFrontend
-}
-
-task copyFrontendBuild(type: Copy) {
-    description = 'Copy frontend build to static resources'
-    from "${project.projectDir}/frontend/out"
-    into "${project.buildDir}/resources/main/static"
-    dependsOn buildFrontend
-}
-
-bootJar {
-    dependsOn copyFrontendBuild
-}
-*/
-
-// Simplified bootJar configuration without frontend dependencies
-bootJar {
-    enabled = true
+// Helper method to get OS-specific command (adds cmd /c prefix for Windows)
+def getOsSpecificCommand(List<String> command) {
+    def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+    if (isWindows) {
+        return ['cmd', '/c'] + command
+    }
+    return command
 }

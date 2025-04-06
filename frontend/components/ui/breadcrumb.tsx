@@ -1,59 +1,84 @@
 import * as React from "react";
-import { ChevronRight } from 'lucide-react';
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { ChevronRight } from "lucide-react";
 
-interface BreadcrumbProps {
+interface BreadcrumbProps extends React.HTMLAttributes<HTMLElement> {
   children: React.ReactNode;
   className?: string;
 }
 
-export function Breadcrumb({ children, className = "", ...props }: BreadcrumbProps) {
+const Breadcrumb = React.forwardRef<
+  HTMLElement,
+  BreadcrumbProps
+>(({ className, children, ...props }, ref) => {
   return (
-    <nav 
-      className={`flex items-center text-sm text-gray-400 ${className}`} 
-      aria-label="Breadcrumb" 
+    <nav
+      ref={ref}
+      aria-label="breadcrumb"
+      className={cn(
+        "inline-flex items-center space-x-1 text-sm text-gray-400",
+        className
+      )}
       {...props}
     >
-      <ol className="flex items-center space-x-2">
-        {children}
-      </ol>
+      {children}
     </nav>
   );
-}
+});
 
-interface BreadcrumbItemProps {
-  children: React.ReactNode;
+Breadcrumb.displayName = "Breadcrumb";
+
+interface BreadcrumbItemProps extends React.HTMLAttributes<HTMLLIElement> {
   isCurrentPage?: boolean;
 }
 
-export function BreadcrumbItem({ children, isCurrentPage = false }: BreadcrumbItemProps) {
-  return (
-    <li className="flex items-center">
-      <div className={`flex items-center ${isCurrentPage ? 'text-white' : ''}`}>
-        {children}
-      </div>
-      {!isCurrentPage && <ChevronRight className="ml-2 h-4 w-4" />}
-    </li>
-  );
-}
+const BreadcrumbItem = React.forwardRef<HTMLLIElement, BreadcrumbItemProps>(
+  ({ className, isCurrentPage, ...props }, ref) => {
+    return (
+      <li
+        ref={ref}
+        className={cn("inline-flex items-center", className)}
+        aria-current={isCurrentPage ? "page" : undefined}
+        {...props}
+      />
+    );
+  }
+);
+
+BreadcrumbItem.displayName = "BreadcrumbItem";
 
 interface BreadcrumbLinkProps {
   children: React.ReactNode;
   href?: string;
+  className?: string;
   asChild?: boolean;
 }
 
-export function BreadcrumbLink({ children, href, asChild = false }: BreadcrumbLinkProps) {
-  if (asChild) {
-    return <>{children}</>;
+const BreadcrumbLink = React.forwardRef<HTMLAnchorElement, BreadcrumbLinkProps>(
+  ({ href, children, className, asChild, ...props }, ref) => {
+    return (
+      <div className="inline-flex items-center">
+        {typeof href === "undefined" ? (
+          <span className={cn("font-medium text-white", className)}>
+            {children}
+          </span>
+        ) : (
+          <Link 
+            href={href} 
+            className={cn("hover:text-white transition-colors", className)}
+            {...props}
+            ref={ref}
+          >
+            {children}
+          </Link>
+        )}
+        <ChevronRight className="mx-1 h-4 w-4" />
+      </div>
+    );
   }
+);
 
-  if (!href) {
-    return <span>{children}</span>;
-  }
+BreadcrumbLink.displayName = "BreadcrumbLink";
 
-  return (
-    <a href={href} className="hover:text-white transition-colors">
-      {children}
-    </a>
-  );
-}
+export { Breadcrumb, BreadcrumbItem, BreadcrumbLink };

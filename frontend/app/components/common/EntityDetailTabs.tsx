@@ -1,175 +1,213 @@
 'use client';
 
-import { ReactNode, useMemo } from 'react';
-import { Users, Calendar, BarChart2, History, ClipboardList, Gift, Clock, Map, BookOpen } from 'lucide-react';
-import TabInterface from './TabInterface';
-import EntityTabContent from './EntityTabContent';
-import StatisticsTab from './StatisticsTab';
-import { TableFetchResponse, ObjectType } from '@/app/lib/mockData';
-import { fetchRelatedTableData } from '@/app/lib/api/tableService';
-
-// Define tab configuration interface
-interface TabConfig {
-  id: string;
-  label: string;
-  icon: ReactNode;
-  visible: boolean;
-  content: ReactNode;
-}
-
-// Mapping of relation names to tab configurations
-const relationTabMap: Record<string, {
-  label: string;
-  icon: ReactNode;
-  emptyMessage: string;
-}> = {
-  participants: {
-    label: "Participants",
-    icon: <Users className="w-4 h-4" />,
-    emptyMessage: "No participants found for this entity."
-  },
-  regions: {
-    label: "Regions",
-    icon: <Map className="w-4 h-4" />,
-    emptyMessage: "No regions associated with this entity."
-  },
-  provinces: {
-    label: "Provinces",
-    icon: <Map className="w-4 h-4" />,
-    emptyMessage: "No provinces associated with this entity."
-  },
-  events: {
-    label: "Events",
-    icon: <Calendar className="w-4 h-4" />,
-    emptyMessage: "No events associated with this entity."
-  },
-  rewards: {
-    label: "Rewards",
-    icon: <Gift className="w-4 h-4" />,
-    emptyMessage: "No rewards associated with this entity."
-  },
-  goldenHours: {
-    label: "Golden Hours",
-    icon: <Clock className="w-4 h-4" />,
-    emptyMessage: "No golden hours assigned to this entity."
-  },
-  spinHistory: {
-    label: "Spin History",
-    icon: <History className="w-4 h-4" />,
-    emptyMessage: "No spin history found for this entity."
-  },
-  auditLog: {
-    label: "Audit Log",
-    icon: <ClipboardList className="w-4 h-4" />,
-    emptyMessage: "No audit log entries found for this entity."
-  },
-  winners: {
-    label: "Winners",
-    icon: <Users className="w-4 h-4" />,
-    emptyMessage: "No winners found for this entity."
-  },
-  details: {
-    label: "Details",
-    icon: <BookOpen className="w-4 h-4" />,
-    emptyMessage: "No details available for this entity."
-  },
-  role: {
-    label: "Role",
-    icon: <Users className="w-4 h-4" />,
-    emptyMessage: "No role assigned to this user."
-  },
-  users: {
-    label: "Users",
-    icon: <Users className="w-4 h-4" />,
-    emptyMessage: "No users assigned to this role."
-  },
-  loginHistory: {
-    label: "Login History",
-    icon: <History className="w-4 h-4" />,
-    emptyMessage: "No login history found for this user."
-  },
-  permissions: {
-    label: "Permissions",
-    icon: <BookOpen className="w-4 h-4" />,
-    emptyMessage: "No permissions assigned."
-  }
-};
+import { useState, useEffect } from 'react';
+import {
+  TableFetchRequest,
+  TableFetchResponse,
+  ObjectType,
+  TabTableRow,
+  TableRow,
+  DataObjectKeyValues,
+  DataObjectKey
+} from '@/app/lib/api/interfaces';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import DataTable from './DataTable';
+import { fetchTableData } from '@/app/lib/api/tableService';
 
 interface EntityDetailTabsProps {
-  entityId: number;
-  entityTable: TableFetchResponse;
-  entityType: keyof typeof ObjectType; // Update to use ObjectType keys
-  additionalTabs?: TabConfig[];
-  customTabContent?: Record<string, ReactNode>;
+  tableRow: TableRow;
+  entityType: string;
 }
 
+/**
+ * Renders tabs for displaying entity details and related tables
+ * Uses the relatedTables array from TabTableRow to determine which related tables to show
+ */
 export default function EntityDetailTabs({
-  entityId,
-  entityTable,
+  tableRow,
   entityType,
-  additionalTabs = [],
-  customTabContent = {}
 }: EntityDetailTabsProps) {
-  // Find all related tables for this entity
-  const relatedTablesKeys = useMemo(() => {
-    if (!entityTable.relatedTables) return [];
-    
-    // Get all available relation types
-    const allRelationTypes = Object.keys(entityTable.relatedTables);
-    
-    // Filter to only relations that exist for this specific entity
-    return allRelationTypes.filter(relationType => {
-      const relationData = entityTable.relatedTables?.[relationType]?.[entityId];
-      // Only include if the relation exists and has rows
-      return relationData && relationData.rows && relationData.rows.length > 0;
-    });
-  }, [entityId, entityTable]);
+  const [activeTab, setActiveTab] = useState<string>('details');
+  const [relatedTableData, setRelatedTableData] = useState<Record<string, TableFetchResponse | null>>({});
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<Record<string, string | null>>({});
 
-  // Generate tabs based on related tables
-  const tabs = useMemo(() => {
-    // Start with statistics tab which is always available
-    const baseTabs: TabConfig[] = [
-      {
-        id: "statistics",
-        label: "Statistics",
-        icon: <BarChart2 className="w-4 h-4" />,
-        visible: true,
-        content: customTabContent?.statistics || <StatisticsTab id={entityId} entityType={entityType as any} />
-      }
-    ];
+  // Extract entity ID from the tableRow
+  const entityId = tableRow?.data?.id;
+
+  // Check if tableRow is a TabTableRow and has relatedTables
+  const isTabTableRow = 'relatedTables' in tableRow;
+
+  // Get the list of related table names from tableRow if it exists
+  const relatedTables = isTabTableRow ? (tableRow as TabTableRow).relatedTables || [] : [];
+
+  // Load each related table's data when active tab changes
+  useEffect(() => {
+    // Skip if active tab is "details" or if there are no related tables
+    if (activeTab === 'details' || relatedTables.length === 0) return;
     
-    // Add all related tables as tabs
-    const relationTabs = relatedTablesKeys.map(relationKey => {
-      const config = relationTabMap[relationKey] || {
-        label: relationKey.charAt(0).toUpperCase() + relationKey.slice(1),
-        icon: <BookOpen className="w-4 h-4" />,
-        emptyMessage: `No ${relationKey} data available.`
-      };
+    // Otherwise load data for the active tab
+    // Convert tab name to ObjectType
+    const relatedObjectType = activeTab.toUpperCase() as keyof typeof ObjectType;
+    if (relatedObjectType in ObjectType) {
+      loadTableData(ObjectType[relatedObjectType], tableRow);
+    }
+  }, [activeTab, relatedTables, tableRow]);
+
+  // Function to load related table data
+  const loadTableData = async (relatedObjectType: ObjectType, tableRow: TableRow) => {
+    setLoading(prev => ({ ...prev, [relatedObjectType]: true }));
+
+    try {
+      // Get the parent entity's object type
+      const parentObjectType = (entityType.toUpperCase() as keyof typeof ObjectType) in ObjectType 
+        ? ObjectType[entityType.toUpperCase() as keyof typeof ObjectType] 
+        : ObjectType.EVENT;
+
+      // Initialize search criteria with the correct type
+      const searchCriteria: Record<ObjectType, DataObjectKeyValues> = Object.values(ObjectType).reduce((acc, type) => {
+        acc[type] = { searchCriteria: {} };
+        return acc;
+      }, {} as Record<ObjectType, DataObjectKeyValues>);
       
-      return {
-        id: relationKey,
-        label: config.label,
-        icon: config.icon,
-        visible: true,
-        content: customTabContent?.[relationKey] || (
-          <EntityTabContent
-            entityId={entityId}
-            sourceTable={entityTable}
-            relatedTableName={relationKey}
-            title={config.label}
-            emptyMessage={config.emptyMessage}
-          />
-        )
+      // Add search criteria for the parent entity
+      if (tableRow?.data?.id) {
+        searchCriteria[parentObjectType].searchCriteria = { id: tableRow.data.id };
+      }
+
+      // Create the request with search criteria
+      const request: TableFetchRequest = {
+        page: 0,
+        size: 10,
+        sorts: [],
+        filters: [],
+        search: searchCriteria,
+        objectType: relatedObjectType
       };
-    });
-    
-    // Add any additional custom tabs
-    return [...baseTabs, ...relationTabs, ...additionalTabs];
-  }, [entityId, entityType, relatedTablesKeys, customTabContent, additionalTabs, entityTable]);
+
+      // Fetch the data using the request
+      const response = await fetchTableData(request);
+
+      // Store the response
+      setRelatedTableData(prev => ({
+        ...prev,
+        [relatedObjectType]: response
+      }));
+
+    } catch (err) {
+      console.error(`Error loading related table ${relatedObjectType}:`, err);
+      setError(prev => ({
+        ...prev,
+        [relatedObjectType]: `Error loading ${relatedObjectType}`
+      }));
+    } finally {
+      setLoading(prev => ({ ...prev, [relatedObjectType]: false }));
+    }
+  };
+
+  // Define the tab items (details + related tables)
+  const tabs = [
+    { id: 'details', label: 'Details' },
+    // Add tabs for each related table
+    ...relatedTables.map(tableName => ({
+      id: tableName,
+      label: tableName.charAt(0).toUpperCase() + tableName.slice(1).toLowerCase()
+    }))
+  ];
+
+  // Render the details content (basic properties of the entity)
+  const renderDetailsContent = () => {
+    // Access data from tableRow.data
+    const excludedFields = ['id', 'relatedTables'];
+
+    return (
+      <div className="p-4 bg-[#1e1e1e] rounded">
+        <h3 className="text-lg font-medium mb-4">Entity Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {tableRow?.data && Object.entries(tableRow.data)
+            .filter(([key]) => !excludedFields.includes(key))
+            .map(([key, value]) => (
+              <div key={key} className="py-2 border-b border-[#3c3c3c]">
+                <span className="text-gray-400">{key}: </span>
+                <span className="text-white">{
+                  value !== null && value !== undefined
+                    ? (typeof value === 'object'
+                      ? JSON.stringify(value)
+                      : value.toString())
+                    : 'N/A'
+                }</span>
+              </div>
+            ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Render related table content
+  const renderRelatedTableContent = (tableName: string) => {
+    if (loading[tableName]) {
+      return <div className="p-4 text-center">Loading {tableName} data...</div>;
+    }
+
+    if (error[tableName]) {
+      return <div className="p-4 text-center text-red-500">{error[tableName]}</div>;
+    }
+
+    const tableData = relatedTableData[tableName];
+
+    if (!tableData || tableData.rows.length === 0) {
+      return <div className="p-4 text-center">No {tableName} data available</div>;
+    }
+
+    return (
+      <DataTable
+        data={tableData}
+        entityType={tableName.toUpperCase() as keyof typeof ObjectType}
+        showDetailView={false}
+      />
+    );
+  };
+
+  // Don't render tabs if there's no data or related tables
+  if (!tableRow?.data) {
+    return <div className="p-4 text-center">No data available</div>;
+  }
+
+  // If there are no related tables, just show details without tabs
+  if (relatedTables.length === 0) {
+    return renderDetailsContent();
+  }
+
+  // Fix for the string vs ObjectType type mismatch in the onValueChange handler
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
 
   return (
-    <div>
-      <TabInterface tabs={tabs} />
-    </div>
+    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+      <TabsList className="bg-[#252525] border-b border-[#3c3c3c] w-full flex overflow-x-auto">
+        {tabs.map(tab => (
+          <TabsTrigger
+            key={tab.id}
+            value={tab.id}
+            className="data-[state=active]:bg-[#2a2d2e] data-[state=active]:shadow-none"
+          >
+            {tab.label}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+
+      {/* Details Tab Content */}
+      <TabsContent value="details" className="pt-4">
+        {renderDetailsContent()}
+      </TabsContent>
+
+      {/* Related Tables Content */}
+      {relatedTables.map(tableName => (
+        <TabsContent key={tableName} value={tableName} className="pt-4">
+          {renderRelatedTableContent(tableName)}
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }

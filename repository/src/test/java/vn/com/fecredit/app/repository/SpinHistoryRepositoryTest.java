@@ -209,8 +209,6 @@ class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
                 .eventLocation(location)
                 .code("TEST-REWARD")
                 .name("Test Reward")
-                .quantity(10)
-                .winProbability(0.5)
                 .status(CommonStatus.ACTIVE)
                 .version(0L)
                 .spinHistories(new HashSet<>())

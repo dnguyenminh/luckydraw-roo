@@ -3,7 +3,7 @@
 ' Common API Request and Response Models
 
 namespace vn.com.fecredit.app.service.dto {
-    
+
     enum ObjectType {
         Event
         Region
@@ -22,7 +22,7 @@ namespace vn.com.fecredit.app.service.dto {
         Participant
         ParticipantEvent
     }
-    
+
     enum FetchStatus {
         SUCCESS
         NO_DATA
@@ -30,13 +30,13 @@ namespace vn.com.fecredit.app.service.dto {
         INVALID_REQUEST
         ACCESS_DENIED
     }
-    
+
     enum SortType {
         ASCENDING
         DESCENDING
         NONE
     }
-    
+
     enum FilterType {
         EQUALS
         NOT_EQUALS
@@ -48,7 +48,33 @@ namespace vn.com.fecredit.app.service.dto {
         IN
         NOT_IN
     }
-    
+
+    class DataObjectKey {
+        List<String> keys
+    }
+
+    class DataObjectKeyValues {
+        Map<String, Object> searchCriteria
+    }
+
+    class TableRow {
+        Map<String, Object> data
+        TableInfo tableInfo
+    }
+
+    class TabTableRow {
+        List<String> relatedTables
+    }
+
+    class DataObject {
+        ObjectType objectType
+        DataObjectKey key
+        Map<String, ColumnInfo> fieldNameMap
+        String description
+        TableRow data
+        Integer order
+    }
+
     class TableFetchRequest {
         ObjectType objectType
         String entityName
@@ -56,15 +82,16 @@ namespace vn.com.fecredit.app.service.dto {
         int size
         List<SortRequest> sorts
         List<FilterRequest> filters
-        Map<String, String> search
+        Map<ObjectType, KeyValues> search
     }
-    
+
     class TableFetchResponse {
         TableFetchRequest originalRequest
         StatisticsInfo statistics
     }
-    
+
     class TableInfo {
+        DataObjectKey key
         FetchStatus status
         String message
         Integer totalPage
@@ -76,53 +103,36 @@ namespace vn.com.fecredit.app.service.dto {
         List<TableRow> rows
         Map<String, DataObject> relatedLinkedObjects
     }
-    
-    class TableRow {
-        Map<String, Object> data
-    }
-    
-    class TabTableRow {
-        List<String> relatedTables
-        boolean hasRelatedTables()
-        TabTableRow addRelatedTable(String tableName)
-    }
-    
+
     class FilterRequest {
         String field
         FilterType filterType
         String minValue
         String maxValue
     }
-    
+
     class SortRequest {
         String field
         SortType sortType
     }
-    
+
     class ColumnInfo {
         String fieldName
         String fieldType
         SortType sortType
     }
-    
+
     class StatisticsInfo {
         Map<String, List<ChartInfo>> charts
     }
-    
+
     class ChartInfo {
         String chartName
         String chartType
         Map<String, List<String>> chartData
     }
-    
-    class DataObject {
-        ObjectType objectType
-        Map<String, ColumnInfo> fieldNameMap
-        String description
-        Map<String, Object> data
-        Integer order
-    }
-    
+
+
     TableFetchResponse --|> TableInfo
     TabTableRow --|> TableRow
     TableFetchResponse --> TableFetchRequest

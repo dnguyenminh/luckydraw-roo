@@ -33,23 +33,26 @@ public interface RewardRepository extends SimpleObjectRepository<Reward> {
                         "WHERE r.eventLocation.id = :locationId " +
                         "AND r.status = 'ACTIVE' " +
                         "AND r.eventLocation.status = 'ACTIVE' " +
-                        "AND (r.quantity - (SELECT COUNT(sh) FROM SpinHistory sh " +
+                        "AND (r.eventLocation.quantity - (SELECT COUNT(sh) FROM SpinHistory sh " +
                         "                   WHERE sh.reward = r " +
                         "                   AND sh.status = 'ACTIVE' " +
                         "                   AND sh.win = true)) > 0")
         List<Reward> findAvailableRewardsForLocation(@Param("locationId") Long locationId);
 
-        @Query("SELECT CASE WHEN COUNT(r) > 0 THEN true ELSE false END FROM Reward r " +
-                        "WHERE r.id = :rewardId " +
+        @Query("SELECT CASE WHEN (r.id = :rewardId " +
                         "AND r.status = 'ACTIVE' " +
                         "AND r.eventLocation.status = 'ACTIVE' " +
-                        "AND (r.quantity - (SELECT COUNT(sh) FROM SpinHistory sh " +
-                        "                   WHERE sh.reward = r " +
-                        "                   AND sh.status = 'ACTIVE' " +
-                        "                   AND sh.win = true)) > 0")
+                        "AND r.eventLocation.quantity IS NOT NULL " +
+                        "AND r.eventLocation.quantity > 0 " +
+                        "AND (r.eventLocation.quantity - (" +
+                        "    SELECT COALESCE(COUNT(sh), 0) FROM SpinHistory sh " +
+                        "    WHERE sh.reward = r " +
+                        "    AND sh.status = 'ACTIVE' " +
+                        "    AND sh.win = true)) > 0) THEN true ELSE false END " +
+                        "FROM Reward r WHERE r.id = :rewardId")
         boolean isRewardAvailable(@Param("rewardId") Long rewardId);
 
-        @Query("SELECT r.quantity - (SELECT COUNT(sh) FROM SpinHistory sh " +
+        @Query("SELECT r.eventLocation.quantity - (SELECT COUNT(sh) FROM SpinHistory sh " +
                         "                     WHERE sh.reward = r " +
                         "                     AND sh.status = 'ACTIVE' " +
                         "                     AND sh.win = true) " +
@@ -60,10 +63,10 @@ public interface RewardRepository extends SimpleObjectRepository<Reward> {
         @Query("SELECT r FROM Reward r " +
                         "WHERE r.eventLocation.id = :locationId " +
                         "AND r.status = 'ACTIVE' " +
-                        "AND r.quantity > 0")
+                        "AND r.eventLocation.quantity > 0")
         List<Reward> findAvailableRewardsByLocation(@Param("locationId") Long locationId);
 
-        @Query("SELECT COALESCE(MAX(r.quantity), 0) FROM Reward r " +
+        @Query("SELECT COALESCE(MAX(r.eventLocation.quantity), 0) FROM Reward r " +
                         "WHERE r.eventLocation.id = :locationId " +
                         "AND r.status = 'ACTIVE'")
         BigDecimal getMaximumRewardValueAtLocation(@Param("locationId") Long locationId);

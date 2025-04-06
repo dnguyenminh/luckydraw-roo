@@ -53,14 +53,32 @@ public class LuckyDrawApplication {
             
             /**
              * Configure routing to support SPA navigation
-             * This forwards non-API, non-resource paths to the index.html
+             * This forwards non-API paths to the index.html to allow client-side routing
              */
             @Override
             public void addViewControllers(@NonNull ViewControllerRegistry registry) {
-                // Forward requests to index.html for SPA routing
+                // Forward root requests to index.html
                 registry.addViewController("/").setViewName("forward:/index.html");
-                registry.addViewController("/{x:[\\w\\-]+}").setViewName("forward:/index.html");
-                registry.addViewController("/{x:^(?!api$).*$}/**/{y:[\\w\\-]+}").setViewName("forward:/index.html");
+                
+                // Forward single-level paths to index.html (except for paths that would match other patterns)
+                registry.addViewController("/{path:[^\\.]*}").setViewName("forward:/index.html");
+                
+                // Forward paths with /pages/ prefix (common in SPAs)
+                registry.addViewController("/pages/{*page}").setViewName("forward:/index.html");
+                
+                // Forward paths with /views/ prefix (common in SPAs)
+                registry.addViewController("/views/{*view}").setViewName("forward:/index.html");
+                
+                // Simple path mappings that don't use regex or ** patterns
+                registry.addViewController("/dashboard").setViewName("forward:/index.html");
+                registry.addViewController("/profile").setViewName("forward:/index.html");
+                registry.addViewController("/settings").setViewName("forward:/index.html");
+                registry.addViewController("/login").setViewName("forward:/index.html");
+                registry.addViewController("/register").setViewName("forward:/index.html");
+                registry.addViewController("/about").setViewName("forward:/index.html");
+                registry.addViewController("/help").setViewName("forward:/index.html");
+                
+                // NO CATCH-ALL PATTERNS WITH ** - they're causing the errors
             }
         };
     }
