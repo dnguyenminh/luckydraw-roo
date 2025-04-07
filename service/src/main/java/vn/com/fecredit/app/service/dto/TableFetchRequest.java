@@ -1,97 +1,79 @@
 package vn.com.fecredit.app.service.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Pattern;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Request DTO for fetching paginated and sorted table data.
- * Defines parameters for what data to fetch and how to present it.
+ * Represents a request to fetch table data.
+ * Contains all parameters needed to search, filter, sort and paginate data.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class TableFetchRequest {
+public class TableFetchRequest implements Serializable {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
-     * Type of object to fetch
+     * The type of object to fetch
      */
     private ObjectType objectType;
     
     /**
-     * Page number (0-based) for pagination
+     * The name of the entity to fetch (must match an existing entity name)
+     * Should be one of: User, Role, Permission, Event, Region, Province, etc.
+     * as defined in the ObjectType enum
      */
-    @Builder.Default
-    private int page = 0;
-    
-    /**
-     * Number of items per page
-     */
-    @Builder.Default
-    private int size = 10;
-    
-    /**
-     * List of sort specifications (field and direction)
-     */
-    @Builder.Default
-    private List<SortRequest> sorts = new ArrayList<>();
-    
-    /**
-     * List of filter criteria to apply
-     */
-    @Builder.Default
-    private List<FilterRequest> filters = new ArrayList<>();
-    
-    /**
-     * Search criteria as field name to search value mapping
-     */
-    @Builder.Default
-    private Map<String, String> search = new HashMap<>();
-    
-    /**
-     * For backward compatibility - entity name as string
-     */
+    @Pattern(regexp = "^(User|Role|Permission|Event|EventLocation|GoldenHour|Region|Province"
+            + "|Reward|Participant|ParticipantEvent|SpinHistory|AuditLog|BlacklistedToken|Configuration)$",
+            message = "Entity name must be a valid entity type")
     private String entityName;
     
     /**
-     * Add a sort request
-     * @param field the field to sort by
-     * @param sortType the sort direction
-     * @return this request for chaining
+     * The page number to fetch (0-based)
      */
-    public TableFetchRequest addSort(String field, SortType sortType) {
-        sorts.add(new SortRequest(field, sortType));
-        return this;
-    }
+    @Min(value = 0, message = "Page number must be non-negative")
+    private int page;
     
     /**
-     * Add a filter request
-     * @param field the field to filter
-     * @param filterType the filter operation
-     * @param minValue minimum value for range operations
-     * @param maxValue maximum value for range operations
-     * @return this request for chaining
+     * The number of items per page
      */
-    public TableFetchRequest addFilter(String field, FilterType filterType, String minValue, String maxValue) {
-        filters.add(new FilterRequest(field, filterType, minValue, maxValue));
-        return this;
-    }
+    @Min(value = 1, message = "Page size must be positive")
+    private int size;
     
     /**
-     * Add a search parameter
-     * @param field the field to search in
-     * @param value the value to search for
-     * @return this request for chaining
+     * The sort criteria to apply
      */
-    public TableFetchRequest addSearch(String field, String value) {
-        search.put(field, value);
-        return this;
+    private List<SortRequest> sorts;
+    
+    /**
+     * The filter criteria to apply
+     */
+    private List<FilterRequest> filters;
+    
+    /**
+     * Search criteria for different object types
+     */
+    private Map<ObjectType, DataObjectKeyValues> search;
+    
+    /**
+     * Validates that either objectType or entityName is provided (but not necessarily both)
+     * 
+     * @return true if the request is valid
+     */
+    public boolean isValid() {
+        return objectType != null || (entityName != null && !entityName.isEmpty());
     }
 }

@@ -1,37 +1,38 @@
 package vn.com.fecredit.app.service.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Contains information for rendering a chart.
- * Defines chart name, type, and the data to be visualized.
+ * Contains information about a chart.
+ * Provides data and configuration for a visualization chart.
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ChartInfo {
+public class ChartInfo implements Serializable {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
-     * Name of the chart
+     * The name of the chart
      */
     private String chartName;
     
     /**
-     * Type of chart (e.g., "bar", "line", "pie")
+     * The type of chart (e.g., "bar", "pie", "line")
      */
     private String chartType;
     
     /**
-     * Chart data as series of values
+     * The data for the chart, organized by series
      */
-    @Builder.Default
-    private Map<String, List<String>> chartData = new HashMap<>();
+    private Map<String, List<String>> chartData;
 }

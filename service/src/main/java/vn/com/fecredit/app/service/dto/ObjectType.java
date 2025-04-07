@@ -1,87 +1,88 @@
 package vn.com.fecredit.app.service.dto;
 
 /**
- * Enumeration of object types that can be fetched and displayed.
- * Used to identify the type of data being handled.
+ * Enum representing the types of objects in the system.
+ * These object types are used to identify different entities throughout the application.
+ * Each value corresponds to a specific entity type in the data model.
  */
 public enum ObjectType {
     /**
-     * Event object type
+     * Represents an Event entity
      */
     Event,
     
     /**
-     * Region object type
+     * Represents a Region entity
      */
     Region,
     
     /**
-     * Province object type
+     * Represents a Province entity
      */
     Province,
     
     /**
-     * Reward object type
+     * Represents a Reward entity
      */
     Reward,
     
     /**
-     * Golden hour object type
+     * Represents a GoldenHour entity
      */
     GoldenHour,
     
     /**
-     * Spin history object type
+     * Represents a SpinHistory entity
      */
     SpinHistory,
     
     /**
-     * Audit log object type
+     * Represents an AuditLog entity
      */
     AuditLog,
     
     /**
-     * Statistics object type
+     * Represents Statistics information
      */
     Statistics,
     
     /**
-     * User object type
+     * Represents a User entity
      */
     User,
     
     /**
-     * Role object type
+     * Represents a Role entity
      */
     Role,
     
     /**
-     * Permission object type
+     * Represents a Permission entity
      */
     Permission,
     
     /**
-     * Configuration object type
+     * Represents a Configuration entity
      */
     Configuration,
     
     /**
-     * Blacklisted token object type
+     * Represents a BlacklistedToken entity
      */
     BlacklistedToken,
     
     /**
-     * Event location object type
+     * Represents an EventLocation entity
      */
     EventLocation,
     
     /**
-     * Participant object type
+     * Represents a Participant entity
      */
     Participant,
     
     /**
-     * ParticipantEvent object type
+     * Represents a ParticipantEvent entity
      */
     ParticipantEvent
 }

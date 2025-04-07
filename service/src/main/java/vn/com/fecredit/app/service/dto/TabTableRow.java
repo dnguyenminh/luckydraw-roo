@@ -1,52 +1,53 @@
 package vn.com.fecredit.app.service.dto;
 
+import lombok.Builder;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 /**
- * Extension of TableRow that supports tab-based expansion with related tables.
- * Contains a list of related table names to render as tabs when the row is expanded.
+ * Represents a table row with related tables information.
+ * Extends the basic TableRow to include information about related tables.
  */
-@Getter
-@Setter
+@Data
+@SuperBuilder
 @NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
 public class TabTableRow extends TableRow {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
-     * List of table names to be rendered as tabs when this row is expanded
+     * List of names of related tables
      */
+    @Builder.Default
     private List<String> relatedTables = new ArrayList<>();
     
     /**
      * Constructor with data
-     * @param data the row data
+     *
+     * @param data the row data as a map
      */
     public TabTableRow(Map<String, Object> data) {
         super(data);
     }
     
     /**
-     * Add a related table to the list
-     * @param tableName name of the related table
-     * @return this instance for chaining
+     * Adds a related table to the list
+     *
+     * @param tableName the name of the related table to add
      */
-    public TabTableRow addRelatedTable(String tableName) {
-        if (tableName != null && !tableName.isEmpty()) {
-            relatedTables.add(tableName);
+    public void addRelatedTable(String tableName) {
+        if (this.relatedTables == null) {
+            this.relatedTables = new ArrayList<>();
         }
-        return this;
-    }
-    
-    /**
-     * Check if this row has related tables
-     * @return true if there are related tables
-     */
-    public boolean hasRelatedTables() {
-        return relatedTables != null && !relatedTables.isEmpty();
+        this.relatedTables.add(tableName);
     }
 }

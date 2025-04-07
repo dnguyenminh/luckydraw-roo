@@ -1,32 +1,36 @@
 package vn.com.fecredit.app.service.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /**
- * Defines metadata for a table column.
- * Includes name, data type, and default sort direction.
+ * Represents information about a data column.
+ * Contains metadata about a column in a table, including its name, type, and sort settings.
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ColumnInfo {
+public class ColumnInfo implements Serializable {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
-     * Name of the field/column
+     * The name of the field
      */
     private String fieldName;
     
     /**
-     * Data type of the field as a string representation
+     * The data type of the field
      */
     private String fieldType;
     
     /**
-     * Default sort direction for this column
+     * The default sort direction for this field
      */
     private SortType sortType;
 }

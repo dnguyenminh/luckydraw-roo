@@ -49,21 +49,14 @@ subprojects {
         }
     }
 
-    // Define the developmentOnly configuration for all subprojects
-    configurations {
-        developmentOnly
-        runtimeClasspath {
-            extendsFrom developmentOnly
-        }
-    }
-
     dependencies {
-        // Common dependencies can go here
-        developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
         // Add these dependency alignments to all subprojects
         implementation 'org.hibernate.orm:hibernate-core:6.2.7.Final'
         implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
+        
+        // Add Lombok to all subprojects
+        compileOnly 'org.projectlombok:lombok'
+        annotationProcessor 'org.projectlombok:lombok'
 
         // Testing dependencies
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -108,13 +101,6 @@ if (project.findProject(':webapp') != null) {
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-// Define the developmentOnly configuration for the root project too
-configurations {
-    developmentOnly
-    runtimeClasspath {
-        extendsFrom developmentOnly
-    }
-}
 
 dependencies {
     // Main app depends on all modules

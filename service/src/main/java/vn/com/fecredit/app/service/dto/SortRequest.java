@@ -1,37 +1,31 @@
 package vn.com.fecredit.app.service.dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /**
- * DTO for specifying sorting parameters in data fetch requests.
- * Defines which field to sort by and in what direction.
+ * Represents a request to sort data.
+ * Contains information about which field to sort by and in which direction.
  */
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SortRequest {
+public class SortRequest implements Serializable {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
-     * Field/property name to sort by
+     * The field to sort on
      */
     private String field;
     
     /**
-     * Direction of the sort (ASC or DESC)
+     * The direction of the sort
      */
     private SortType sortType;
-    
-    /**
-     * Default constructor with field name and sort direction
-     * @param field field to sort by
-     * @param direction sort direction as string ("asc"/"desc")
-     */
-    public SortRequest(String field, String direction) {
-        this.field = field;
-        this.sortType = SortType.fromString(direction);
-    }
 }

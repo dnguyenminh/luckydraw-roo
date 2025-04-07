@@ -1,77 +1,41 @@
 package vn.com.fecredit.app.repository;
 
-import java.util.List;
+import vn.com.fecredit.app.entity.User;
 import java.util.Optional;
 
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
-
-import vn.com.fecredit.app.entity.User;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
-import vn.com.fecredit.app.entity.enums.RoleType;
-
 /**
- * Repository interface for User entity operations
+ * Repository for User entity operations.
  */
-@Repository
 public interface UserRepository extends SimpleObjectRepository<User> {
-    
     /**
-     * Find user by username
-     * @param username the username
-     * @return optional user
-     */
-    Optional<User> findByUsername(String username);
-    
-    /**
-     * Check if user exists by username
-     * @param username the username
-     * @return true if exists
+     * Checks if a user with the given username exists
+     * 
+     * @param username the username to check
+     * @return true if a user with the username exists, false otherwise
      */
     boolean existsByUsername(String username);
     
     /**
-     * Find user by email
-     * @param email the email address
-     * @return optional user
-     */
-    Optional<User> findByEmail(String email);
-    
-    /**
-     * Check if user exists by email
-     * @param email the email address
-     * @return true if exists
+     * Checks if a user with the given email exists
+     * 
+     * @param email the email to check
+     * @return true if a user with the email exists, false otherwise
      */
     boolean existsByEmail(String email);
     
     /**
-     * Find users by status
-     * @param status the status
-     * @return list of users
+     * Finds a user by their username
+     * 
+     * @param username the username to search for
+     * @return an Optional containing the user if found, or empty if not found
      */
-    List<User> findByStatus(CommonStatus status);
+    Optional<User> findByUsername(String username);
     
     /**
-     * Find users by role type
-     * @param role the role type
-     * @return list of users
+     * Finds a user by their email address
+     * 
+     * @param email the email address to search for
+     * @return an Optional containing the user if found, or empty if not found
      */
-    List<User> findByRole(RoleType role);
-    
-    /**
-     * Find active users by role type
-     * @param role the role type
-     * @param status the status
-     * @return list of users
-     */
-    List<User> findByRoleAndStatus(RoleType role, CommonStatus status);
-    
-    /**
-     * Find users with a specific role assigned
-     * @param roleId the role ID
-     * @return list of users
-     */
-    @Query("SELECT u FROM User u JOIN u.roles r WHERE r.id = :roleId")
-    List<User> findByRoleId(@Param("roleId") Long roleId);
+    Optional<User> findByEmail(String email);
 }

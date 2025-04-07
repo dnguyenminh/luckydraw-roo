@@ -1,22 +1,24 @@
 package vn.com.fecredit.app.service.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Response DTO for table data fetch operations.
- * Contains both the table information and associated statistics data.
- * Extends TableInfo to include all table-related properties.
+ * Represents the response to a table data fetch request.
+ * Extends TableInfo and adds request and statistics information.
+ * This is the main response object returned from table data APIs.
  */
 @Data
 @SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
 public class TableFetchResponse extends TableInfo {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
      * The original request that generated this response
@@ -24,7 +26,7 @@ public class TableFetchResponse extends TableInfo {
     private TableFetchRequest originalRequest;
     
     /**
-     * Statistical information related to the fetched data
+     * Statistical information about the data
      */
     private StatisticsInfo statistics;
 }

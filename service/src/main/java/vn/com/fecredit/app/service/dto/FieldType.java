@@ -1,42 +1,57 @@
 package vn.com.fecredit.app.service.dto;
 
 /**
- * Enumeration of data field types.
- * Used to properly format and validate field values.
+ * Enum representing the type of field in data tables.
+ * Used for metadata and validation of field values.
  */
 public enum FieldType {
     /**
-     * String field type
+     * String type field (text data)
      */
     STRING,
     
     /**
-     * Numeric field type
+     * Numeric type field (integers, decimals)
      */
     NUMBER,
     
     /**
-     * Boolean field type
+     * Boolean type field (true/false)
      */
     BOOLEAN,
     
     /**
-     * Date field type (without time)
+     * Date type field (date without time)
      */
     DATE,
     
     /**
-     * Date and time field type
+     * DateTime type field (date with time)
      */
     DATETIME,
     
     /**
-     * Time field type (without date)
+     * Time type field (time without date)
      */
     TIME,
     
     /**
-     * Complex object field type
+     * Email type field (validated email format)
      */
-    OBJECT
+    EMAIL,
+    
+    /**
+     * Object type field (complex nested objects)
+     */
+    OBJECT,
+    
+    /**
+     * Array type field (collections)
+     */
+    ARRAY,
+    
+    /**
+     * Binary type field (file data, etc.)
+     */
+    BINARY
 }

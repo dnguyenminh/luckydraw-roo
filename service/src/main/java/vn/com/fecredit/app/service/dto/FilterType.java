@@ -1,52 +1,52 @@
 package vn.com.fecredit.app.service.dto;
 
 /**
- * Enumeration of filter operation types.
- * Defines the comparison operations available for filtering data.
+ * Enum representing the type of filter to apply.
+ * Used in filter requests to specify how the filtering should be performed.
  */
 public enum FilterType {
     /**
-     * Equal to operation
+     * Filter for values equal to the specified value
      */
     EQUALS,
     
     /**
-     * Not equal to operation
+     * Filter for values not equal to the specified value
      */
     NOT_EQUALS,
     
     /**
-     * Less than operation
+     * Filter for values less than the specified value
      */
     LESS_THAN,
     
     /**
-     * Less than or equal to operation
+     * Filter for values less than or equal to the specified value
      */
     LESS_THAN_OR_EQUALS,
     
     /**
-     * Greater than operation
+     * Filter for values greater than the specified value
      */
     GREATER_THAN,
     
     /**
-     * Greater than or equal to operation
+     * Filter for values greater than or equal to the specified value
      */
     GREATER_THAN_OR_EQUALS,
     
     /**
-     * Between two values operation
+     * Filter for values within a specified range (inclusive)
      */
     BETWEEN,
     
     /**
-     * In a set of values operation
+     * Filter for values present in a specified list
      */
     IN,
     
     /**
-     * Not in a set of values operation
+     * Filter for values not present in a specified list
      */
     NOT_IN
 }

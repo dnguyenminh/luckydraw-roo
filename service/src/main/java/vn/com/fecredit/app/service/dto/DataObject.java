@@ -5,29 +5,38 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
+import java.io.Serializable;
 import java.util.Map;
 
 /**
- * Represents a data object with metadata and its actual data.
- * Used for linking related objects to a primary data table.
+ * Represents a data object with its metadata.
+ * Contains comprehensive information about a data object including its type,
+ * keys, fields, and actual data.
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DataObject {
+public class DataObject implements Serializable {
+    /**
+     * Serial Version UID for serialization
+     */
+    private static final long serialVersionUID = 1L;
     
     /**
-     * Type of the object
+     * The type of the object
      */
     private ObjectType objectType;
     
     /**
-     * Mapping of field names to column information
+     * The key that uniquely identifies this object
      */
-    @Builder.Default
-    private Map<String, ColumnInfo> fieldNameMap = new HashMap<>();
+    private DataObjectKey key;
+    
+    /**
+     * Map of field names to their metadata
+     */
+    private Map<String, ColumnInfo> fieldNameMap;
     
     /**
      * Description of this data object
@@ -35,13 +44,12 @@ public class DataObject {
     private String description;
     
     /**
-     * The actual data as key-value pairs
+     * The actual data of this object
      */
-    @Builder.Default
-    private Map<String, Object> data = new HashMap<>();
+    private TableRow data;
     
     /**
-     * Display order of this object
+     * Display order for this object (when shown in lists)
      */
     private Integer order;
 }

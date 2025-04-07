@@ -1,48 +1,32 @@
 package vn.com.fecredit.app.service.dto;
 
 /**
- * Enumeration for table data fetch operation status.
- * Provides standardized status values for API responses.
+ * Enum representing the status of a data fetch operation.
+ * Used to indicate the result of API calls fetching data from the system.
  */
 public enum FetchStatus {
     /**
-     * Operation completed successfully
+     * Indicates that the fetch operation completed successfully and returned data
      */
     SUCCESS,
     
     /**
-     * No data was found matching the criteria
+     * Indicates that the fetch operation completed successfully but found no data
      */
     NO_DATA,
     
     /**
-     * Operation failed due to an error
+     * Indicates that an error occurred during the fetch operation
      */
     ERROR,
     
     /**
-     * Invalid request parameters were provided
+     * Indicates that the fetch request was invalid
      */
     INVALID_REQUEST,
     
     /**
-     * Access was denied to the requested resource
+     * Indicates that the user doesn't have sufficient permissions for the requested data
      */
-    ACCESS_DENIED;
-    
-    /**
-     * Check if status represents a successful operation
-     * @return true if this is a success status
-     */
-    public boolean isSuccess() {
-        return this == SUCCESS;
-    }
-    
-    /**
-     * Check if status represents a failed operation
-     * @return true if this is an error status
-     */
-    public boolean isError() {
-        return this == ERROR || this == INVALID_REQUEST || this == ACCESS_DENIED;
-    }
+    ACCESS_DENIED
 }
