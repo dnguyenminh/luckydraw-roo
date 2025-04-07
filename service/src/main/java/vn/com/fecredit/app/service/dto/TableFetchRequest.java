@@ -66,7 +66,7 @@ public class TableFetchRequest implements Serializable {
     /**
      * Search criteria for different object types
      */
-    private Map<ObjectType, DataObjectKeyValues> search;
+    private Map<ObjectType, DataObject> search;
     
     /**
      * Validates that either objectType or entityName is provided (but not necessarily both)

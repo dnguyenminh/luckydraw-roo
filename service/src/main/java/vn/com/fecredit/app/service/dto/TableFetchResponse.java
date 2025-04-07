@@ -1,9 +1,14 @@
 package vn.com.fecredit.app.service.dto;
 
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+
+import java.util.Map;
 
 /**
  * Represents the response to a table data fetch request.
@@ -11,22 +16,24 @@ import lombok.experimental.SuperBuilder;
  * This is the main response object returned from table data APIs.
  */
 @Data
-@SuperBuilder
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true)
+@SuperBuilder
+@AllArgsConstructor
 public class TableFetchResponse extends TableInfo {
     /**
      * Serial Version UID for serialization
      */
     private static final long serialVersionUID = 1L;
-    
+
     /**
      * The original request that generated this response
      */
     private TableFetchRequest originalRequest;
-    
+
     /**
      * Statistical information about the data
      */
     private StatisticsInfo statistics;
+
 }

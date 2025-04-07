@@ -75,5 +75,5 @@ public class TableInfo implements Serializable {
     /**
      * Map of related object names to their metadata
      */
-    private Map<String, DataObject> relatedLinkedObjects;
+    private Map<ObjectType, DataObject> relatedLinkedObjects;
 }

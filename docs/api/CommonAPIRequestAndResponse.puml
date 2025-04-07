@@ -82,7 +82,7 @@ namespace vn.com.fecredit.app.service.dto {
         int size
         List<SortRequest> sorts
         List<FilterRequest> filters
-        Map<ObjectType, KeyValues> search
+        Map<ObjectType, DataObject> search
     }
 
     class TableFetchResponse {
@@ -101,7 +101,7 @@ namespace vn.com.fecredit.app.service.dto {
         String tableName
         Map<String, ColumnInfo> fieldNameMap
         List<TableRow> rows
-        Map<String, DataObject> relatedLinkedObjects
+        Map<ObjectType, DataObject> relatedLinkedObjects
     }
 
     class FilterRequest {

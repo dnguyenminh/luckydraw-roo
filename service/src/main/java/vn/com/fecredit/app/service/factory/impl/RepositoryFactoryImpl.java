@@ -96,20 +96,20 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     private void initializeMappings() {
         // Entity class to ObjectType mapping
         mapEntity(ObjectType.User, User.class, UserRepository.class, "users");
-        mapEntity(ObjectType.Role, Role.class, RoleRepository.class, "role");
-        mapEntity(ObjectType.Permission, Permission.class, PermissionRepository.class, "permission");
-        mapEntity(ObjectType.Event, Event.class, EventRepository.class, "event");
-        mapEntity(ObjectType.EventLocation, EventLocation.class, EventLocationRepository.class, "event_location");
-        mapEntity(ObjectType.GoldenHour, GoldenHour.class, GoldenHourRepository.class, "golden_hour");
-        mapEntity(ObjectType.Region, Region.class, RegionRepository.class, "region");
-        mapEntity(ObjectType.Province, Province.class, ProvinceRepository.class, "province");
-        mapEntity(ObjectType.Reward, Reward.class, RewardRepository.class, "reward");
-        mapEntity(ObjectType.Participant, Participant.class, ParticipantRepository.class, "participant");
-        mapEntity(ObjectType.ParticipantEvent, ParticipantEvent.class, ParticipantEventRepository.class, "participant_event");
-        mapEntity(ObjectType.SpinHistory, SpinHistory.class, SpinHistoryRepository.class, "spin_history");
-        mapEntity(ObjectType.AuditLog, AuditLog.class, AuditLogRepository.class, "audit_log");
-        mapEntity(ObjectType.BlacklistedToken, BlacklistedToken.class, BlacklistedTokenRepository.class, "blacklisted_token");
-        mapEntity(ObjectType.Configuration, Configuration.class, ConfigurationRepository.class, "configuration");
+        mapEntity(ObjectType.Role, Role.class, RoleRepository.class, "roles"); // Fix: Change from "role" to "roles"
+        mapEntity(ObjectType.Permission, Permission.class, PermissionRepository.class, "permissions");
+        mapEntity(ObjectType.Event, Event.class, EventRepository.class, "events");
+        mapEntity(ObjectType.EventLocation, EventLocation.class, EventLocationRepository.class, "event_locations");
+        mapEntity(ObjectType.GoldenHour, GoldenHour.class, GoldenHourRepository.class, "golden_hours");
+        mapEntity(ObjectType.Region, Region.class, RegionRepository.class, "regions");
+        mapEntity(ObjectType.Province, Province.class, ProvinceRepository.class, "provinces");
+        mapEntity(ObjectType.Reward, Reward.class, RewardRepository.class, "rewards");
+        mapEntity(ObjectType.Participant, Participant.class, ParticipantRepository.class, "participants");
+        mapEntity(ObjectType.ParticipantEvent, ParticipantEvent.class, ParticipantEventRepository.class, "participant_events");
+        mapEntity(ObjectType.SpinHistory, SpinHistory.class, SpinHistoryRepository.class, "spin_histories");
+        mapEntity(ObjectType.AuditLog, AuditLog.class, AuditLogRepository.class, "audit_logs");
+        mapEntity(ObjectType.BlacklistedToken, BlacklistedToken.class, BlacklistedTokenRepository.class, "blacklisted_tokens");
+        mapEntity(ObjectType.Configuration, Configuration.class, ConfigurationRepository.class, "configurations");
         
         // Also map by simple name for backward compatibility
         for (ObjectType type : ObjectType.values()) {

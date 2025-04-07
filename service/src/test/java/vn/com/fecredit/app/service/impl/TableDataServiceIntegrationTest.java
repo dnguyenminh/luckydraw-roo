@@ -1,15 +1,19 @@
 package vn.com.fecredit.app.service.impl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Connection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import javax.sql.DataSource;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -27,24 +31,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-
-import javax.sql.DataSource;
-import java.sql.Connection;
-
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.ServiceTestApplication;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.service.TableDataService;
+import vn.com.fecredit.app.service.dto.ColumnInfo;
+import vn.com.fecredit.app.service.dto.DataObject;
 import vn.com.fecredit.app.service.dto.FetchStatus;
 import vn.com.fecredit.app.service.dto.FilterRequest;
 import vn.com.fecredit.app.service.dto.FilterType;
 import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.SortRequest;
 import vn.com.fecredit.app.service.dto.SortType;
+import vn.com.fecredit.app.service.dto.TabTableRow;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
-import vn.com.fecredit.app.service.dto.TabTableRow;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
 
 /**
@@ -70,21 +71,19 @@ public class TableDataServiceIntegrationTest {
         try (Connection connection = dataSource.getConnection()) {
             // First, execute the schema creation script directly
             ScriptUtils.executeSqlScript(
-                connection,
-                new EncodedResource(new ClassPathResource("/schema-test.sql"), "UTF-8"),
-                false, true,
-                "--", ";",
-                "/*", "*/"
-            );
+                    connection,
+                    new EncodedResource(new ClassPathResource("/schema-test.sql"), "UTF-8"),
+                    false, true,
+                    "--", ";",
+                    "/*", "*/");
 
             // Then execute the data script
             ScriptUtils.executeSqlScript(
-                connection,
-                new EncodedResource(new ClassPathResource("/data-test.sql"), "UTF-8"),
-                false, true,
-                "--", ";",
-                "/*", "*/"
-            );
+                    connection,
+                    new EncodedResource(new ClassPathResource("/data-test.sql"), "UTF-8"),
+                    false, true,
+                    "--", ";",
+                    "/*", "*/");
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -104,10 +103,10 @@ public class TableDataServiceIntegrationTest {
     void testFetchSimpleData() {
         // Create a simple fetch request
         TableFetchRequest request = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(10)
-            .build();
+                .objectType(ObjectType.User)
+                .page(0)
+                .size(10)
+                .build();
 
         // Log debug info
         log.info("Starting testFetchSimpleData test case");
@@ -126,16 +125,16 @@ public class TableDataServiceIntegrationTest {
 
         // 2. Status validation
         assertTrue(
-            response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA,
-            "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus()
-        );
+                response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA,
+                "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus());
 
         // 3. Full response structure validation based on status
         if (response.getStatus() == FetchStatus.SUCCESS) {
             // A. Table metadata validation
             assertEquals("users", response.getTableName(), "Table name should be 'users'");
             assertNotNull(response.getFieldNameMap(), "Field name map should not be null");
-            assertTrue(response.getFieldNameMap().containsKey("username"), "Field name map should contain username field");
+            assertTrue(response.getFieldNameMap().containsKey("username"),
+                    "Field name map should contain username field");
 
             // B. Pagination information validation
             assertNotNull(response.getTotalElements(), "Total elements should not be null");
@@ -143,7 +142,7 @@ public class TableDataServiceIntegrationTest {
             // Verify total elements count is correct by doing a direct database count
             long expectedCount = countUsers();
             assertEquals(expectedCount, response.getTotalElements(),
-                "Total elements should match the actual number of users in the database");
+                    "Total elements should match the actual number of users in the database");
             log.info("Total elements check: expected={}, actual={}", expectedCount, response.getTotalElements());
 
             assertNotNull(response.getCurrentPage(), "Current page should not be null");
@@ -153,7 +152,8 @@ public class TableDataServiceIntegrationTest {
 
             // B.1 Total page validation - verify total page calculation is correct
             assertNotNull(response.getTotalPage(), "Total page count should not be null");
-            long expectedTotalPages = (response.getTotalElements() + response.getPageSize() - 1) / response.getPageSize();
+            long expectedTotalPages = (response.getTotalElements() + response.getPageSize() - 1)
+                    / response.getPageSize();
             assertEquals(expectedTotalPages, response.getTotalPage().longValue(),
                     "Total pages should be ceil(totalElements/pageSize)");
             log.info("Total elements: {}, Page size: {}, Expected total pages: {}, Actual total pages: {}",
@@ -201,7 +201,8 @@ public class TableDataServiceIntegrationTest {
         }
 
         // 4. Additional validations for special cases
-        // Check if we have rows with related tables - these would be TabTableRow instances
+        // Check if we have rows with related tables - these would be TabTableRow
+        // instances
         if (response.getStatus() == FetchStatus.SUCCESS && response.getRows() != null) {
             for (TableRow row : response.getRows()) {
                 if (row instanceof TabTableRow) {
@@ -217,7 +218,8 @@ public class TableDataServiceIntegrationTest {
     @Test
     void fetchUsers_WithStatusFilter_ShouldReturnFilteredUsers() {
         // Arrange
-        // Use a direct string value instead of an enum conversion, as the database values are strings
+        // Use a direct string value instead of an enum conversion, as the database
+        // values are strings
         FilterRequest statusFilter = new FilterRequest("status", FilterType.EQUALS, "INACTIVE");
         TableFetchRequest request = TableFetchRequest.builder()
                 .objectType(ObjectType.User)
@@ -233,9 +235,8 @@ public class TableDataServiceIntegrationTest {
         assertNotNull(response);
         // Check for both SUCCESS and NO_DATA as acceptable outcomes
         assertTrue(
-            response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA,
-            "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus()
-        );
+                response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA,
+                "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus());
     }
 
     @Test
@@ -260,7 +261,7 @@ public class TableDataServiceIntegrationTest {
     @Test
     void testPaginationAndTotalElements() {
         // We'll test with multiple page sizes to verify consistency
-        int[] pageSizes = {5, 10, 20, 50};
+        int[] pageSizes = { 5, 10, 20, 50 };
 
         // Get the expected total count directly from the database
         long expectedTotalUsers = countUsers();
@@ -269,66 +270,184 @@ public class TableDataServiceIntegrationTest {
         for (int pageSize : pageSizes) {
             // First page
             TableFetchRequest firstPageRequest = TableFetchRequest.builder()
-                .objectType(ObjectType.User)
-                .page(0)
-                .size(pageSize)
-                .build();
+                    .objectType(ObjectType.User)
+                    .page(0)
+                    .size(pageSize)
+                    .build();
 
             TableFetchResponse firstPageResponse = tableDataService.fetchData(firstPageRequest);
 
             // Verify the total elements is consistent across different page sizes
             assertEquals(expectedTotalUsers, firstPageResponse.getTotalElements(),
-                "Total elements should be consistent regardless of page size");
+                    "Total elements should be consistent regardless of page size");
 
             // Verify total pages calculation is correct
             int expectedTotalPages = (int) Math.ceil((double) expectedTotalUsers / pageSize);
             assertEquals(expectedTotalPages, firstPageResponse.getTotalPage(),
-                "Total pages calculation should be correct for page size " + pageSize);
+                    "Total pages calculation should be correct for page size " + pageSize);
 
             // Verify first page has correct number of items
             int expectedFirstPageSize = (int) Math.min(pageSize, expectedTotalUsers);
             assertEquals(expectedFirstPageSize, firstPageResponse.getRows().size(),
-                "First page should have the correct number of items");
+                    "First page should have the correct number of items");
 
             // If there's more than one page, check the second page too
             if (expectedTotalPages > 1) {
                 TableFetchRequest secondPageRequest = TableFetchRequest.builder()
-                    .objectType(ObjectType.User)
-                    .page(1)
-                    .size(pageSize)
-                    .build();
+                        .objectType(ObjectType.User)
+                        .page(1)
+                        .size(pageSize)
+                        .build();
 
                 TableFetchResponse secondPageResponse = tableDataService.fetchData(secondPageRequest);
 
                 // Same total elements and pages
                 assertEquals(expectedTotalUsers, secondPageResponse.getTotalElements(),
-                    "Total elements should be the same on second page");
+                        "Total elements should be the same on second page");
                 assertEquals(expectedTotalPages, secondPageResponse.getTotalPage(),
-                    "Total pages should be the same on second page");
+                        "Total pages should be the same on second page");
 
                 // Verify second page has correct number of items
                 int expectedSecondPageSize = (int) Math.min(pageSize, Math.max(0, expectedTotalUsers - pageSize));
                 assertEquals(expectedSecondPageSize, secondPageResponse.getRows().size(),
-                    "Second page should have the correct number of items");
+                        "Second page should have the correct number of items");
 
                 // Verify different page has different data
                 if (!firstPageResponse.getRows().isEmpty() && !secondPageResponse.getRows().isEmpty()) {
-                    String firstPageFirstUsername = (String) firstPageResponse.getRows().get(0).getData().get("username");
-                    String secondPageFirstUsername = (String) secondPageResponse.getRows().get(0).getData().get("username");
+                    String firstPageFirstUsername = (String) firstPageResponse.getRows().get(0).getData()
+                            .get("username");
+                    String secondPageFirstUsername = (String) secondPageResponse.getRows().get(0).getData()
+                            .get("username");
                     assertNotEquals(firstPageFirstUsername, secondPageFirstUsername,
-                        "First user on first page should be different from first user on second page");
+                            "First user on first page should be different from first user on second page");
                 }
             }
 
             // Log summary for this page size
             log.info("Page size {} - Total: {}, Pages: {}, First page size: {}",
-                pageSize, expectedTotalUsers, expectedTotalPages, expectedFirstPageSize);
+                    pageSize, expectedTotalUsers, expectedTotalPages, expectedFirstPageSize);
+        }
+    }
+
+    @Test
+    void testFetchDataWithRelatedLinkedObjects() {
+        // Create a request with search criteria for related roles
+        Map<ObjectType, DataObject> searchMap = new HashMap<>();
+        
+        // Create a data object for Role search
+        DataObject roleSearch = new DataObject();
+        roleSearch.setObjectType(ObjectType.Role);
+        
+        // Add some search criteria
+        TableRow searchData = new TableRow();
+        Map<String, Object> searchParams = new HashMap<>();
+        searchParams.put("roleType", "ROLE_ADMIN"); // Search for admin role
+        searchData.setData(searchParams);
+        roleSearch.setData(searchData);
+        
+        // Add to search map
+        searchMap.put(ObjectType.Role, roleSearch);
+        
+        // Create request with search criteria
+        TableFetchRequest request = TableFetchRequest.builder()
+                .objectType(ObjectType.User)
+                .page(0)
+                .size(10)
+                .search(searchMap)
+                .build();
+
+        // Execute the request
+        log.info("Starting testFetchDataWithRelatedLinkedObjects test case");
+        TableFetchResponse response = tableDataService.fetchData(request);
+
+        // Debug logging
+        log.info("Response received: status={}, relatedLinkedObjects={}",
+                response.getStatus(),
+                response.getRelatedLinkedObjects() != null ? response.getRelatedLinkedObjects().size() : "null");
+
+        // Verify the response has related linked objects
+        assertNotNull(response, "Response should not be null");
+        assertNotNull(response.getRelatedLinkedObjects(), "Related linked objects should not be null");
+        
+        // Users should have related roles - check for ObjectType.Role key instead of "roles" string
+        assertFalse(response.getRelatedLinkedObjects().isEmpty(),
+                "Related linked objects should not be empty");
+
+        // Verify that expected related objects are present using ObjectType.Role as key
+        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role),
+                "Related linked objects should include roles data");
+
+        // If we have roles data, verify it has content
+        if (response.getRelatedLinkedObjects().containsKey(ObjectType.Role)) {
+            Object rolesData = response.getRelatedLinkedObjects().get(ObjectType.Role);
+            assertNotNull(rolesData, "Roles data should not be null");
+            // Additional assertions based on the expected structure of roles data
+        }
+
+        // Log detailed information about found related objects for debugging
+        response.getRelatedLinkedObjects()
+                .forEach((key, value) -> log.info("Found related object: key={}, valueType={}, valueContent={}",
+                        key,
+                        value != null ? value.getClass().getName() : "null",
+                        value));
+    }
+
+    @Test
+    void testCachingMechanismForColumnInfoGeneration() {
+        // Create a request for the same object type twice
+        TableFetchRequest firstRequest = TableFetchRequest.builder()
+                .objectType(ObjectType.User)
+                .page(0)
+                .size(10)
+                .build();
+
+        TableFetchRequest secondRequest = TableFetchRequest.builder()
+                .objectType(ObjectType.User)
+                .page(0)
+                .size(10)
+                .build();
+
+        // Execute the first request
+        log.info("Executing first request to populate cache");
+        TableFetchResponse firstResponse = tableDataService.fetchData(firstRequest);
+        assertNotNull(firstResponse.getFieldNameMap(), "Field name map should be populated");
+        assertFalse(firstResponse.getFieldNameMap().isEmpty(), "Field name map should not be empty");
+
+        // Record the field name map from the first response
+        Map<String, ColumnInfo> firstFieldNameMap = firstResponse.getFieldNameMap();
+
+        // Execute the second request - should use cached column info
+        log.info("Executing second request to test cache");
+        TableFetchResponse secondResponse = tableDataService.fetchData(secondRequest);
+
+        // Both responses should have identical field name maps (same instance if cached
+        // properly)
+        // Use System.identityHashCode to check if they're the same object in memory
+        log.info("First field name map hash: {}", System.identityHashCode(firstFieldNameMap));
+        log.info("Second field name map hash: {}", System.identityHashCode(secondResponse.getFieldNameMap()));
+
+        assertEquals(firstFieldNameMap.size(), secondResponse.getFieldNameMap().size(),
+                "Both responses should have the same number of columns");
+
+        // Check key fields are present in both responses
+        assertTrue(firstFieldNameMap.containsKey("id"), "Should have id field");
+        assertTrue(secondResponse.getFieldNameMap().containsKey("id"), "Should have id field");
+
+        // They should have the same field definitions
+        for (String key : firstFieldNameMap.keySet()) {
+            assertTrue(secondResponse.getFieldNameMap().containsKey(key),
+                    "Second response should contain field: " + key);
+            assertEquals(
+                    firstFieldNameMap.get(key).getFieldType(),
+                    secondResponse.getFieldNameMap().get(key).getFieldType(),
+                    "Field types should match for: " + key);
         }
     }
 
     // Helper method
     private <T> List<T> extractFieldValues(List<TableRow> rows, String fieldName) {
-        if (rows == null) return Collections.emptyList();
+        if (rows == null)
+            return Collections.emptyList();
         return rows.stream()
                 .filter(row -> row != null && row.getData() != null)
                 .map(row -> (T) row.getData().get(fieldName))
