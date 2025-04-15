@@ -38,7 +38,7 @@ const provinceRows: TableRow[] = provinces.map((province, index) => {
 
 // Create table response
 const mockProvinceTable: TableFetchResponse = createMockTableData(
-    ObjectType.PROVINCE,
+    ObjectType.Province,
     'provinces',
     provinceRows,
     provinceRows.length
@@ -48,13 +48,13 @@ const mockProvinceTable: TableFetchResponse = createMockTableData(
 mockProvinceTable.relatedLinkedObjects = {
     'eventLocations': {
         id: 1,
-        objectType: ObjectType.EVENT_LOCATION,
+        objectType: ObjectType.EventLocation,
         description: "Event locations in this province",
         key: { keys: ['id'] }
     } as unknown as DataObject,
     'participants': {
         id: 2,
-        objectType: ObjectType.PARTICIPANT,
+        objectType: ObjectType.Participant,
         description: "Participants from this province",
         key: { keys: ['id'] }
     } as unknown as DataObject
@@ -66,7 +66,7 @@ mockProvinceTable.rows.forEach((row, index) => {
     mockProvinceTable.relatedLinkedObjects[`region_${regionId}`] = {
         id: regionId,
         name: `Region ${regionId}`,
-        objectType: ObjectType.REGION,
+        objectType: ObjectType.Region,
         description: "Parent region",
         key: { keys: ['id'] }
     } as unknown as DataObject;

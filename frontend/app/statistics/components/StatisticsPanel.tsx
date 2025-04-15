@@ -1,5 +1,7 @@
 'use client';
 
+import { useState, ReactNode } from 'react';
+
 // Add a fallback implementation if recharts is not installed
 const FallbackChart = () => (
   <div className="flex items-center justify-center h-full bg-[#2d2d2d] rounded-md p-4">
@@ -9,7 +11,18 @@ const FallbackChart = () => (
   </div>
 );
 
-let BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell;
+// Explicitly declare types for chart components to prevent "implicit any" errors
+let BarChart: any;
+let Bar: any;
+let XAxis: any;
+let YAxis: any;
+let CartesianGrid: any;
+let Tooltip: any;
+let Legend: any;
+let ResponsiveContainer: any;
+let PieChart: any;
+let Pie: any;
+let Cell: any;
 
 try {
   const recharts = require('recharts');
@@ -33,15 +46,13 @@ try {
   CartesianGrid = () => null;
   Tooltip = () => null;
   Legend = () => null;
-  ResponsiveContainer = ({ children }) => (
+  ResponsiveContainer = ({ children }: { children: ReactNode }) => (
     <div style={{ width: '100%', height: '100%' }}>{children}</div>
   );
   PieChart = FallbackChart;
   Pie = () => null;
   Cell = () => null;
 }
-
-import { useState } from 'react';
 
 export interface StatisticCard {
   title: string;
@@ -209,8 +220,8 @@ export default function StatisticsPanel({
   );
 }
 
-function BarChartComponent({ data }) {
-  if (!BarChart || typeof BarChart === 'function') {
+function BarChartComponent({ data }: { data: any[] }) {
+  if (!BarChart || typeof BarChart === 'function' && !BarChart.render) {
     return <FallbackChart />;
   }
   
@@ -232,8 +243,8 @@ function BarChartComponent({ data }) {
   );
 }
 
-function PieChartComponent({ data }) {
-  if (!PieChart || typeof PieChart === 'function') {
+function PieChartComponent({ data }: { data: any[] }) {
+  if (!PieChart || typeof PieChart === 'function' && !PieChart.render) {
     return <FallbackChart />;
   }
   
@@ -248,7 +259,7 @@ function PieChartComponent({ data }) {
           outerRadius={80}
           fill="#8884d8"
           dataKey="value"
-          label={({name, percent}) => `${name}: ${(percent * 100).toFixed(0)}%`}
+          label={({name, percent}: {name: string; percent: number}) => `${name}: ${(percent * 100).toFixed(0)}%`}
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />

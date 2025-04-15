@@ -1,12 +1,13 @@
 'use client';
 
 import EntityListPage from '@/app/components/common/EntityListPage';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function ProvincesPage() {
   return (
     <EntityListPage
       title="Provinces"
-      entityType="PROVINCE" // Use correct ObjectType key
+      entityType={ObjectType.Province} // Use correct ObjectType key
       breadcrumbPath="provinces"
       description="Overview of province distribution and activity"
       statsCards={[

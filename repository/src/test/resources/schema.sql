@@ -60,7 +60,6 @@ CREATE TABLE regions (
     version BIGINT NOT NULL DEFAULT 0,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
-    description TEXT,
     status VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -120,22 +119,23 @@ CREATE TABLE event_locations (
     FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
--- Create the rewards table if it doesn't exist
-CREATE TABLE IF NOT EXISTS rewards (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    code VARCHAR(255),
-    created_at TIMESTAMP,
-    created_by VARCHAR(255),
-    description VARCHAR(255),
-    event_location_id BIGINT,
-    name VARCHAR(255),
-    quantity INT,
+CREATE TABLE rewards (
+    id BIGSERIAL PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    event_location_id BIGINT NOT NULL,
+    value DECIMAL(19,2) NOT NULL DEFAULT 0,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    win_probability DECIMAL(5,4) NOT NULL DEFAULT 0,
     status VARCHAR(50),
-    updated_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
     updated_by VARCHAR(255),
-    "value" DECIMAL(19,2),
-    version INT,
-    win_probability DOUBLE
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
 );
 
 CREATE TABLE golden_hours (

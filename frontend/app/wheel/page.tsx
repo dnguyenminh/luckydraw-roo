@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PartyPopper, Frown, Info, Medal, Gift, Percent, Package, RotateCw, Crown } from 'lucide-react';
+import { PartyPopper, Frown, Info, Medal, Gift, Percent, Package, RotateCw, Crown, Loader } from 'lucide-react';
+import { wheelService } from '../lib/api/wheelService';
+import { toast } from '@/components/ui/use-toast';
 
 // Types for our wheel segments and prizes
 interface WheelSegment {
@@ -18,7 +20,6 @@ interface WheelSegment {
   probability?: number;
   isReward?: boolean;
   rewardValue?: string;
-  // Removed image property to avoid 404 errors
 }
 
 interface Prize {
@@ -27,7 +28,7 @@ interface Prize {
   description: string;
   value: string;
   color: string;
-  icon: any; // Using Lucide icons instead of images
+  icon: any;
 }
 
 // Mock prizes data using Lucide icons instead of images
@@ -78,7 +79,6 @@ const availablePrizes: Prize[] = [
 const generateWheelSegments = (prizes: Prize[]): WheelSegment[] => {
   const segments: WheelSegment[] = [];
   
-  // Add prize segments - WITHOUT images
   prizes.forEach(prize => {
     segments.push({
       id: prize.id,
@@ -86,19 +86,18 @@ const generateWheelSegments = (prizes: Prize[]): WheelSegment[] => {
       color: prize.color,
       isReward: true,
       rewardValue: prize.value,
-      probability: 15, // Default probability for prizes
+      probability: 15,
     });
   });
   
-  // Add some "Try Again" segments
-  const tryAgainCount = Math.max(3, Math.floor(segments.length * 0.6)); // At least 3 try again segments
+  const tryAgainCount = Math.max(3, Math.floor(segments.length * 0.6));
   for (let i = 0; i < tryAgainCount; i++) {
     segments.push({
       id: 1000 + i,
       text: "Try Again",
-      color: "#607d8b", // Gray color for "Try Again"
+      color: "#607d8b",
       isReward: false,
-      probability: 25 // Higher probability for try again
+      probability: 25
     });
   };
   
@@ -112,58 +111,140 @@ export default function WheelPage() {
   const [resultModal, setResultModal] = useState(false);
   const [result, setResult] = useState<WheelSegment | null>(null);
   const [remainingSpins, setRemainingSpins] = useState(3);
-  const [spinHistory, setSpinHistory] = useState<Array<{result: WheelSegment, timestamp: string}>>([]);
+  const [spinHistory, setSpinHistory] = useState<Array<{result: WheelSegment, timestamp: string, claimed?: boolean, spinId?: string}>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const searchParams = useSearchParams();
   const eventId = searchParams?.get('event') || '1';
+  const participantId = '1';
   
   useEffect(() => {
-    try {
-      // Generate wheel segments
-      const wheelSegments = generateWheelSegments(availablePrizes);
-      console.log('WheelPage: Generated wheel segments:', wheelSegments);
-      setSegments(wheelSegments);
-      
-      // In a real implementation, you would fetch event details based on eventId
-      setCurrentEvent("Summer Giveaway");
-      
-      // For demo purposes, set initial spins
-      setRemainingSpins(3);
-    } catch (error) {
-      console.error('Error in WheelPage useEffect:', error);
-    }
-  }, [eventId]);
+    const loadWheelData = async () => {
+      try {
+        setIsLoading(true);
+        const wheelSegments = generateWheelSegments(availablePrizes);
+        setSegments(wheelSegments);
+        
+        setCurrentEvent("Summer Giveaway");
+        
+        const spins = await wheelService.getRemainingSpins(eventId, participantId);
+        setRemainingSpins(spins);
+        
+        const history = await wheelService.getSpinHistory(eventId, participantId);
+        
+        const formattedHistory = history.spins.map((spin: any) => ({
+          result: {
+            id: spin.rewardId || 0,
+            text: spin.rewardName || "Try Again",
+            color: spin.outcome === 'WIN' ? '#1e3a5f' : '#607d8b',
+            isReward: spin.outcome === 'WIN',
+            rewardValue: spin.rewardName ? `${spin.rewardName}` : undefined,
+          },
+          timestamp: new Date(spin.timestamp).toLocaleTimeString(),
+          claimed: spin.claimed,
+          spinId: spin.id
+        }));
+        
+        setSpinHistory(formattedHistory);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error loading wheel data:', error);
+        setError('Failed to load wheel data. Please try again later.');
+        setIsLoading(false);
+      }
+    };
+    
+    loadWheelData();
+  }, [eventId, participantId]);
   
-  // Show loading state if segments aren't loaded yet
-  if (!segments || segments.length === 0) {
+  if (isLoading) {
     return (
       <ShellLayout>
         <div className="container mx-auto py-6 px-4">
           <div className="text-center p-8">
-            <h2 className="text-xl font-bold mb-4">Loading wheel...</h2>
+            <Loader className="animate-spin h-10 w-10 mx-auto mb-4" />
+            <h2 className="text-xl font-bold">Loading wheel...</h2>
           </div>
         </div>
       </ShellLayout>
     );
   }
   
-  const handleSpinFinished = (segment: WheelSegment) => {
+  if (error) {
+    return (
+      <ShellLayout>
+        <div className="container mx-auto py-6 px-4">
+          <div className="text-center p-8 bg-red-900/20 rounded-lg">
+            <h2 className="text-xl font-bold mb-4 text-red-500">{error}</h2>
+            <button 
+              className="bg-[#007acc] text-white px-3 py-2 rounded"
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </ShellLayout>
+    );
+  }
+  
+  if (!segments || segments.length === 0) {
+    return (
+      <ShellLayout>
+        <div className="container mx-auto py-6 px-4">
+          <div className="text-center p-8">
+            <h2 className="text-xl font-bold mb-4">No prizes available for this event</h2>
+          </div>
+        </div>
+      </ShellLayout>
+    );
+  }
+  
+  const handleSpinFinished = async (segment: WheelSegment) => {
     try {
-      // Record this spin in history
-      const now = new Date();
+      const spinResult = await wheelService.spinWheel({
+        eventId,
+        participantId
+      });
+      
+      let actualResult: WheelSegment;
+      
+      if (spinResult.outcome === 'WIN' && spinResult.rewardId) {
+        actualResult = {
+          id: spinResult.rewardId,
+          text: spinResult.rewardName || "Prize",
+          color: spinResult.rewardColor || "#007acc",
+          isReward: true,
+          rewardValue: spinResult.rewardValue
+        };
+      } else {
+        actualResult = {
+          id: 0,
+          text: "Try Again",
+          color: "#607d8b",
+          isReward: false
+        };
+      }
+      
       setSpinHistory(prev => [{
-        result: segment,
-        timestamp: now.toLocaleTimeString()
+        result: actualResult,
+        timestamp: new Date().toLocaleTimeString(),
+        spinId: spinResult.id,
+        claimed: false
       }, ...prev]);
       
-      // Decrement remaining spins
       setRemainingSpins(prev => Math.max(0, prev - 1));
       
-      // Show result modal
-      setResult(segment);
+      setResult(actualResult);
       setResultModal(true);
     } catch (error) {
       console.error('Error in handleSpinFinished:', error);
+      toast({
+        title: "Error",
+        description: "Something went wrong with your spin. Please try again.",
+        variant: "destructive"
+      });
     }
   };
   
@@ -171,10 +252,37 @@ export default function WheelPage() {
     setResultModal(false);
   };
   
-  // Function to handle claiming a reward
-  const claimReward = () => {
-    alert("Reward claimed! Check your email for details.");
-    closeResultModal();
+  const claimReward = async () => {
+    try {
+      const spinId = spinHistory[0].spinId;
+      if (!spinId) {
+        throw new Error("No spin ID found");
+      }
+      
+      const claimResult = await wheelService.claimReward(spinId);
+      
+      if (claimResult.success) {
+        toast({
+          title: "Success!",
+          description: "Reward claimed successfully. Check your email for details.",
+        });
+        
+        setSpinHistory(prev => prev.map((item, idx) => 
+          idx === 0 ? { ...item, claimed: true } : item
+        ));
+      } else {
+        throw new Error(claimResult.message || "Failed to claim reward");
+      }
+      
+      closeResultModal();
+    } catch (error) {
+      console.error("Error claiming reward:", error);
+      toast({
+        title: "Error",
+        description: "Failed to claim reward. Please try again later.",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -197,7 +305,6 @@ export default function WheelPage() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Left Column - Spins Info */}
           <div className="flex flex-col gap-4">
             <Card>
               <CardHeader>
@@ -214,7 +321,6 @@ export default function WheelPage() {
                       className="w-full" 
                       disabled={remainingSpins <= 0}
                       onClick={() => {
-                        // Scroll to wheel if needed
                         document.getElementById('wheel-section')?.scrollIntoView({ behavior: 'smooth' });
                       }}
                     >
@@ -255,7 +361,6 @@ export default function WheelPage() {
             </Card>
           </div>
           
-          {/* Middle Column - The Wheel */}
           <div className="flex flex-col items-center" id="wheel-section">
             <Card className="w-full">
               <CardHeader>
@@ -287,7 +392,6 @@ export default function WheelPage() {
             </div>
           </div>
           
-          {/* Right Column - Spin History */}
           <div>
             <Card className="h-full">
               <CardHeader>
@@ -319,10 +423,22 @@ export default function WheelPage() {
                             {spin.timestamp}
                           </div>
                         </div>
-                        {spin.result.isReward && (
-                          <Button variant="secondary" size="sm">
+                        {spin.result.isReward && !spin.claimed && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              setResult(spin.result);
+                              setResultModal(true);
+                            }}
+                          >
                             Claim
                           </Button>
+                        )}
+                        {spin.result.isReward && spin.claimed && (
+                          <span className="text-xs px-2 py-1 bg-green-800/30 text-green-400 rounded">
+                            Claimed
+                          </span>
                         )}
                       </div>
                     ))}
@@ -339,7 +455,6 @@ export default function WheelPage() {
         </div>
       </main>
       
-      {/* Result Modal */}
       <Modal 
         isOpen={resultModal} 
         onClose={closeResultModal}

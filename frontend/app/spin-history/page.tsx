@@ -1,12 +1,13 @@
 'use client';
 
 import EntityListPage from '@/app/components/common/EntityListPage';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function SpinHistoryPage() {
   return (
     <EntityListPage
       title="Spin History"
-      entityType="SPIN_HISTORY" // Use correct ObjectType key
+      entityType={ObjectType.SpinHistory} // Use correct ObjectType key
       breadcrumbPath="spin-history"
       description="Overview of all customer spins and rewards"
       statsCards={[

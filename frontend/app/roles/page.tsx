@@ -1,12 +1,13 @@
 'use client';
 
 import EntityListPage from '@/app/components/common/EntityListPage';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function RolesPage() {
   return (
     <EntityListPage
       title="Roles"
-      entityType="ROLE" // Use correct ObjectType key
+      entityType={ObjectType.Reward} // Use correct ObjectType key
       breadcrumbPath="roles"
       description="Manage system roles and permissions"
       statsCards={[

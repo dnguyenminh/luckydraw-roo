@@ -2,9 +2,53 @@
 
 import { ReactNode } from 'react';
 import DataTable from '@/app/components/common/DataTable';
-import { TableFetchResponse, getRelatedTableData, ObjectType } from '@/app/lib/mockData';
 import { ActionDef } from '../common/DataTable';
-import { fetchRelatedTableData } from '@/app/lib/api/tableService';
+import { TableFetchResponse, ObjectType, FetchStatus, SortType, DataObject } from '@/app/lib/api/interfaces';
+import { fetchTableData } from '@/app/lib/api/tableService';
+
+// Helper function to extract related table data from the source table
+function getRelatedTableData(
+  sourceTable: TableFetchResponse,
+  entityId: number,
+  relatedTableName: string
+): TableFetchResponse | null {
+  // Check if the source table has relatedLinkedObjects
+  if (!sourceTable.relatedLinkedObjects || 
+      !Object.keys(sourceTable.relatedLinkedObjects).includes(relatedTableName)) {
+    return null;
+  }
+  
+  // Try to find the related table data in the source table's relatedLinkedObjects
+  // This would typically require access to API data structures
+  // Return null if not found
+  return null;
+}
+
+// Function to fetch related table data from the API
+async function fetchRelatedTableData(
+  sourceTableName: string,
+  entityId: number,
+  relatedTableName: string,
+  request: any
+): Promise<TableFetchResponse> {
+  // Create a request with proper filters to get related data
+  const tableRequest = {
+    ...request,
+    objectType: relatedTableName.toUpperCase() as unknown as ObjectType,
+    filters: [
+      ...request.filters || [],
+      {
+        field: `${sourceTableName.toLowerCase()}Id`,
+        filterType: 'EQUALS',
+        minValue: entityId.toString(),
+        maxValue: entityId.toString()
+      }
+    ]
+  };
+  
+  // Use the fetchTableData service
+  return await fetchTableData(tableRequest);
+}
 
 interface EntityTabContentProps {
   entityId: number;
@@ -38,20 +82,46 @@ export default function EntityTabContent({
 }: EntityTabContentProps) {
   // Get related data from the source table
   const relatedTable = getRelatedTableData(sourceTable, entityId, relatedTableName) || {
-    totalPages: 0,
+    status: FetchStatus.NO_DATA,  // Required by TableFetchResponse interface
+    message: "No data available",  // Required by TableFetchResponse
+    totalPage: 0,                  // Use totalPage instead of totalPages
     currentPage: 0,
     pageSize: 0,
     totalElements: 0,
     tableName: `entity_${relatedTableName}`,
     rows: [],
+    fieldNameMap: {},              // Required by TableFetchResponse
+    relatedLinkedObjects: {},      // Required by TableFetchResponse
     originalRequest: {
       page: 0,
       size: 10,
-      sorts: [{ field: "name", order: "asc" }],
+      sorts: [{ 
+        field: "name", 
+        sortType: SortType.ASCENDING // Use sortType instead of order
+      }],
       filters: [],
-      search: {}
+      // Create a properly formatted search object
+      search: Object.values(ObjectType).reduce((acc, type) => {
+        acc[type] = {
+          objectType: type,
+          key: { keys: [] },
+          fieldNameMap: {},
+          description: '',
+          data: { data: {} },
+          order: 0
+        };
+        return acc;
+      }, {} as Record<ObjectType, DataObject>),
+      objectType: ObjectType[relatedTableName.toUpperCase() as keyof typeof ObjectType] || ObjectType.Event
     },
-    statistics: {}
+    statistics: {
+      charts: {}  // Proper structure for statistics
+    },
+    // Additional optional properties for TableFetchResponse
+    first: true,
+    last: true,
+    empty: true,
+    numberOfElements: 0
   };
 
   // Function to fetch data with filtering, pagination, etc.

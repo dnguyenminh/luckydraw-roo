@@ -1,12 +1,13 @@
 'use client';
 
 import EntityListPage from '@/app/components/common/EntityListPage';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function RewardsPage() {
   return (
     <EntityListPage
       title="Rewards"
-      entityType="REWARD" // Use correct ObjectType key
+      entityType={ObjectType.Reward} // Use correct ObjectType key
       breadcrumbPath="rewards"
       description="Overview of rewards distribution and claims"
       statsCards={[

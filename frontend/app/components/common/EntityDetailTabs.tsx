@@ -8,7 +8,9 @@ import {
   TabTableRow,
   TableRow,
   DataObjectKeyValues,
-  DataObjectKey
+  DataObjectKey,
+  DataObject,
+  FetchStatus
 } from '@/app/lib/api/interfaces';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import DataTable from './DataTable';
@@ -45,7 +47,7 @@ export default function EntityDetailTabs({
   useEffect(() => {
     // Skip if active tab is "details" or if there are no related tables
     if (activeTab === 'details' || relatedTables.length === 0) return;
-    
+
     // Otherwise load data for the active tab
     // Convert tab name to ObjectType
     const relatedObjectType = activeTab.toUpperCase() as keyof typeof ObjectType;
@@ -60,20 +62,50 @@ export default function EntityDetailTabs({
 
     try {
       // Get the parent entity's object type
-      const parentObjectType = (entityType.toUpperCase() as keyof typeof ObjectType) in ObjectType 
-        ? ObjectType[entityType.toUpperCase() as keyof typeof ObjectType] 
-        : ObjectType.EVENT;
+      const parentObjectType = (entityType.toUpperCase() as keyof typeof ObjectType) in ObjectType
+        ? ObjectType[entityType.toUpperCase() as keyof typeof ObjectType]
+        : ObjectType.Event;
 
-      // Initialize search criteria with the correct type
-      const searchCriteria: Record<ObjectType, DataObjectKeyValues> = Object.values(ObjectType).reduce((acc, type) => {
-        acc[type] = { searchCriteria: {} };
+      // Initialize search criteria with correctly structured DataObject for each type
+      const searchCriteria: Record<ObjectType, DataObject> = Object.values(ObjectType).reduce((acc, type) => {
+        // Create a properly structured DataObject with all required properties
+        acc[type] = {
+          objectType: type,
+          key: {
+            keys: [] // Required 'keys' array property
+          },
+          fieldNameMap: {},
+          description: '',
+          data: {
+            data: {}, // This matches TableRow's data property structure
+            tableInfo: {  // Add the tableInfo property that TableRow expects
+              status: 'SUCCESS' as FetchStatus, // Need to specify status
+              message: '',
+              totalPage: 0,
+              currentPage: 0,
+              pageSize: 0,
+              totalElements: 0,
+              tableName: '',
+              fieldNameMap: {},
+              rows: [],
+              relatedLinkedObjects: {}
+            }
+          },
+          order: 0
+        };
         return acc;
-      }, {} as Record<ObjectType, DataObjectKeyValues>);
-      
-      // Add search criteria for the parent entity
-      if (tableRow?.data?.id) {
-        searchCriteria[parentObjectType].searchCriteria = { id: tableRow.data.id };
-      }
+      }, {} as Record<ObjectType, DataObject>);
+
+      // // Add search criteria for the parent entity
+      // if (tableRow?.data?.id) {
+      //   // Update only the key property with the ID while preserving other required properties
+      //   searchCriteria[parentObjectType] = {
+      //     ...searchCriteria[parentObjectType],
+      //     key: {
+      //       keys: [{ id: tableRow.data.id }] // Include ID in the keys array
+      //     }
+      //   };
+      // }
 
       // Create the request with search criteria
       const request: TableFetchRequest = {

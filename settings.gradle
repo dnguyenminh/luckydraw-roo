@@ -18,9 +18,3 @@ include 'controller'
 include 'security'
 
 enableFeaturePreview('TYPESAFE_PROJECT_ACCESSORS')
-
-// Configure project structure
-project(':entity').projectDir = file('entity')
-project(':repository').projectDir = file('repository')
-project(':service').projectDir = file('service')
-project(':controller').projectDir = file('controller')

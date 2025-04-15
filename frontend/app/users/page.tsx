@@ -1,12 +1,13 @@
 'use client';
 
 import EntityListPage from '@/app/components/common/EntityListPage';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function UsersPage() {
   return (
     <EntityListPage
       title="Users"
-      entityType="USER" // Use correct ObjectType key
+      entityType={ObjectType.User} // Use correct ObjectType key
       breadcrumbPath="users"
       description="Manage system users and access control"
       statsCards={[

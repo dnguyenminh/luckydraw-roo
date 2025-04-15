@@ -35,7 +35,7 @@ const spinHistoryRows: TableRow[] = Array(50).fill(null).map((_, index) => {
 
 // Create table response
 const mockSpinHistoryTable: TableFetchResponse = createMockTableData(
-  ObjectType.SPIN_HISTORY,
+  ObjectType.SpinHistory,
   'spin_history',
   spinHistoryRows,
   100 // Total records
@@ -56,7 +56,7 @@ mockSpinHistoryTable.rows.forEach(row => {
     mockSpinHistoryTable.relatedLinkedObjects[`event_${eventId}`] = {
       id: eventId,
       name: `Event ${eventId}`,
-      objectType: ObjectType.EVENT,
+      objectType: ObjectType.Event,
       description: "Parent event",
       key: { keys: ['id'] }
     } as unknown as DataObject;
@@ -68,7 +68,7 @@ mockSpinHistoryTable.rows.forEach(row => {
     mockSpinHistoryTable.relatedLinkedObjects[`participant_${participantId}`] = {
       id: participantId,
       name: `Participant ${participantId}`,
-      objectType: ObjectType.PARTICIPANT,
+      objectType: ObjectType.Participant,
       description: "Participant who spun",
       key: { keys: ['id'] }
     } as unknown as DataObject;
@@ -80,7 +80,7 @@ mockSpinHistoryTable.rows.forEach(row => {
     mockSpinHistoryTable.relatedLinkedObjects[`reward_${rewardId}`] = {
       id: rewardId,
       name: `Reward ${rewardId}`,
-      objectType: ObjectType.REWARD,
+      objectType: ObjectType.Reward,
       description: "Won reward",
       key: { keys: ['id'] }
     } as unknown as DataObject;
@@ -92,7 +92,7 @@ mockSpinHistoryTable.rows.forEach(row => {
     mockSpinHistoryTable.relatedLinkedObjects[`goldenHour_${goldenHourId}`] = {
       id: goldenHourId,
       name: `Golden Hour ${goldenHourId}`,
-      objectType: ObjectType.GOLDEN_HOUR,
+      objectType: ObjectType.GoldenHour,
       description: "Golden hour when spin occurred",
       key: { keys: ['id'] }
     } as unknown as DataObject;

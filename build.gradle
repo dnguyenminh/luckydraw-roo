@@ -53,7 +53,7 @@ subprojects {
         // Add these dependency alignments to all subprojects
         implementation 'org.hibernate.orm:hibernate-core:6.2.7.Final'
         implementation 'jakarta.persistence:jakarta.persistence-api:3.1.0'
-        
+
         // Add Lombok to all subprojects
         compileOnly 'org.projectlombok:lombok'
         annotationProcessor 'org.projectlombok:lombok'
@@ -81,14 +81,14 @@ subprojects {
 if (project.findProject(':webapp') != null) {
     project(':webapp') {
         apply plugin: 'com.github.node-gradle.node'
-        
+
         node {
             version = '16.13.1'
             download = true
             workDir = file("${project.buildDir}/nodejs")
             npmWorkDir = file("${project.buildDir}/npm")
         }
-        
+
         tasks.register('npmBuild', Exec) {
             description = 'Run npm build'
             workingDir = projectDir
@@ -108,6 +108,7 @@ dependencies {
     implementation project(':repository')
     implementation project(':service')
     implementation project(':controller')
+    implementation project(':security')
 
     // Database
     runtimeOnly 'com.h2database:h2'
@@ -151,12 +152,12 @@ if (frontendDir.exists()) {
     bootRun {
         dependsOn copyFrontendBuild
     }
-    
+
     // Fix for the task dependency issue - add explicit dependency on copyFrontendBuild
     tasks.named('resolveMainClassName') {
         dependsOn copyFrontendBuild
     }
-    
+
     // Add explicit dependency from jar task to copyFrontendBuild with proper input/output declaration
     tasks.named('jar') {
         dependsOn copyFrontendBuild
@@ -170,20 +171,20 @@ if (frontendDir.exists()) {
     tasks.register('installFrontend') {
         description = 'Dummy task for projects without frontend'
     }
-    
+
     tasks.register('buildFrontend') {
         description = 'Dummy task for projects without frontend'
     }
-    
+
     tasks.register('copyFrontendBuild') {
         description = 'Dummy task for projects without frontend'
     }
-    
+
     // Fix for the task dependency issue - make sure resolveMainClassName depends on the dummy task too
     tasks.named('resolveMainClassName') {
         dependsOn tasks.named('copyFrontendBuild')
     }
-    
+
     // Add dependency for jar task on the dummy copyFrontendBuild task
     tasks.named('jar') {
         dependsOn tasks.named('copyFrontendBuild')

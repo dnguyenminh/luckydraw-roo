@@ -34,7 +34,7 @@ const participantRows: TableRow[] = Array(50).fill(null).map((_, index) => {
 
 // Create table response
 const mockParticipantTable: TableFetchResponse = createMockTableData(
-  ObjectType.PARTICIPANT,
+  ObjectType.Participant,
   'participants',
   participantRows,
   100 // Total of 100 participants, but we only show 50 per page
@@ -44,13 +44,13 @@ const mockParticipantTable: TableFetchResponse = createMockTableData(
 mockParticipantTable.relatedLinkedObjects = {
   'participantEvents': {
     id: 1,
-    objectType: ObjectType.PARTICIPANT_EVENT,
+    objectType: ObjectType.ParticipantEvent,
     description: "Events this participant joined",
     key: { keys: ['id'] }
   } as unknown as DataObject,
   'spinHistory': {
     id: 2,
-    objectType: ObjectType.SPIN_HISTORY,
+    objectType: ObjectType.SpinHistory,
     description: "Spin history for this participant",
     key: { keys: ['id'] }
   } as unknown as DataObject
@@ -64,7 +64,7 @@ mockParticipantTable.rows.forEach(row => {
   mockParticipantTable.relatedLinkedObjects[`province_${provinceId}`] = {
     id: provinceId,
     name: `Province ${provinceId}`,
-    objectType: ObjectType.PROVINCE,
+    objectType: ObjectType.Province,
     description: "Participant's province",
     key: { keys: ['id'] }
   } as unknown as DataObject;

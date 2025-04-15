@@ -40,7 +40,7 @@ const permissionRows: TableRow[] = permissionDefinitions.map((permission, index)
 
 // Create table response
 const mockPermissionTable: TableFetchResponse = createMockTableData(
-  ObjectType.PERMISSION,
+  ObjectType.Permission,
   'permissions',
   permissionRows,
   permissionRows.length
@@ -50,7 +50,7 @@ const mockPermissionTable: TableFetchResponse = createMockTableData(
 mockPermissionTable.relatedLinkedObjects = {
   'roles': {
     id: 1,
-    objectType: ObjectType.ROLE,
+    objectType: ObjectType.Role,
     description: "Roles with this permission",
     key: { keys: ['id'] }
   } as unknown as DataObject

@@ -36,7 +36,7 @@ const rewardRows: TableRow[] = Array(25).fill(null).map((_, index) => {
 
 // Create table response
 const mockRewardTable: TableFetchResponse = createMockTableData(
-    ObjectType.REWARD,
+    ObjectType.Reward,
     'rewards',
     rewardRows,
     rewardRows.length
@@ -46,7 +46,7 @@ const mockRewardTable: TableFetchResponse = createMockTableData(
 mockRewardTable.relatedLinkedObjects = {
     'spinHistory': {
         id: 1,
-        objectType: ObjectType.SPIN_HISTORY,
+        objectType: ObjectType.SpinHistory,
         description: "Spin history for this reward",
         key: { keys: ['id'] }
     } as unknown as DataObject
@@ -58,7 +58,7 @@ mockRewardTable.rows.forEach(row => {
     mockRewardTable.relatedLinkedObjects[`event_${eventId}`] = {
         id: eventId,
         name: `Event ${eventId}`,
-        objectType: ObjectType.EVENT,
+        objectType: ObjectType.Event,
         description: "Parent event",
         key: { keys: ['id'] }
     } as unknown as DataObject;

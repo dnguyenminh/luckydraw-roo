@@ -39,7 +39,7 @@ const eventRows: TableRow[] = Array(15).fill(null).map((_, index) => {
 
 // Create table response
 const mockEventTable: TableFetchResponse = createMockTableData(
-  ObjectType.EVENT,
+  ObjectType.Event,
   'events',
   eventRows,
   eventRows.length
@@ -49,19 +49,19 @@ const mockEventTable: TableFetchResponse = createMockTableData(
 mockEventTable.relatedLinkedObjects = {
   'rewards': {
     id: 1,
-    objectType: ObjectType.REWARD,
+    objectType: ObjectType.Reward,
     description: "Rewards for this event",
     key: { keys: ['id'] }
   } as unknown as DataObject,
   'participants': {
     id: 2,
-    objectType: ObjectType.PARTICIPANT,
+    objectType: ObjectType.Participant,
     description: "Participants in this event",
     key: { keys: ['id'] }
   } as unknown as DataObject,
   'eventLocations': {
     id: 3,
-    objectType: ObjectType.EVENT_LOCATION,
+    objectType: ObjectType.EventLocation,
     description: "Locations for this event",
     key: { keys: ['id'] }
   } as unknown as DataObject

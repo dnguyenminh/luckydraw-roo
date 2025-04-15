@@ -36,7 +36,7 @@ const auditLogRows: TableRow[] = Array(100).fill(null).map((_, index) => {
 
 // Create table response
 const mockAuditLogTable: TableFetchResponse = createMockTableData(
-  ObjectType.AUDIT_LOG,
+  ObjectType.AuditLog,
   'audit_log',
   auditLogRows,
   200 // Total records

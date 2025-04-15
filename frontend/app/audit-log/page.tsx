@@ -2,12 +2,13 @@
 
 import EntityListPage from '@/app/components/common/EntityListPage';
 import { Download } from 'lucide-react';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function AuditLogPage() {
   return (
     <EntityListPage
       title="Audit Log"
-      entityType="AUDIT_LOG" // Use correct ObjectType key
+      entityType={ObjectType.AuditLog} // Use correct ObjectType key
       breadcrumbPath="audit-log"
       description="System activity tracking and audit trail"
       statsCards={[
@@ -22,12 +23,6 @@ export default function AuditLogPage() {
         { id: 'add', label: 'Additions' },
         { id: 'delete', label: 'Deletions' }
       ]}
-      additionalActions={
-        <button className="bg-[#007acc] text-white px-3 py-2 rounded hover:bg-[#0069ac] flex items-center">
-          <Download className="h-4 w-4 mr-2" />
-          Export Log
-        </button>
-      }
     />
   );
 }

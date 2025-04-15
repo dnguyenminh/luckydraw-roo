@@ -29,12 +29,14 @@ export default function URLStateManager({
     const state: URLState = {};
     
     // Look for all URL params with the prefix
-    searchParams.forEach((value, key) => {
-      if (key.startsWith(`${statePrefix}_`)) {
-        const stateKey = key.replace(`${statePrefix}_`, '');
-        state[stateKey] = value;
-      }
-    });
+    if (searchParams) {
+      searchParams.forEach((value, key) => {
+        if (key.startsWith(`${statePrefix}_`)) {
+          const stateKey = key.replace(`${statePrefix}_`, '');
+          state[stateKey] = value;
+        }
+      });
+    }
     
     return state;
   };
@@ -63,11 +65,13 @@ export default function URLStateManager({
       const params = new URLSearchParams();
       
       // Keep existing params that don't start with our prefix
-      searchParams.forEach((value, key) => {
-        if (!key.startsWith(`${statePrefix}_`)) {
-          params.set(key, value);
-        }
-      });
+      if (searchParams) {
+        searchParams.forEach((value, key) => {
+          if (!key.startsWith(`${statePrefix}_`)) {
+            params.set(key, value);
+          }
+        });
+      }
       
       // Add our state to params
       Object.entries(state).forEach(([key, value]) => {
@@ -84,7 +88,7 @@ export default function URLStateManager({
         onStateChange(state);
       }
     }
-  }, [state, pathname, router, onStateChange, statePrefix]);
+  }, [state, pathname, router, onStateChange, statePrefix, searchParams]);
   
   // Function to update a single state key
   const updateState = (key: string, value: string) => {

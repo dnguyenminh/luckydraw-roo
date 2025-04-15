@@ -24,7 +24,7 @@ const blacklistedTokenRows: TableRow[] = Array(20).fill(null).map((_, index) => 
 
 // Create table response
 const mockBlacklistedTokenTable: TableFetchResponse = createMockTableData(
-  ObjectType.BLACKLISTED_TOKEN,
+  ObjectType.BlacklistedToken,
   'blacklisted_tokens',
   blacklistedTokenRows,
   blacklistedTokenRows.length

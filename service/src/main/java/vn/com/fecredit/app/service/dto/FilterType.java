@@ -48,5 +48,10 @@ public enum FilterType {
     /**
      * Filter for values not present in a specified list
      */
-    NOT_IN
+    NOT_IN,
+    
+    /**
+     * Filter for values present in a specified string
+     */
+    CONTAINS
 }

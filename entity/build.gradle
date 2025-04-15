@@ -12,7 +12,6 @@ dependencies {
     implementation 'org.postgresql:postgresql'
     implementation 'org.hibernate.orm:hibernate-core'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'

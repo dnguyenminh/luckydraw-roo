@@ -114,28 +114,28 @@ FROM generate_series(1, 100) AS t(id)
 WHERE t.id % 3 = 0;  -- Every third user gets a second role
 
 -- Insert Permissions (20 permissions)
-INSERT INTO permissions (id, name, code, status, created_by, created_at)
+INSERT INTO permissions (id, name, description, status, created_by, created_at)
 VALUES 
-(1, 'Manage Users', 'MANAGE_USERS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(2, 'View Reports', 'VIEW_REPORTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(3, 'Manage Events', 'MANAGE_EVENTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(4, 'Operate Events', 'OPERATE_EVENTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(5, 'Edit Profile', 'EDIT_PROFILE', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(6, 'View Dashboard', 'VIEW_DASHBOARD', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(7, 'Manage Participants', 'MANAGE_PARTICIPANTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(8, 'Manage Rewards', 'MANAGE_REWARDS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(9, 'Manage Locations', 'MANAGE_LOCATIONS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(10, 'Export Data', 'EXPORT_DATA', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(11, 'Import Data', 'IMPORT_DATA', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(12, 'Create Events', 'CREATE_EVENTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(13, 'Delete Events', 'DELETE_EVENTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(14, 'View Audit Logs', 'VIEW_AUDIT_LOGS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(15, 'Manage System', 'MANAGE_SYSTEM', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(16, 'Configure Settings', 'CONFIGURE_SETTINGS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(17, 'Run Reports', 'RUN_REPORTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(18, 'Schedule Events', 'SCHEDULE_EVENTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(19, 'Register Participants', 'REGISTER_PARTICIPANTS', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
-(20, 'Process Rewards', 'PROCESS_REWARDS', 'ACTIVE', 'system', CURRENT_TIMESTAMP);
+(1, 'MANAGE_USERS', 'Manage user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(2, 'VIEW_REPORTS', 'View system reports', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(3, 'MANAGE_EVENTS', 'Manage events', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(4, 'OPERATE_EVENTS', 'Operate events', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(5, 'EDIT_PROFILE', 'Edit user profile', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(6, 'VIEW_DASHBOARD', 'View dashboard', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(7, 'MANAGE_PARTICIPANTS', 'Manage participants', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(8, 'MANAGE_REWARDS', 'Manage rewards', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(9, 'MANAGE_LOCATIONS', 'Manage locations', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(10, 'EXPORT_DATA', 'Export data', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(11, 'IMPORT_DATA', 'Import data', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(12, 'CREATE_EVENTS', 'Create events', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(13, 'DELETE_EVENTS', 'Delete events', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(14, 'VIEW_AUDIT_LOGS', 'View audit logs', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(15, 'MANAGE_SYSTEM', 'Manage system settings', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(16, 'CONFIGURE_SETTINGS', 'Configure application settings', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(17, 'RUN_REPORTS', 'Run system reports', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(18, 'SCHEDULE_EVENTS', 'Schedule events', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(19, 'REGISTER_PARTICIPANTS', 'Register participants', 'ACTIVE', 'system', CURRENT_TIMESTAMP),
+(20, 'PROCESS_REWARDS', 'Process rewards', 'ACTIVE', 'system', CURRENT_TIMESTAMP);
 
 -- Generate Permission-Role associations
 -- FIXED: Changed from permission_role to role_permissions
@@ -196,8 +196,7 @@ SELECT
 FROM generate_series(1, 100) AS t(id);
 
 -- Generate 150 event locations across provinces and events
--- FIXED: Changed from event_location to event_locations
-INSERT INTO event_locations (id, name, address, province_id, event_id, status, created_by, created_at)
+INSERT INTO event_locations (id, name, code, description, event_id, region_id, address, status, created_by, created_at)
 SELECT 
     t.id,
     CASE
@@ -210,11 +209,13 @@ SELECT
             (t.id / 8) + 1
         )
     END,
+    CONCAT('LOC-', LPAD(CAST(t.id AS VARCHAR), 3, '0')),
+    CONCAT('Description for location ', t.id),
+    1 + (t.id % 100), -- Event ID (1-100) - many locations can point to the same event
+    1 + (t.id % 10),  -- Region ID (1-10)
     CONCAT(t.id * 100, ' ', 
         (ARRAY['Main St', 'Broadway', 'Park Ave', 'Beach Rd', 'Highland Dr', 'Center Blvd', 'River Way', 'Mountain Rd', 'Lake Dr', 'Forest Ave'])[1 + (t.id % 10)]
     ),
-    1 + (t.id % 100), -- Province ID (1-100)
-    1 + (t.id % 100), -- Event ID (1-100) - many locations can point to the same event
     CASE 
         WHEN t.id % 10 = 0 THEN 'INACTIVE'
         WHEN t.id % 20 = 0 THEN 'PENDING'
@@ -225,11 +226,10 @@ SELECT
 FROM generate_series(1, 150) AS t(id);
 
 -- Generate 100 golden hours tied to events
--- FIXED: Changed from golden_hour to golden_hours
-INSERT INTO golden_hours (id, event_id, start_time, end_time, multiplier, status, created_by, created_at)
+INSERT INTO golden_hours (id, event_location_id, start_time, end_time, multiplier, status, created_by, created_at)
 SELECT 
     t.id,
-    ((t.id - 1) % 100) + 1, -- Event ID (1-100)
+    ((t.id - 1) % 150) + 1, -- Event Location ID (1-150)
     DATEADD('DAY', (t.id - 50), CURRENT_TIMESTAMP), -- Same pattern as events
     DATEADD('HOUR', 2, DATEADD('DAY', (t.id - 50), CURRENT_TIMESTAMP)),
     (t.id % 5) + 1.0, -- Multiplier between 1 and 5
@@ -243,11 +243,10 @@ SELECT
 FROM generate_series(1, 100) AS t(id);
 
 -- Generate 200 rewards across events
--- FIXED: Changed from reward to rewards
-INSERT INTO rewards (id, event_id, name, description, quantity, remaining, probability, status, created_by, created_at)
+INSERT INTO rewards (id, event_location_id, name, code, description, quantity, reward_value, win_probability, status, created_by, created_at)
 SELECT 
     t.id,
-    ((t.id - 1) % 100) + 1, -- Event ID (1-100)
+    ((t.id - 1) % 150) + 1, -- Event Location ID (1-150)
     CASE
         WHEN t.id <= 6 THEN (ARRAY['First Prize', 'Second Prize', 'Third Prize', 'Main Prize', 'Lucky Draw', 'Grand Prize'])[t.id]
         ELSE CONCAT(
@@ -256,9 +255,10 @@ SELECT
             (ARRAY['Prize', 'Award', 'Gift', 'Reward', 'Package'])[1 + ((t.id * 3) % 5)]
         )
     END,
+    CONCAT('REW-', LPAD(CAST(t.id AS VARCHAR), 3, '0')), -- Added code column with unique values
     CONCAT('Description for reward ', t.id),
     10 * (t.id % 10) + 1, -- Quantity between 1 and 91
-    (10 * (t.id % 10) + 1) - (t.id % 5), -- Remaining (some have been claimed)
+    (t.id % 1000) * 1.0, -- Value between 0 and 999.0
     (t.id % 100) / 100.0, -- Probability between 0.01 and 0.99
     CASE 
         WHEN t.id % 10 = 0 THEN 'INACTIVE'
@@ -270,8 +270,7 @@ SELECT
 FROM generate_series(1, 200) AS t(id);
 
 -- Generate 100 participants
--- FIXED: Changed from participant to participants
-INSERT INTO participants (id, name, phone, email, status, created_by, created_at)
+INSERT INTO participants (id, name, code, phone, address, province_id, status, created_by, created_at)
 SELECT 
     t.id,
     CONCAT(
@@ -281,8 +280,15 @@ SELECT
         (ARRAY['Smith', 'Johnson', 'Williams', 'Jones', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor',
                'Anderson', 'Thomas', 'Jackson', 'White', 'Harris', 'Martin', 'Thompson', 'Garcia', 'Martinez', 'Robinson'])[1 + ((t.id * 7) % 20)]
     ),
+    CONCAT('PART-', LPAD(CAST(t.id AS VARCHAR), 3, '0')),
     CONCAT('090', LPAD(CAST(t.id AS VARCHAR), 7, '0')),
-    CONCAT('participant', t.id, '@example.com'),
+    CASE 
+        WHEN t.id % 3 = 0 THEN CONCAT(t.id * 100, ' ', 
+            (ARRAY['Main St', 'Broadway', 'Park Ave', 'Beach Rd', 'Highland Dr', 'Center Blvd', 'River Way', 'Mountain Rd', 'Lake Dr', 'Forest Ave'])[1 + (t.id % 10)]
+        )
+        ELSE NULL -- Only every third participant gets an address
+    END,
+    1 + (t.id % 100), -- Province ID (1-100)
     CASE 
         WHEN t.id % 10 = 0 THEN 'INACTIVE'
         WHEN t.id % 20 = 0 THEN 'PENDING'
@@ -293,21 +299,17 @@ SELECT
 FROM generate_series(1, 100) AS t(id);
 
 -- Generate 200 participant events
--- FIXED: Changed from participant_event to participant_events
-INSERT INTO participant_events (id, participant_id, event_id, registration_date, attendance_date, status, created_by, created_at)
+INSERT INTO participant_events (id, participant_id, event_id, event_location_id, spins_remaining, status, created_by, created_at)
 SELECT 
     t.id,
     ((t.id - 1) % 100) + 1, -- Participant ID (1-100)
     ((t.id - 1) % 100) + 1, -- Event ID (1-100)
-    DATEADD('DAY', -(200 - t.id), CURRENT_TIMESTAMP), -- Registration date
+    ((t.id - 1) % 150) + 1, -- Event Location ID (1-150)
+    10, -- Default spins_remaining - matches the value in ParticipantEvent#joinEvent method
     CASE 
-        WHEN t.id % 3 = 0 THEN DATEADD('DAY', -(200 - t.id - 5), CURRENT_TIMESTAMP) -- Some have attended
-        ELSE NULL -- Others haven't attended yet
-    END,
-    CASE 
-        WHEN t.id % 3 = 0 THEN 'ATTENDED'
-        WHEN t.id % 5 = 0 THEN 'CANCELED'
-        ELSE 'REGISTERED'
+        WHEN t.id % 3 = 0 THEN 'ACTIVE' -- Was 'ATTENDED' which is not valid for CommonStatus
+        WHEN t.id % 5 = 0 THEN 'INACTIVE' -- Was 'CANCELED'
+        ELSE 'ACTIVE' -- Was 'REGISTERED'
     END,
     CONCAT('user', 1 + (t.id % 4)),
     DATEADD('DAY', -(200 - t.id), CURRENT_TIMESTAMP)

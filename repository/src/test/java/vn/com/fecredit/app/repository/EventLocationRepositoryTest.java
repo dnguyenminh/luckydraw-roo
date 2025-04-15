@@ -275,8 +275,8 @@ public class EventLocationRepositoryTest extends AbstractRepositoryTest {
 
         @Test
         public void findByEventId_ShouldReturnAllLocations() {
-                // This test retrieves all event locations for event ID 1
-                var eventLocations = eventLocationRepository.findByEventId(1L);
+                // This test retrieves all event locations for the event ID we created in setUp
+                var eventLocations = eventLocationRepository.findByEventId(eventId);
 
                 log.info("Repository method returned {} locations", eventLocations.size());
                 eventLocations.forEach(

@@ -11,10 +11,15 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-@Configuration
+import java.util.Arrays;
+
+@Configuration(value = "securityModuleConfig")
 @EnableWebSecurity
-@Order(1)
+@Order(1) // Higher priority than the default config
 public class SecurityConfig {
 
     @Bean
@@ -27,44 +32,31 @@ public class SecurityConfig {
         return authConfig.getAuthenticationManager();
     }
 
-    @Bean
+    @Bean(name = "securityModuleFilterChain")
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+            .securityMatcher("/api/**") // Only match API paths
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
-            .cors(cors -> cors.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                // API endpoints that don't require auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
-                
-                // H2 console access
-                .requestMatchers("/h2-console/**").permitAll()
-                
-                // Static resources
-                .requestMatchers("/", "/index.html", "/*.js", "/*.css", "/*.ico", "/assets/**").permitAll()
-                
-                // Frontend routes - add specific routes
-                .requestMatchers("/rewards", "/rewards/**").permitAll()
-                .requestMatchers("/dashboard", "/profile", "/settings", "/login", "/register").permitAll()
-                .requestMatchers("/about", "/help", "/events", "/participants", "/admin").permitAll()
-                
-                // Frontend sub-pages
-                .requestMatchers("/pages/**", "/views/**").permitAll()
-                
-                // Any path that doesn't end with a file extension is likely a frontend route
-                .requestMatchers("/**").permitAll()
-                
-                // Protected API endpoints require authentication (uncomment when auth is fully set up)
-                // .requestMatchers("/api/**").authenticated()
-                
-                // During development, allow all requests for easier debugging
-                .anyRequest().permitAll()
+                // Allow all API endpoints during development
+                .requestMatchers("/api/**").permitAll()
             );
-            
-        // Allow frames for H2 console
-        http.headers(headers -> headers.frameOptions(frameOptions -> frameOptions.disable()));
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://127.0.0.1:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
     }
 }

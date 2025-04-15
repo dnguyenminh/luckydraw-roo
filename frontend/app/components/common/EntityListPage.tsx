@@ -6,7 +6,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/brea
 import ShellLayout from '../VSCodeLayout/ShellLayout';
 import DataTable from './DataTable';
 import { fetchTableData } from '@/app/lib/api/tableService';
-import { ObjectType, TableFetchRequest, TableFetchResponse } from '@/app/lib/api/interfaces';
+import { ObjectType, TableFetchRequest, TableFetchResponse, SortType, DataObject } from '@/app/lib/api/interfaces';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown, Filter, Plus, BarChart2, Users, Gift, Clock, Award } from 'lucide-react';
 
@@ -41,7 +41,7 @@ export default function EntityListPage({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const [activeTab, setActiveTab] = useState<string>(tabs.length > 0 ? tabs[0].id : 'all');
   const [tableData, setTableData] = useState<TableFetchResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -56,20 +56,22 @@ export default function EntityListPage({
   const loadData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // Create a filter based on the active tab if needed
       const filters = [];
       if (activeTab !== 'all' && activeTab !== 'details') {
         // Example of how you might filter based on tabs
-        // This will depend on your API's filtering capabilities
         filters.push({
-          field: 'status', // Assuming 'status' is a filterable field
+          field: 'status',
           operator: 'eq',
           value: activeTab,
+          filterType: 'STRING', // Add the required filterType property
+          minValue: null,       // Add required minValue property (null for non-range filters)
+          maxValue: null        // Add required maxValue property (null for non-range filters)
         });
       }
-      
+
       // Create the request object
       const request: TableFetchRequest = {
         page: 0,
@@ -77,14 +79,16 @@ export default function EntityListPage({
         sorts: [
           {
             field: 'id',
-            sortType: 'DESCENDING',
+            sortType: SortType.DESCENDING,
           },
         ],
-        filters,
-        search: {},
-        objectType: ObjectType[entityType] // Use the correct ObjectType reference
+        filters: [],
+        search: {
+
+        } as Record<ObjectType, DataObject>,
+        objectType: ObjectType[entityType]
       };
-      
+
       const response = await fetchTableData(request);
       setTableData(response);
     } catch (err) {
@@ -98,7 +102,7 @@ export default function EntityListPage({
   // Get icon based on color
   const getCardIcon = (color?: string, defaultIcon?: React.ReactNode) => {
     if (defaultIcon) return defaultIcon;
-    
+
     switch (color) {
       case 'blue':
         return <Users className="h-5 w-5" />;
@@ -139,14 +143,14 @@ export default function EntityListPage({
             <BreadcrumbLink>{title}</BreadcrumbLink>
           </BreadcrumbItem>
         </Breadcrumb>
-        
+
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold">{title}</h1>
             {description && <p className="text-gray-400 mt-1">{description}</p>}
           </div>
-          
+
           {addButtonLabel && (
             <button
               onClick={onAddButtonClick}
@@ -157,7 +161,7 @@ export default function EntityListPage({
             </button>
           )}
         </div>
-        
+
         {/* Stats Cards */}
         {statsCards.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -178,7 +182,7 @@ export default function EntityListPage({
             ))}
           </div>
         )}
-        
+
         {/* Tabs */}
         {tabs.length > 0 && (
           <div className="mb-6">
@@ -187,11 +191,10 @@ export default function EntityListPage({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-md ${
-                    activeTab === tab.id
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-md ${activeTab === tab.id
                       ? 'bg-[#37373d] text-white shadow-sm'
                       : 'text-gray-400 hover:text-white'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -199,7 +202,7 @@ export default function EntityListPage({
             </div>
           </div>
         )}
-        
+
         {/* Data Table */}
         <div className="bg-[#252526] rounded-lg shadow p-4">
           <div className="mb-4">
@@ -214,7 +217,7 @@ export default function EntityListPage({
               </button>
             </div>
           </div>
-          
+
           {/* Data Table Component */}
           {loading ? (
             <div className="flex justify-center items-center py-16">
@@ -230,10 +233,10 @@ export default function EntityListPage({
               data={tableData}
               entityType={entityType}
               showDetailView={true}
-              addItemButton={addButtonLabel ? {
-                label: addButtonLabel,
-                onClick: onAddButtonClick || (() => {}),
-              } : false}
+              // addItemButton={addButtonLabel ? {
+              //   label: addButtonLabel,
+              //   onClick: onAddButtonClick || (() => { }),
+              // } : false}
             />
           )}
         </div>

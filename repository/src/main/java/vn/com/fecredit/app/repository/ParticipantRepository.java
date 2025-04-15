@@ -28,13 +28,4 @@ public interface ParticipantRepository extends SimpleObjectRepository<Participan
     List<Participant> findActiveParticipantsInEvent(@Param("eventId") Long eventId);
 
     List<Participant> findByStatus(CommonStatus status);
-
-    /**
-     * Find participants by event ID who have checked in
-     * 
-     * @param eventId the event ID
-     * @return list of participants
-     */
-    @Query("SELECT p FROM Participant p JOIN p.participantEvents pe WHERE pe.event.id = :eventId AND p.checkedIn = true")
-    List<Participant> findByEventIdAndCheckedInTrue(@Param("eventId") Long eventId);
 }

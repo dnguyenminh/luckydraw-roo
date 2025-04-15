@@ -37,7 +37,7 @@ const configRows: TableRow[] = configDefinitions.map((config, index) => {
 
 // Create table response
 const mockConfigurationTable: TableFetchResponse = createMockTableData(
-  ObjectType.CONFIGURATION,
+  ObjectType.Configuration,
   'configurations',
   configRows,
   configRows.length

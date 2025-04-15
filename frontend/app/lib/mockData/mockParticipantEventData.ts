@@ -26,7 +26,7 @@ const participantEventRows: TableRow[] = Array(100).fill(null).map((_, index) =>
 
 // Create table response
 const mockParticipantEventTable: TableFetchResponse = createMockTableData(
-  ObjectType.PARTICIPANT_EVENT,
+  ObjectType.ParticipantEvent,
   'participant_events',
   participantEventRows,
   200 // Total records
@@ -44,7 +44,7 @@ mockParticipantEventTable.rows.forEach(row => {
     mockParticipantEventTable.relatedLinkedObjects[`participant_${participantId}`] = {
       id: participantId,
       name: `Participant ${participantId}`,
-      objectType: ObjectType.PARTICIPANT,
+      objectType: ObjectType.Participant,
       description: "Participant",
       key: { keys: ['id'] }
     } as unknown as DataObject;
@@ -56,7 +56,7 @@ mockParticipantEventTable.rows.forEach(row => {
     mockParticipantEventTable.relatedLinkedObjects[`event_${eventId}`] = {
       id: eventId,
       name: `Event ${eventId}`,
-      objectType: ObjectType.EVENT,
+      objectType: ObjectType.Event,
       description: "Event",
       key: { keys: ['id'] }
     } as unknown as DataObject;
@@ -68,7 +68,7 @@ mockParticipantEventTable.rows.forEach(row => {
     mockParticipantEventTable.relatedLinkedObjects[`location_${locationId}`] = {
       id: locationId,
       name: `Location ${locationId}`,
-      objectType: ObjectType.EVENT_LOCATION,
+      objectType: ObjectType.EventLocation,
       description: "Event location where participant joined",
       key: { keys: ['id'] }
     } as unknown as DataObject;
@@ -79,7 +79,7 @@ mockParticipantEventTable.rows.forEach(row => {
 // Add related tables info - this is a join table, so it relates to spin history
 mockParticipantEventTable.relatedLinkedObjects['spinHistory'] = {
   id: 1,
-  objectType: ObjectType.SPIN_HISTORY,
+  objectType: ObjectType.SpinHistory,
   description: "Spin history for this participation",
   key: { keys: ['id'] }
 } as unknown as DataObject;

@@ -2,85 +2,86 @@ package vn.com.fecredit.app.repository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
- * Utility class for cleaning up the database during tests.
- * Provides methods to truncate tables and reset sequences.
+ * Utility class to clean database tables between tests
  */
 @Component
+@Slf4j
 public class DatabaseCleanupUtil {
 
-    // Inject EntityManager directly here instead of in TestConfig
     @PersistenceContext
     private EntityManager entityManager;
 
-    private static final List<String> TABLE_NAMES = List.of(
-            "spin_histories",
-            "participant_events",
-            "event_locations",
-            "events",
-            "participants",
-            "provinces",
-            "regions",
-            "rewards",
-            "golden_hours",
-            "blacklisted_tokens",
-            "user_roles",
-            "permissions",
-            "role_permissions",
-            "roles",
-            "users",
-            "audit_logs",
-            "configurations"
-    );
-
     /**
-     * Clean all tables in the test database
+     * Cleans all tables in the database
      */
     @Transactional
     public void cleanAllTables() {
-        entityManager.flush();
-        entityManager.clear();
-        
-        // Disable foreign key checks for cleanup
-        entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY FALSE").executeUpdate();
-        
-        // Truncate each table and reset identity
-        for (String tableName : TABLE_NAMES) {
+        // Set names of all tables to clean in reverse order of dependency
+        // Use quoted identifiers to handle case sensitivity in H2
+        List<String> tableNames = Arrays.asList(
+            "\"spin_histories\"",
+            "\"participant_events\"", 
+            "\"participants\"",
+            "\"event_locations\"",
+            "\"golden_hours\"", 
+            "\"rewards\"",
+            "\"events\"",
+            "\"provinces\"", 
+            "\"regions\"",
+            "\"blacklisted_tokens\"",
+            "\"configurations\"", 
+            "\"audit_logs\"",
+            "\"role_permissions\"", // Use lowercase name with quotes to match actual table name
+            "\"user_roles\"",      
+            "\"permissions\"", 
+            "\"roles\"",
+            "\"users\""
+        );
+
+        // Clean each table using native SQL with quoted table names to preserve case
+        for (String tableName : tableNames) {
             try {
-                entityManager.createNativeQuery("TRUNCATE TABLE " + tableName + " RESTART IDENTITY").executeUpdate();
+                log.info("Cleaning table: {}", tableName);
+                // Using quoted identifiers in the SQL statement
+                entityManager.createNativeQuery("DELETE FROM " + tableName)
+                    .executeUpdate();
+                log.info("Table {} cleaned successfully", tableName);
             } catch (Exception e) {
-                // Table might not exist in current test context, just continue
+                log.warn("Error cleaning table {}: {}", tableName, e.getMessage());
+                // Continue with other tables
             }
         }
         
-        // Re-enable foreign key checks
-        entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate();
+        log.info("All tables cleaned");
     }
     
     /**
-     * Clean specific tables
-     * @param tableNames names of tables to clean
+     * Alternative method to clean specific tables by name with case handling
+     * This can be used when you need to clean only specific tables
+     * 
+     * @param tableNames List of table names to clean
      */
     @Transactional
-    public void cleanTables(String... tableNames) {
-        entityManager.flush();
-        entityManager.clear();
-        
-        entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY FALSE").executeUpdate();
-        
+    public void cleanTables(List<String> tableNames) {
         for (String tableName : tableNames) {
             try {
-                entityManager.createNativeQuery("TRUNCATE TABLE " + tableName + " RESTART IDENTITY").executeUpdate();
+                // Ensure table name is quoted for case sensitivity
+                String quotedName = tableName.startsWith("\"") ? tableName : "\"" + tableName + "\"";
+                log.info("Cleaning table: {}", quotedName);
+                entityManager.createNativeQuery("DELETE FROM " + quotedName)
+                    .executeUpdate();
+                log.info("Table {} cleaned successfully", quotedName);
             } catch (Exception e) {
-                // Table might not exist, just continue
+                log.warn("Error cleaning table {}: {}", tableName, e.getMessage());
             }
         }
-        
-        entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate();
     }
 }

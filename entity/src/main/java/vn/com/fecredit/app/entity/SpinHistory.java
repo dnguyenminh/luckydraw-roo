@@ -72,12 +72,6 @@ public class SpinHistory extends AbstractStatusAwareEntity {
     @Builder.Default
     private boolean win = false; // Change field name to match database column
 
-    /**
-     * Multiplier applied to reward value (e.g., from golden hour)
-     */
-    @Column(name = "multiplier")
-    @Builder.Default
-    private BigDecimal multiplier = BigDecimal.ONE;
 
     /**
      * Temporary unique identifier for new spins that haven't been persisted
@@ -88,7 +82,7 @@ public class SpinHistory extends AbstractStatusAwareEntity {
 
     /**
      * Set whether this spin is a winning spin (builder-style method)
-     * 
+     *
      * @param win true if this spin won a reward
      * @return this spin history for chaining
      */
@@ -99,7 +93,7 @@ public class SpinHistory extends AbstractStatusAwareEntity {
 
     /**
      * Setter that exactly matches the database column name
-     * 
+     *
      * @param win true if this spin won a reward
      */
     public void setWin(boolean win) {
@@ -108,29 +102,11 @@ public class SpinHistory extends AbstractStatusAwareEntity {
 
     /**
      * Standard Java boolean getter - matches JPA conventions
-     * 
+     *
      * @return true if this spin is a win
      */
     public boolean isWin() {
         return this.win;
-    }
-
-    /**
-     * Get the multiplier value considering golden hour
-     * 
-     * @return the effective multiplier
-     */
-    @Transient
-    public BigDecimal getMultiplier() {
-        if (this.multiplier != null && this.multiplier.compareTo(BigDecimal.ZERO) > 0) {
-            return this.multiplier;
-        }
-
-        if (goldenHour != null && goldenHour.getMultiplier() != null) {
-            return goldenHour.getMultiplier();
-        }
-
-        return BigDecimal.ONE;
     }
 
     /**
@@ -191,7 +167,7 @@ public class SpinHistory extends AbstractStatusAwareEntity {
 
     /**
      * Validate spin history state
-     * 
+     *
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {

@@ -33,7 +33,7 @@ const eventLocationRows: TableRow[] = Array(30).fill(null).map((_, index) => {
 
 // Create table response
 const mockEventLocationTable: TableFetchResponse = createMockTableData(
-  ObjectType.EVENT_LOCATION,
+  ObjectType.EventLocation,
   'event_locations',
   eventLocationRows,
   eventLocationRows.length
@@ -43,7 +43,7 @@ const mockEventLocationTable: TableFetchResponse = createMockTableData(
 mockEventLocationTable.relatedLinkedObjects = {
   'participants': {
     id: 1,
-    objectType: ObjectType.PARTICIPANT,
+    objectType: ObjectType.Participant,
     description: "Participants at this location",
     key: { keys: ['id'] }
   } as unknown as DataObject
@@ -58,7 +58,7 @@ mockEventLocationTable.rows.forEach(row => {
   mockEventLocationTable.relatedLinkedObjects[`event_${eventId}`] = {
     id: eventId,
     name: `Event ${eventId}`,
-    objectType: ObjectType.EVENT,
+    objectType: ObjectType.Event,
     description: "Parent event",
     key: { keys: ['id'] }
   } as unknown as DataObject;
@@ -67,7 +67,7 @@ mockEventLocationTable.rows.forEach(row => {
   mockEventLocationTable.relatedLinkedObjects[`province_${provinceId}`] = {
     id: provinceId,
     name: `Province ${provinceId}`,
-    objectType: ObjectType.PROVINCE,
+    objectType: ObjectType.Province,
     description: "Location province",
     key: { keys: ['id'] }
   } as unknown as DataObject;

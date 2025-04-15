@@ -38,7 +38,7 @@ const userRows: TableRow[] = Array(10).fill(null).map((_, index) => {
 
 // Create table response
 const mockUserTable: TableFetchResponse = createMockTableData(
-    ObjectType.USER,
+    ObjectType.User,
     'users',
     userRows,
     userRows.length
@@ -48,13 +48,13 @@ const mockUserTable: TableFetchResponse = createMockTableData(
 mockUserTable.relatedLinkedObjects = {
     'roles': {
         id: 1,
-        objectType: ObjectType.ROLE,
+        objectType: ObjectType.Role,
         description: "User roles",
         key: { keys: ['id'] }
     } as unknown as DataObject,
     'auditLog': {
         id: 2,
-        objectType: ObjectType.AUDIT_LOG,
+        objectType: ObjectType.AuditLog,
         description: "User audit log",
         key: { keys: ['id'] }
     } as unknown as DataObject

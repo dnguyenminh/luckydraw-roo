@@ -1,12 +1,13 @@
 'use client';
 
 import EntityListPage from '@/app/components/common/EntityListPage';
+import { ObjectType } from '../lib/api/interfaces';
 
 export default function GoldenHoursPage() {
   return (
     <EntityListPage
       title="Golden Hours"
-      entityType="GOLDEN_HOUR" // Use correct ObjectType key
+      entityType={ObjectType.GoldenHour} // Use correct ObjectType key
       breadcrumbPath="golden-hours"
       description="Overview of golden hour performance and impact"
       statsCards={[

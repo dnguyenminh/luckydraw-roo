@@ -1,6 +1,5 @@
 package vn.com.fecredit.app.entity;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -87,16 +86,16 @@ class SpinHistoryTest {
                 .build();
     }
 
-    @Test
-    void testDefaultMultiplier() {
-        SpinHistory newHistory = SpinHistory.builder()
-                .participantEvent(participantEvent)
-                .spinTime(LocalDateTime.now())
-                .status(CommonStatus.ACTIVE)
-                .build();
+    // @Test
+    // void testDefaultMultiplier() {
+    //     SpinHistory newHistory = SpinHistory.builder()
+    //             .participantEvent(participantEvent)
+    //             .spinTime(LocalDateTime.now())
+    //             .status(CommonStatus.ACTIVE)
+    //             .build();
 
-        assertThat(newHistory.getMultiplier()).isEqualByComparingTo(BigDecimal.ONE);
-    }
+    //     assertThat(newHistory.getMultiplier()).isEqualByComparingTo(BigDecimal.ONE);
+    // }
 
     @Test
     void testWinFlag() {
@@ -129,11 +128,11 @@ class SpinHistoryTest {
             spinHistory.validateState();
         });
 
-        // Test invalid multiplier
-        assertThrows(IllegalStateException.class, () -> {
-            spinHistory.setMultiplier(BigDecimal.ZERO);
-            spinHistory.validateState();
-        });
+        // // Test invalid multiplier
+        // assertThrows(IllegalStateException.class, () -> {
+        //     spinHistory.setMultiplier(BigDecimal.ZERO);
+        //     spinHistory.validateState();
+        // });
     }
 
     @Test

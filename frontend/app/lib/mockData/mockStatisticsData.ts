@@ -15,7 +15,7 @@ const statisticsRows: TableRow[] = [
 
 // Create table response
 const mockStatisticsTable: TableFetchResponse = createMockTableData(
-    ObjectType.STATISTICS,
+    ObjectType.Statistics,
     'statistics',
     statisticsRows,
     statisticsRows.length

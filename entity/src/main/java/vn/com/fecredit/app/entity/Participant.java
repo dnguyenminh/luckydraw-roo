@@ -42,6 +42,9 @@ public class Participant extends AbstractStatusAwareEntity {
     @Column(name = "phone")
     private String phone;
 
+    @Column(name = "address")
+    private String address;
+
     @NotNull(message = "Province is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "province_id", nullable = false)
@@ -50,9 +53,6 @@ public class Participant extends AbstractStatusAwareEntity {
     @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();
-
-    @Builder.Default
-    private boolean checkedIn = false;
 
     /**
      * Set the participant's province with proper bidirectional relationship
@@ -173,11 +173,4 @@ public class Participant extends AbstractStatusAwareEntity {
         }
     }
 
-    public boolean isCheckedIn() {
-        return checkedIn;
-    }
-
-    public void setCheckedIn(boolean checkedIn) {
-        this.checkedIn = checkedIn;
-    }
 }

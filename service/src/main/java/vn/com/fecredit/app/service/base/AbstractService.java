@@ -1,13 +1,12 @@
 package vn.com.fecredit.app.service.base;
 
-import java.util.List;
-import java.util.Optional;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
+
+import java.util.List;
+import java.util.Optional;
 
 public interface AbstractService<T extends AbstractStatusAwareEntity> {
     T save(T entity);

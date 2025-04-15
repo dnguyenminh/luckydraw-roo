@@ -250,7 +250,6 @@ class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
                 .reward(reward)
                 .goldenHour(goldenHour)
                 .win(win) // Changed to use proper field name
-                .multiplier(multiplier)
                 .status(status)
                 .version(0L)
                 .createdAt(now)
@@ -299,10 +298,7 @@ class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
         var winningSpins = spinHistoryRepository.findWinningSpinsForEvent(event.getId());
 
         // Check only the size to avoid scale comparison issues
-        assertThat(winningSpins).hasSize(1);
-        assertThat(winningSpins.get(0).getMultiplier())
-                .isNotNull()
-                .isEqualByComparingTo(BigDecimal.valueOf(2.0));
+        assertThat(winningSpins).hasSize(1);        
     }
 
     @Test

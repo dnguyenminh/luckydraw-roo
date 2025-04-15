@@ -36,7 +36,7 @@ const goldenHourRows: TableRow[] = Array(15).fill(null).map((_, index) => {
 
 // Create table response
 const mockGoldenHourTable: TableFetchResponse = createMockTableData(
-  ObjectType.GOLDEN_HOUR,
+  ObjectType.GoldenHour,
   'golden_hours',
   goldenHourRows,
   goldenHourRows.length
@@ -46,7 +46,7 @@ const mockGoldenHourTable: TableFetchResponse = createMockTableData(
 mockGoldenHourTable.relatedLinkedObjects = {
   'spinHistory': {
     id: 1,
-    objectType: ObjectType.SPIN_HISTORY,
+    objectType: ObjectType.SpinHistory,
     description: "Spin history during this golden hour",
     key: { keys: ['id'] }
   } as unknown as DataObject
@@ -58,7 +58,7 @@ mockGoldenHourTable.rows.forEach(row => {
   mockGoldenHourTable.relatedLinkedObjects[`event_${eventId}`] = {
     id: eventId,
     name: `Event ${eventId}`,
-    objectType: ObjectType.EVENT,
+    objectType: ObjectType.Event,
     description: "Parent event",
     key: { keys: ['id'] }
   } as unknown as DataObject;

@@ -1,85 +1,225 @@
 -- Drop all tables with CASCADE to handle foreign key dependencies
 DROP ALL OBJECTS;
 
--- Create users table
-CREATE TABLE users (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255),
-    enabled BOOLEAN DEFAULT TRUE,
-    account_expired BOOLEAN DEFAULT FALSE,
-    account_locked BOOLEAN DEFAULT FALSE,
-    credentials_expired BOOLEAN DEFAULT FALSE,
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    role VARCHAR(50),
-    version BIGINT DEFAULT 0
-);
-
--- Create region table
+-- Create regions table
 CREATE TABLE regions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
     status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP,
-    created_by VARCHAR(100),
     updated_at TIMESTAMP,
-    updated_by VARCHAR(100)
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE
 );
 
--- Create province table
+-- Create provinces table
 CREATE TABLE provinces (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
     region_id BIGINT NOT NULL,
     status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP,
-    created_by VARCHAR(100),
     updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
--- Create event table
+-- Create events table
 CREATE TABLE events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    code VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE
+);
+
+-- Create event_locations table
+CREATE TABLE event_locations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    address VARCHAR(255),
+    max_spin INTEGER NOT NULL DEFAULT 1,
     status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP,
-    created_by VARCHAR(100),
     updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (event_id) REFERENCES events(id),
+    FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
--- Create role table
-CREATE TABLE roles (
+-- Create rewards table
+CREATE TABLE rewards (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
+    version BIGINT NOT NULL DEFAULT 0,
+    name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
-    display_order INTEGER,
-    role_type VARCHAR(50),
+    event_location_id BIGINT NOT NULL,
+    reward_value DECIMAL(19,2) NOT NULL DEFAULT 0,
+    quantity INTEGER NOT NULL DEFAULT 0,
+    win_probability DECIMAL(5,4) NOT NULL DEFAULT 0,
     status VARCHAR(50) DEFAULT 'ACTIVE',
     created_at TIMESTAMP,
-    created_by VARCHAR(100),
     updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
 );
 
--- Create user_role junction table - FIXED: changed from user_role to user_roles
+-- Create golden_hours table
+CREATE TABLE golden_hours (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    event_location_id BIGINT NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    multiplier DECIMAL(5,2) NOT NULL DEFAULT 1.0,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
+);
+
+-- Create participants table
+CREATE TABLE participants (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    code VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50),
+    address VARCHAR(255),
+    province_id BIGINT NOT NULL,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
+    checked_in BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (province_id) REFERENCES provinces(id)
+);
+
+-- Create participant_events table
+CREATE TABLE participant_events (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    event_id BIGINT NOT NULL,
+    event_location_id BIGINT NOT NULL,
+    participant_id BIGINT NOT NULL,
+    spins_remaining INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (event_id) REFERENCES events(id),
+    FOREIGN KEY (event_location_id) REFERENCES event_locations(id),
+    FOREIGN KEY (participant_id) REFERENCES participants(id)
+);
+
+-- Create spin_histories table
+CREATE TABLE spin_histories (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    participant_event_id BIGINT NOT NULL,
+    reward_id BIGINT,
+    golden_hour_id BIGINT,
+    spin_time TIMESTAMP NOT NULL,
+    win BOOLEAN NOT NULL DEFAULT FALSE,
+    multiplier DECIMAL(5,2) NOT NULL DEFAULT 1.0,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (participant_event_id) REFERENCES participant_events(id),
+    FOREIGN KEY (reward_id) REFERENCES rewards(id),
+    FOREIGN KEY (golden_hour_id) REFERENCES golden_hours(id)
+);
+
+-- Create roles table
+CREATE TABLE roles (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    role_type VARCHAR(50),
+    display_order INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE
+);
+
+-- Create permissions table
+CREATE TABLE permissions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE
+);
+
+-- Create users table
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    version BIGINT NOT NULL DEFAULT 0,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    account_expired BOOLEAN NOT NULL DEFAULT FALSE,
+    account_locked BOOLEAN NOT NULL DEFAULT FALSE,
+    credentials_expired BOOLEAN NOT NULL DEFAULT FALSE,
+    role VARCHAR(50),
+    status VARCHAR(50) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_by VARCHAR(255),
+    deleted BOOLEAN DEFAULT FALSE
+);
+
+-- Create user_roles junction table
 CREATE TABLE user_roles (
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
@@ -88,124 +228,13 @@ CREATE TABLE user_roles (
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
--- Create permission table
-CREATE TABLE permissions (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    code VARCHAR(50) NOT NULL UNIQUE,
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0
-);
-
--- Create permission_role junction table - FIXED: changed from permission_role to role_permissions
+-- Create role_permissions junction table
 CREATE TABLE role_permissions (
-    permission_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
-    PRIMARY KEY (permission_id, role_id),
-    FOREIGN KEY (permission_id) REFERENCES permissions(id),
-    FOREIGN KEY (role_id) REFERENCES roles(id)
-);
-
--- Create event_location table
-CREATE TABLE event_locations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    address TEXT,
-    province_id BIGINT NOT NULL,
-    event_id BIGINT NOT NULL,
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (province_id) REFERENCES provinces(id),
-    FOREIGN KEY (event_id) REFERENCES events(id)
-);
-
--- Create golden_hour table
-CREATE TABLE golden_hours (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP NOT NULL,
-    multiplier DECIMAL(5,2) DEFAULT 1.0,
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id) REFERENCES events(id)
-);
-
--- Create reward table
-CREATE TABLE rewards (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    quantity INTEGER NOT NULL,
-    remaining INTEGER NOT NULL,
-    probability DECIMAL(5,4),
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id) REFERENCES events(id)
-);
-
--- Create participant table
-CREATE TABLE participants (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    phone VARCHAR(20),
-    email VARCHAR(255),
-    status VARCHAR(50) DEFAULT 'ACTIVE',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0
-);
-
--- Create participant_event junction table
-CREATE TABLE participant_events (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    participant_id BIGINT NOT NULL,
-    event_id BIGINT NOT NULL,
-    registration_date TIMESTAMP NOT NULL,
-    attendance_date TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'REGISTERED',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (participant_id) REFERENCES participants(id),
-    FOREIGN KEY (event_id) REFERENCES events(id)
-);
-
--- Create spin_history table
-CREATE TABLE spin_histories (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    participant_event_id BIGINT NOT NULL,
-    reward_id BIGINT,
-    spin_time TIMESTAMP NOT NULL,
-    status VARCHAR(50) DEFAULT 'PENDING',
-    created_at TIMESTAMP,
-    created_by VARCHAR(100),
-    updated_at TIMESTAMP,
-    updated_by VARCHAR(100),
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (participant_event_id) REFERENCES participant_events(id),
-    FOREIGN KEY (reward_id) REFERENCES rewards(id)
+    permission_id BIGINT NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id)
 );
 
 -- Create audit_log table

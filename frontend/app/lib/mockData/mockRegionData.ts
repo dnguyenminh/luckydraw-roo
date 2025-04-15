@@ -24,7 +24,7 @@ const regionRows: TableRow[] = regionNames.map((name, index) => {
 
 // Create table response
 const mockRegionTable: TableFetchResponse = createMockTableData(
-  ObjectType.REGION,
+  ObjectType.Region,
   'regions',
   regionRows,
   regionRows.length
@@ -34,7 +34,7 @@ const mockRegionTable: TableFetchResponse = createMockTableData(
 mockRegionTable.relatedLinkedObjects = {
   'provinces': {
     id: 1,
-    objectType: ObjectType.PROVINCE,
+    objectType: ObjectType.Province,
     description: "Provinces in this region",
     key: { keys: ['id'] }
   } as unknown as DataObject

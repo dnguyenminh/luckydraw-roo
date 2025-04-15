@@ -18,24 +18,24 @@ export interface SearchRequest {
     value: string;
 }
 
-// Define ObjectType enum to match the updated PUML diagram
+// Define ObjectType enum to match the updated PUML diagram with keys matching values exactly
 export enum ObjectType {
-    EVENT = 'Event',
-    REGION = 'Region',
-    PROVINCE = 'Province',
-    REWARD = 'Reward',
-    GOLDEN_HOUR = 'GoldenHour',
-    SPIN_HISTORY = 'SpinHistory',
-    AUDIT_LOG = 'AuditLog',
-    STATISTICS = 'Statistics',
-    USER = 'User',
-    ROLE = 'Role',
-    PERMISSION = 'Permission',
-    CONFIGURATION = 'Configuration',
-    BLACKLISTED_TOKEN = 'BlacklistedToken',
-    EVENT_LOCATION = 'EventLocation',
-    PARTICIPANT = 'Participant',
-    PARTICIPANT_EVENT = 'ParticipantEvent'
+    Event = 'Event',
+    Region = 'Region',
+    Province = 'Province',
+    Reward = 'Reward',
+    GoldenHour = 'GoldenHour',
+    SpinHistory = 'SpinHistory',
+    AuditLog = 'AuditLog',
+    Statistics = 'Statistics',
+    User = 'User',
+    Role = 'Role',
+    Permission = 'Permission',
+    Configuration = 'Configuration',
+    BlacklistedToken = 'BlacklistedToken',
+    EventLocation = 'EventLocation',
+    Participant = 'Participant',
+    ParticipantEvent = 'ParticipantEvent'
 }
 
 // Updated to match UML definition
@@ -62,7 +62,10 @@ export enum FilterType {
     GREATER_THAN_OR_EQUALS = 'GREATER_THAN_OR_EQUALS',
     BETWEEN = 'BETWEEN',
     IN = 'IN',
-    NOT_IN = 'NOT_IN'
+    NOT_IN = 'NOT_IN',
+    CONTAINS = 'CONTAINS',
+    STARTS_WITH = 'STARTS_WITH',
+    ENDS_WITH = 'ENDS_WITH'
 }
 
 export enum FieldType {
@@ -93,7 +96,7 @@ export interface TableFetchRequest {
     size: number;
     sorts: SortRequest[];
     filters: FilterRequest[];
-    search: Record<ObjectType, DataObjectKeyValues>;
+    search: Record<ObjectType, DataObject>;
 }
 
 // Column information structure

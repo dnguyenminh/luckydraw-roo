@@ -28,7 +28,7 @@ const roleRows: TableRow[] = roleDefinitions.map((role, index) => {
 
 // Create table response
 const mockRoleTable: TableFetchResponse = createMockTableData(
-  ObjectType.ROLE,
+  ObjectType.Role,
   'roles',
   roleRows,
   roleRows.length
@@ -38,13 +38,13 @@ const mockRoleTable: TableFetchResponse = createMockTableData(
 mockRoleTable.relatedLinkedObjects = {
   'users': {
     id: 1,
-    objectType: ObjectType.USER,
+    objectType: ObjectType.User,
     description: "Users with this role",
     key: { keys: ['id'] }
   } as unknown as DataObject,
   'permissions': {
     id: 2,
-    objectType: ObjectType.PERMISSION,
+    objectType: ObjectType.Permission,
     description: "Permissions for this role",
     key: { keys: ['id'] }
   } as unknown as DataObject
