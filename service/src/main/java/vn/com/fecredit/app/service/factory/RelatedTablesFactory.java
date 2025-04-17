@@ -22,4 +22,12 @@ public interface RelatedTablesFactory {
      * @return list of related table names
      */
     List<String> getRelatedTables(Object entity);
+    
+    /**
+     * Gets the entity classes that are related to this entity
+     * 
+     * @param entity the entity
+     * @return list of related entity classes
+     */
+    List<Class<?>> getRelatedEntityClasses(Object entity);
 }

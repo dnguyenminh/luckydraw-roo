@@ -63,6 +63,16 @@ public class RelatedTablesFactoryImpl implements RelatedTablesFactory {
         return getRelatedTablesForClass(entityClass);
     }
 
+    @Override
+    public List<Class<?>> getRelatedEntityClasses(Object entity) {
+        if (entity == null) {
+            return List.of();
+        }
+
+        Class<?> entityClass = getEntityClass(entity);
+        return discoverRelatedEntityClasses(entityClass);
+    }
+
     /**
      * Get related tables for a specific entity class
      * 
@@ -110,6 +120,112 @@ public class RelatedTablesFactoryImpl implements RelatedTablesFactory {
         }
 
         return relatedTables;
+    }
+
+    /**
+     * Discover related entity classes through reflection
+     * 
+     * @param entityClass the entity class to analyze
+     * @return list of related entity classes
+     */
+    private List<Class<?>> discoverRelatedEntityClasses(Class<?> entityClass) {
+        List<Class<?>> relatedClasses = new ArrayList<>();
+
+        // Get all fields from class and superclasses
+        for (Field field : getAllFields(entityClass)) {
+            // Skip fields that are not relationships
+            if (!isRelationshipField(field)) {
+                continue;
+            }
+
+            Class<?> relatedClass = null;
+
+            // For ManyToOne and OneToOne, field type is the related entity class directly
+            if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
+                relatedClass = field.getType();
+            } 
+            // For OneToMany and ManyToMany, extract from collection generic parameters
+            else if (field.isAnnotationPresent(OneToMany.class) || field.isAnnotationPresent(ManyToMany.class)) {
+                // First check annotation's targetEntity attribute
+                if (field.isAnnotationPresent(OneToMany.class)) {
+                    OneToMany oneToMany = field.getAnnotation(OneToMany.class);
+                    if (oneToMany != null && oneToMany.targetEntity() != void.class) {
+                        relatedClass = oneToMany.targetEntity();
+                    }
+                } else if (field.isAnnotationPresent(ManyToMany.class)) {
+                    ManyToMany manyToMany = field.getAnnotation(ManyToMany.class);
+                    if (manyToMany != null && manyToMany.targetEntity() != void.class) {
+                        relatedClass = manyToMany.targetEntity();
+                    }
+                }
+                
+                // If targetEntity not specified, try to extract from generic type parameters
+                if (relatedClass == null) {
+                    relatedClass = extractGenericType(field);
+                }
+                
+                // Fall back to name-based inference only if necessary
+                if (relatedClass == null) {
+                    String fieldName = field.getName();
+                    String singularName = getSingularName(fieldName);
+                    relatedClass = tryToLoadClass(ENTITY_PACKAGE + "." + capitalize(singularName));
+                    
+                    if (relatedClass == null) {
+                        log.warn("Could not determine target entity type for relationship field: {}", field.getName());
+                    }
+                }
+            }
+
+            if (relatedClass != null && !relatedClass.equals(entityClass)) {
+                relatedClasses.add(relatedClass);
+                log.trace("Added related entity class '{}' for entity {}", 
+                    relatedClass.getSimpleName(), entityClass.getSimpleName());
+            }
+        }
+
+        return relatedClasses;
+    }
+
+    /**
+     * Extract generic type parameter from a collection field
+     * 
+     * @param field the field to analyze
+     * @return the generic type parameter class or null if not found
+     */
+    private Class<?> extractGenericType(Field field) {
+        try {
+            if (field.getGenericType() instanceof java.lang.reflect.ParameterizedType) {
+                java.lang.reflect.ParameterizedType paramType = 
+                    (java.lang.reflect.ParameterizedType) field.getGenericType();
+                
+                java.lang.reflect.Type[] typeArguments = paramType.getActualTypeArguments();
+                if (typeArguments.length > 0) {
+                    java.lang.reflect.Type typeArg = typeArguments[0];
+                    
+                    // Handle different types of Type objects
+                    if (typeArg instanceof Class) {
+                        return (Class<?>) typeArg;
+                    } else if (typeArg instanceof java.lang.reflect.WildcardType) {
+                        java.lang.reflect.WildcardType wildcardType = (java.lang.reflect.WildcardType) typeArg;
+                        java.lang.reflect.Type[] upperBounds = wildcardType.getUpperBounds();
+                        if (upperBounds.length > 0 && upperBounds[0] instanceof Class) {
+                            return (Class<?>) upperBounds[0];
+                        }
+                    } else if (typeArg instanceof java.lang.reflect.ParameterizedType) {
+                        java.lang.reflect.ParameterizedType parameterizedType = (java.lang.reflect.ParameterizedType) typeArg;
+                        return (Class<?>) parameterizedType.getRawType();
+                    } else if (typeArg instanceof java.lang.reflect.TypeVariable) {
+                        // TypeVariable is more complex to resolve and might require class hierarchy traversal
+                        log.debug("TypeVariable generic parameter found for field {}, cannot extract concrete type", field.getName());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Error extracting generic type for field {}: {}", field.getName(), e.getMessage());
+            log.debug("Exception details:", e);
+        }
+        
+        return null;
     }
 
     /**

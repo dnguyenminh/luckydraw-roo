@@ -19,7 +19,7 @@ interface StatsCard {
 
 interface EntityListPageProps {
   title: string;
-  entityType: keyof typeof ObjectType;
+  entityType: ObjectType;
   breadcrumbPath: string;
   description?: string;
   statsCards?: StatsCard[];
@@ -86,7 +86,8 @@ export default function EntityListPage({
         search: {
 
         } as Record<ObjectType, DataObject>,
-        objectType: ObjectType[entityType]
+        objectType: ObjectType[entityType],
+        entityName: ObjectType[entityType]
       };
 
       const response = await fetchTableData(request);

@@ -181,93 +181,115 @@ function sortRows(rows: any[], sortField: string, sortOrder: string): any[] {
 
 // Mock implementation for now - you would replace this with real API calls
 export async function fetchTableData(request: TableFetchRequest): Promise<TableFetchResponse> {
-  // Create a proper URL for the API endpoint
-  const url = `${apiConfig.baseUrl}/table-data/fetch/${request.objectType.toLowerCase()}`;
-  
-  // Log the request for debugging
-  console.log(`Fetching data from: ${url}`, request);
-  
   try {
-    // Simplify the search structure to avoid sending unnecessary data
-    // Only include the relevant entity type in the search object
-    const simplifiedSearch: Record<ObjectType, DataObject> = {} as Record<ObjectType, DataObject>;
-    
-    // Only add the current entity type to the search
-    const entityType = request.objectType;
-    
-    // Check if there's actual search data for this entity
-    let hasSearchData = false;
-    if (request.search && 
-        request.search[entityType] && 
-        request.search[entityType].data?.data?._search) {
-      hasSearchData = true;
+    // Validate the objectType before sending request
+    if (request.objectType === undefined) {
+      console.error('Missing objectType in request:', request);
+      throw new Error('objectType is required in the request');
     }
+
+    // // Convert the request to what the API expects
+    // const apiRequest = {
+    //   ...request,
+    //   objectType: typeof request.objectType === 'string' ? 
+    //     request.objectType : 
+    //     ObjectType[request.objectType]
+    // };
     
-    // Only include the current entity in search, and only if there's actual search data
-    if (hasSearchData) {
-      simplifiedSearch[entityType] = {
-        objectType: entityType,
-        key: { keys: [] },
-        fieldNameMap: {},
-        description: '',
-        data: {
-          data: { 
-            _search: request.search[entityType].data.data._search || "" 
-          }
+    // Log what we're sending to the API
+    console.log('Sending table data request:', request);
+
+    // Create a proper URL for the API endpoint
+    const url = `${apiConfig.baseUrl}/table-data/fetch/${request.objectType.toLowerCase()}`;
+    
+    // Log the request for debugging
+    console.log(`Fetching data from: ${url}`, request);
+    
+    try {
+      // // Simplify the search structure to avoid sending unnecessary data
+      // // Only include the relevant entity type in the search object
+      // const simplifiedSearch: Record<ObjectType, DataObject> = {} as Record<ObjectType, DataObject>;
+      
+      // // Only add the current entity type to the search
+      // const entityType = request.objectType;
+      
+      // // Check if there's actual search data for this entity
+      // let hasSearchData = false;
+      // if (request.search && 
+      //     request.search[entityType] && 
+      //     request.search[entityType].data?.data?._search) {
+      //   hasSearchData = true;
+      // }
+      
+      // // Only include the current entity in search, and only if there's actual search data
+      // if (hasSearchData) {
+      //   simplifiedSearch[entityType] = {
+      //     objectType: entityType,
+      //     key: { keys: [] },
+      //     fieldNameMap: {},
+      //     description: '',
+      //     data: {
+      //       data: { 
+      //         _search: request.search[entityType].data.data._search || "" 
+      //       }
+      //     },
+      //     order: 0
+      //   };
+      // }
+
+      // // Send the request with a simplified search structure
+      // const sanitizedRequest = {
+      //   page: request.page,
+      //   size: request.size || 10,
+      //   sorts: request.sorts || [],
+      //   filters: request.filters || [],
+      //   // If there's no search data, send an empty object instead of complex structure
+      //   search: hasSearchData ? simplifiedSearch : {},
+      //   objectType: request.objectType,
+      //   // Add the required entityName property using the mapping
+      //   entityName: request.objectType
+      // };
+
+      // console.log('Sending simplified request:', sanitizedRequest);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          ...apiConfig.headers
         },
-        order: 0
-      };
+        body: JSON.stringify(request)
+      });
+
+      // Add more detailed error handling
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`API request failed with status ${response.status}:`, errorText);
+        throw new Error(`API error: ${response.status} ${errorText ? '- ' + errorText : ''}`);
+      }
+
+      const data = await response.json();
+      
+      // If using mock data is enabled and no real data is available, use mock data as fallback
+      if (apiConfig.useMockData && (!data || !data.rows || data.rows.length === 0)) {
+        console.log(`No data returned from API for ${request.objectType}, using mock data instead.`);
+        return mockFetchTableData(request); // Use the imported function
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching table data:', error);
+      
+      // If using mock data is enabled, use it as a fallback on errors
+      if (apiConfig.useMockData) {
+        console.log(`API request failed, using mock data as fallback for ${request.objectType}`);
+        return mockFetchTableData(request); // Use the imported function
+      }
+      
+      // Otherwise propagate the error
+      throw error;
     }
-
-    // Send the request with a simplified search structure
-    const sanitizedRequest = {
-      page: request.page,
-      size: request.size || 10,
-      sorts: request.sorts || [],
-      filters: request.filters || [],
-      // If there's no search data, send an empty object instead of complex structure
-      search: hasSearchData ? simplifiedSearch : {},
-      objectType: request.objectType,
-      // Add the required entityName property using the mapping
-      entityName: request.objectType
-    };
-
-    console.log('Sending simplified request:', sanitizedRequest);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        ...apiConfig.headers
-      },
-      body: JSON.stringify(sanitizedRequest)
-    });
-
-    // Add more detailed error handling
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API request failed with status ${response.status}:`, errorText);
-      throw new Error(`API error: ${response.status} ${errorText ? '- ' + errorText : ''}`);
-    }
-
-    const data = await response.json();
-    
-    // If using mock data is enabled and no real data is available, use mock data as fallback
-    if (apiConfig.useMockData && (!data || !data.rows || data.rows.length === 0)) {
-      console.log(`No data returned from API for ${request.objectType}, using mock data instead.`);
-      return mockFetchTableData(request); // Use the imported function
-    }
-    
-    return data;
   } catch (error) {
-    console.error('Error fetching table data:', error);
-    
-    // If using mock data is enabled, use it as a fallback on errors
-    if (apiConfig.useMockData) {
-      console.log(`API request failed, using mock data as fallback for ${request.objectType}`);
-      return mockFetchTableData(request); // Use the imported function
-    }
-    
-    // Otherwise propagate the error
+    console.error('Error in fetchTableData:', error);
     throw error;
   }
 }

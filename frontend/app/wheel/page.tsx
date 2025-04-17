@@ -10,7 +10,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/brea
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PartyPopper, Frown, Info, Medal, Gift, Percent, Package, RotateCw, Crown, Loader } from 'lucide-react';
 import { wheelService } from '../lib/api/wheelService';
-import { toast } from '@/components/ui/use-toast';
+import { Toast } from '@radix-ui/react-toast';
+import { toast } from '@/lib/utils/toast-helper';
 
 // Types for our wheel segments and prizes
 interface WheelSegment {
@@ -216,7 +217,7 @@ export default function WheelPage() {
           text: spinResult.rewardName || "Prize",
           color: spinResult.rewardColor || "#007acc",
           isReward: true,
-          rewardValue: spinResult.rewardValue
+          rewardValue: spinResult.rewardValue ?? undefined // Convert null to undefined
         };
       } else {
         actualResult = {
@@ -230,7 +231,7 @@ export default function WheelPage() {
       setSpinHistory(prev => [{
         result: actualResult,
         timestamp: new Date().toLocaleTimeString(),
-        spinId: spinResult.id,
+        spinId: spinResult.id ? String(spinResult.id) : undefined, // Convert to string to match the expected type
         claimed: false
       }, ...prev]);
       
@@ -259,7 +260,8 @@ export default function WheelPage() {
         throw new Error("No spin ID found");
       }
       
-      const claimResult = await wheelService.claimReward(spinId);
+      // Convert the string spinId to a number before passing to claimReward
+      const claimResult = await wheelService.claimReward(Number(spinId));
       
       if (claimResult.success) {
         toast({

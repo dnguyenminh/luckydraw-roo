@@ -83,10 +83,6 @@ export interface DataObjectKey {
     keys: string[];
 }
 
-// DataObjectKeyValues from UML
-export interface DataObjectKeyValues {
-    searchCriteria: Record<string, object>;
-}
 
 // Updated to match the UML definition
 export interface TableFetchRequest {
@@ -129,7 +125,7 @@ export interface TableInfo {
 export interface TableRow {
     data: Record<string, any>; // Actual row data
     tableInfo?: TableInfo; // Reference to the parent table info
-}
+    }
 
 // Extended table row with related tables - updated based on UML
 export interface TabTableRow extends TableRow {
@@ -176,5 +172,45 @@ export interface RelatedLinkedObjectsMap {
     [relationName: string]: {
         [entityId: string]: RelatedLinkedObject[];
     };
+}
+
+// Filter operator interfaces for the enhanced DataTable
+export enum TextFilterOperator {
+    EQUALS = 'equals',
+    CONTAINS = 'contains',
+    STARTS_WITH = 'startsWith',
+    ENDS_WITH = 'endsWith'
+}
+
+export enum NumericFilterOperator {
+    EQUALS = 'equals',
+    BETWEEN = 'between',
+    GREATER_THAN = 'greaterThan',
+    LESS_THAN = 'lessThan'
+}
+
+export interface FilterState {
+    field: string;
+    operator: TextFilterOperator | NumericFilterOperator | string;
+    value: any;
+    secondValue?: any; // For BETWEEN operator
+    active: boolean;
+}
+
+export interface PaginationState {
+    pageIndex: number;
+    pageSize: number;
+    totalItems: number;
+    totalPages: number;
+}
+
+// Tab configuration for detail view
+export interface DetailTab {
+    id: string;
+    label: string;
+    type: 'details' | 'search' | 'related';
+    content?: React.ReactNode;
+    entityType?: ObjectType;
+    searchCriteria?: Record<ObjectType, DataObject>;
 }
 

@@ -138,31 +138,31 @@ public class TableDataServiceImpl implements TableDataService {
      */
     private Map<String, ColumnInfo> getColumnInfo(ObjectType objectType) {
         Map<String, ColumnInfo> columnInfo = new HashMap<>();
-        
+
         try {
             // Get the entity class for this object type
             Class<?> entityClass = repositoryFactory.getEntityClass(objectType);
-            
+
             // Recursively analyze fields in the class hierarchy
             analyzeEntityFields(entityClass, columnInfo);
-            
+
             log.debug("Generated {} columns for entity type {}", columnInfo.size(), objectType);
         } catch (Exception e) {
             log.error("Error generating column info for entity type {}: {}", objectType, e.getMessage());
         }
-        
+
         // If no columns found (error case), add at least id column
         if (columnInfo.isEmpty()) {
             columnInfo.put("id", new ColumnInfo("id", FieldType.NUMBER.name(), SortType.ASCENDING));
             log.warn("Using fallback column definition for {}", objectType);
         }
-        
+
         return columnInfo;
     }
-    
+
     /**
      * Recursively analyze entity fields to build column info
-     * 
+     *
      * @param entityClass the entity class to analyze
      * @param columnInfo the map to populate with column info
      */
@@ -171,9 +171,9 @@ public class TableDataServiceImpl implements TableDataService {
         if (entityClass == null || entityClass == Object.class) {
             return;
         }
-        
+
         log.debug("Analyzing fields for class: {}", entityClass.getName());
-        
+
         // Process all declared fields in this class
         for (java.lang.reflect.Field field : entityClass.getDeclaredFields()) {
             // Skip static, transient, and fields with @Transient annotation
@@ -182,58 +182,58 @@ public class TableDataServiceImpl implements TableDataService {
                 field.isAnnotationPresent(jakarta.persistence.Transient.class)) {
                 continue;
             }
-            
+
             // Skip fields that represent relationships unless they're simple ManyToOne/OneToOne
             boolean isCollection = java.util.Collection.class.isAssignableFrom(field.getType());
             boolean isDetailRelationship = false;
-            
-            if (field.isAnnotationPresent(jakarta.persistence.OneToMany.class) || 
+
+            if (field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
                 field.isAnnotationPresent(jakarta.persistence.ManyToMany.class) ||
                 isCollection) {
                 isDetailRelationship = true;
             }
-            
+
             if (isDetailRelationship) {
                 continue; // Skip detail relationships as they're not simple columns
             }
-            
+
             // Get the field name
             String fieldName = field.getName();
-            
+
             // Skip certain internal fields
             if (fieldName.equals("serialVersionUID") || fieldName.equals("temporaryAttributes")) {
                 continue;
             }
-            
+
             // Determine field type
             FieldType fieldType = determineFieldType(field.getType());
-            
+
             // Determine default sort type - id is ascending, others are none
             SortType sortType = "id".equals(fieldName) ? SortType.ASCENDING : SortType.NONE;
-            
+
             // For common name/description/code fields, set as sortable
-            if (fieldName.equals("name") || fieldName.equals("code") || fieldName.equals("description") || 
+            if (fieldName.equals("name") || fieldName.equals("code") || fieldName.equals("description") ||
                 fieldName.equals("username") || fieldName.equals("email") || fieldName.equals("fullName")) {
                 sortType = SortType.ASCENDING;
             }
-            
+
             // Date fields are often sortable
             if (fieldType == FieldType.DATE || fieldType == FieldType.DATETIME) {
                 sortType = SortType.ASCENDING;
             }
-            
+
             // Create and add the column info
             columnInfo.put(fieldName, new ColumnInfo(fieldName, fieldType.name(), sortType));
             log.debug("Added column info for field: {}, type: {}, sort: {}", fieldName, fieldType, sortType);
         }
-        
+
         // Process superclass fields
         analyzeEntityFields(entityClass.getSuperclass(), columnInfo);
     }
-    
+
     /**
      * Determine the appropriate FieldType for a Java class
-     * 
+     *
      * @param javaType the Java class
      * @return corresponding FieldType
      */
@@ -242,15 +242,15 @@ public class TableDataServiceImpl implements TableDataService {
             return FieldType.STRING;
         } else if (javaType.equals(Boolean.class) || javaType.equals(boolean.class)) {
             return FieldType.BOOLEAN;
-        } else if (Number.class.isAssignableFrom(javaType) || 
-                  javaType.equals(int.class) || 
-                  javaType.equals(long.class) || 
-                  javaType.equals(float.class) || 
+        } else if (Number.class.isAssignableFrom(javaType) ||
+                  javaType.equals(int.class) ||
+                  javaType.equals(long.class) ||
+                  javaType.equals(float.class) ||
                   javaType.equals(double.class)) {
             return FieldType.NUMBER;
         } else if (java.time.LocalDate.class.isAssignableFrom(javaType)) {
             return FieldType.DATE;
-        } else if (java.time.LocalDateTime.class.isAssignableFrom(javaType) || 
+        } else if (java.time.LocalDateTime.class.isAssignableFrom(javaType) ||
                   java.util.Date.class.isAssignableFrom(javaType)) {
             return FieldType.DATETIME;
         } else if (java.time.LocalTime.class.isAssignableFrom(javaType)) {
@@ -403,7 +403,7 @@ public class TableDataServiceImpl implements TableDataService {
 
     /**
      * Recursive method to process entity relationships and build joins
-     * 
+     *
      * @param currentEntityClass      Current entity class being processed
      * @param remainingSearchCriteria Search criteria not yet processed
      * @param joinPathStack           Stack tracking the current join path
@@ -553,7 +553,7 @@ public class TableDataServiceImpl implements TableDataService {
 
     /**
      * Discover entity relationships in the given entity class
-     * 
+     *
      * @param entityClass   The entity class to analyze
      * @param relationships Map to store discovered relationships (property name ->
      *                      entity class)
@@ -597,7 +597,7 @@ public class TableDataServiceImpl implements TableDataService {
 
     /**
      * Apply search criteria to a joined entity
-     * 
+     *
      * @param join       The join to apply criteria to
      * @param cb         The criteria builder
      * @param predicates The list of predicates to add to
@@ -833,16 +833,36 @@ public class TableDataServiceImpl implements TableDataService {
 
             for (Method method : methods) {
                 String methodName = method.getName();
+                
+                // Skip if method is a getter for an entity type
+                if (isEntityGetter(method)) {
+                    log.debug("Skipping entity getter method: {}", methodName);
+                    continue;
+                }
+                
                 // Only process getter methods (except getClass())
                 if (methodName.startsWith("get") &&
                         !methodName.equals("getClass") &&
                         method.getParameterCount() == 0) {
 
+                    // Skip temporaryAttributes field
+                    if (methodName.equals("getTemporaryAttributes")) {
+                        log.debug("Skipping temporaryAttributes property");
+                        continue;
+                    }
+
                     try {
-                        // Extract property name from getter method (remove "get" and lowercase first
-                        // character)
+                        // Extract property name from getter method
                         String propertyName = methodName.substring(3);
                         propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
+
+                        // Skip known entity relationships
+                        if (propertyName.equals("user") || propertyName.equals("role") || 
+                            propertyName.equals("event") || propertyName.equals("participant") ||
+                            propertyName.equals("reward")) {
+                            log.debug("Skipping known entity relationship field: {}", propertyName);
+                            continue;
+                        }
 
                         // Invoke the getter method to get the value
                         Object value = method.invoke(entity);
@@ -875,6 +895,21 @@ public class TableDataServiceImpl implements TableDataService {
                     }
                 }
             }
+            
+            // As a safety net, remove any entity objects that might have slipped through
+            // (in case we missed some entity type detection)
+            List<String> keysToRemove = new ArrayList<>();
+            for (Map.Entry<String, Object> entry : data.entrySet()) {
+                Object value = entry.getValue();
+                if (value != null && isEntityObject(value)) {
+                    keysToRemove.add(entry.getKey());
+                    log.debug("Removing missed entity property: {}", entry.getKey());
+                }
+            }
+            
+            for (String key : keysToRemove) {
+                data.remove(key);
+            }
         }
 
         // Check if the entity has related tables to determine the type of row to return
@@ -882,9 +917,9 @@ public class TableDataServiceImpl implements TableDataService {
             TabTableRow tabRow = new TabTableRow(data);
 
             // Add related tables from the factory
-            List<String> relatedTables = relatedTablesFactory.getRelatedTables(entity);
-            for (String tableName : relatedTables) {
-                tabRow.addRelatedTable(tableName);
+            List<Class<?>> relatedEntities = relatedTablesFactory.getRelatedEntityClasses(entity);
+            for (Class<?> entityClass : relatedEntities) {
+                tabRow.addRelatedTable(entityClass.getSimpleName());
             }
 
             return tabRow;
@@ -894,6 +929,83 @@ public class TableDataServiceImpl implements TableDataService {
             row.setData(data);
             return row;
         }
+    }
+    
+    /**
+     * Check if a method is a getter for an entity type
+     * 
+     * @param method The method to check
+     * @return true if the method is a getter returning an entity type
+     */
+    private boolean isEntityGetter(Method method) {
+        // Must be a no-arg method
+        if (method.getParameterCount() > 0) {
+            return false;
+        }
+        
+        // Must have "get" prefix (not checking for is/has as those return booleans)
+        String methodName = method.getName();
+        if (!methodName.startsWith("get") || methodName.equals("getClass")) {
+            return false;
+        }
+        
+        Class<?> returnType = method.getReturnType();
+        
+        // Check if return type is an entity class
+        if (returnType.isAnnotationPresent(jakarta.persistence.Entity.class)) {
+            return true;
+        }
+        
+        // Check if it's a JPA collection type
+        if (java.util.Collection.class.isAssignableFrom(returnType)) {
+            // For collections, we need to check the generic parameter
+            try {
+                java.lang.reflect.Type genericReturnType = method.getGenericReturnType();
+                if (genericReturnType instanceof java.lang.reflect.ParameterizedType) {
+                    java.lang.reflect.ParameterizedType paramType = 
+                        (java.lang.reflect.ParameterizedType) genericReturnType;
+                    
+                    java.lang.reflect.Type[] typeArguments = paramType.getActualTypeArguments();
+                    if (typeArguments.length > 0 && typeArguments[0] instanceof Class) {
+                        Class<?> itemType = (Class<?>) typeArguments[0];
+                        if (itemType.isAnnotationPresent(jakarta.persistence.Entity.class)) {
+                            return true;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.debug("Error checking collection generic type for {}: {}", methodName, e.getMessage());
+            }
+        }
+        
+        // For common entity types we know by naming convention
+        String propertyName = methodName.substring(3).toLowerCase();
+        return propertyName.equals("user") || propertyName.equals("event") || 
+               propertyName.equals("participant") || propertyName.equals("reward") ||
+               propertyName.equals("role") || propertyName.equals("permission");
+    }
+
+    /**
+     * Check if an object represents a JPA entity
+     */
+    private boolean isEntityObject(Object obj) {
+        // Check if class has @Entity annotation
+        if (obj.getClass().isAnnotationPresent(jakarta.persistence.Entity.class)) {
+            return true;
+        }
+        
+        // Check for common entity characteristics
+        // Entities typically have an ID field
+        try {
+            Method getId = obj.getClass().getMethod("getId");
+            if (getId != null) {
+                return true;
+            }
+        } catch (NoSuchMethodException e) {
+            // Not an entity or doesn't follow standard pattern
+        }
+        
+        return false;
     }
 
     /**
