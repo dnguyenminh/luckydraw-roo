@@ -62,6 +62,10 @@ subprojects {
         testImplementation 'org.springframework.boot:spring-boot-starter-test'
         testImplementation 'org.mockito:mockito-core:5.3.1'
         testImplementation 'org.mockito:mockito-junit-jupiter:5.3.1'
+
+        // Apache POI for Excel handling
+        implementation 'org.apache.poi:poi:5.2.3'
+        implementation 'org.apache.poi:poi-ooxml:5.2.3'
     }
 
     // Add compiler options to suppress common warnings
@@ -118,6 +122,10 @@ dependencies {
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Apache POI for Excel handling
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
 }
 
 // Only define these tasks if the frontend directory exists

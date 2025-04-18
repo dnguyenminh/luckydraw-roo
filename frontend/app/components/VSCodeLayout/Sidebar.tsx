@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect, useCallback, memo } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { 
   Home, Users, Gift, Clock, Map, BarChart2, Settings, History, 
   FileText, ChevronsRight, ChevronsLeft, Lock, Shield,
@@ -15,9 +14,11 @@ interface SidebarProps {
   onToggle?: () => void;
 }
 
-export default function Sidebar({ minimized = false, onToggle }: SidebarProps) {
+// Memoize the Sidebar component to prevent unnecessary re-renders
+export default memo(function Sidebar({ minimized = false, onToggle }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(minimized);
   const pathname = usePathname();
+  const router = useRouter();
   
   // Handle toggle from external control
   useEffect(() => {
@@ -29,7 +30,17 @@ export default function Sidebar({ minimized = false, onToggle }: SidebarProps) {
     if (onToggle) onToggle();
   };
   
-  // Define sidebar navigation items
+  // Use useCallback to memoize the navigation handler to prevent recreation on each render
+  const handleNavigation = useCallback((href: string, e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default link behavior
+    
+    // Only navigate if we're not already on that page
+    if (pathname !== href) {
+      router.push(href);
+    }
+  }, [router, pathname]);
+  
+  // Define sidebar navigation items - moved outside of the component render cycle
   const navItems = [
     { href: '/', icon: <Home />, label: 'Home' },
     { href: '/events', icon: <FileText />, label: 'Events' },
@@ -68,6 +79,8 @@ export default function Sidebar({ minimized = false, onToggle }: SidebarProps) {
               label={item.label}
               isActive={pathname === item.href}
               collapsed={collapsed}
+              onClick={(e) => handleNavigation(item.href, e)}
+              prefetch={false} // Disable prefetching to prevent API calls
             />
           ))}
         </ul>
@@ -81,4 +94,4 @@ export default function Sidebar({ minimized = false, onToggle }: SidebarProps) {
       </div>
     </aside>
   );
-}
+});

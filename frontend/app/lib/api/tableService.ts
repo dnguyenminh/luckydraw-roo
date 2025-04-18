@@ -179,7 +179,44 @@ function sortRows(rows: any[], sortField: string, sortOrder: string): any[] {
   });
 }
 
-// Mock implementation for now - you would replace this with real API calls
+// Global request cache to prevent duplicate requests
+const requestCache = new Map<string, {
+  timestamp: number;
+  promise: Promise<TableFetchResponse>;
+  response?: TableFetchResponse;
+}>();
+
+// Cache TTL in milliseconds (5 seconds)
+const CACHE_TTL = 5000;
+
+// Cache cleanup interval (60 seconds)
+const CACHE_CLEANUP_INTERVAL = 60000;
+
+// Setup cache cleanup interval
+if (typeof window !== 'undefined') {
+  setInterval(() => {
+    const now = Date.now();
+    requestCache.forEach((entry, key) => {
+      if (now - entry.timestamp > CACHE_TTL) {
+        requestCache.delete(key);
+      }
+    });
+  }, CACHE_CLEANUP_INTERVAL);
+}
+
+// Function to get a stable cache key for a request
+function getRequestCacheKey(request: TableFetchRequest): string {
+  // Extract only the parts we care about for caching
+  const cacheKeyObj = {
+    objectType: request.objectType,
+    page: request.page,
+    size: request.size,
+    sorts: request.sorts,
+    filters: request.filters
+  };
+  return JSON.stringify(cacheKeyObj);
+}
+
 export async function fetchTableData(request: TableFetchRequest): Promise<TableFetchResponse> {
   try {
     // Validate the objectType before sending request
@@ -187,15 +224,24 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
       console.error('Missing objectType in request:', request);
       throw new Error('objectType is required in the request');
     }
-
-    // // Convert the request to what the API expects
-    // const apiRequest = {
-    //   ...request,
-    //   objectType: typeof request.objectType === 'string' ? 
-    //     request.objectType : 
-    //     ObjectType[request.objectType]
-    // };
     
+    // Generate a unique cache key for this request
+    const cacheKey = getRequestCacheKey(request);
+    
+    // Check if we have a cached response that's still valid
+    const cachedItem = requestCache.get(cacheKey);
+    if (cachedItem) {
+      const now = Date.now();
+      // If cache is still valid, return it
+      if (now - cachedItem.timestamp < CACHE_TTL) {
+        console.log(`Using cached response for ${request.objectType}`);
+        // Return the cached response if available, otherwise wait for the promise
+        return cachedItem.response || cachedItem.promise;
+      }
+      // Otherwise, remove the stale cache entry
+      requestCache.delete(cacheKey);
+    }
+
     // Log what we're sending to the API
     console.log('Sending table data request:', request);
 
@@ -205,89 +251,63 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
     // Log the request for debugging
     console.log(`Fetching data from: ${url}`, request);
     
-    try {
-      // // Simplify the search structure to avoid sending unnecessary data
-      // // Only include the relevant entity type in the search object
-      // const simplifiedSearch: Record<ObjectType, DataObject> = {} as Record<ObjectType, DataObject>;
-      
-      // // Only add the current entity type to the search
-      // const entityType = request.objectType;
-      
-      // // Check if there's actual search data for this entity
-      // let hasSearchData = false;
-      // if (request.search && 
-      //     request.search[entityType] && 
-      //     request.search[entityType].data?.data?._search) {
-      //   hasSearchData = true;
-      // }
-      
-      // // Only include the current entity in search, and only if there's actual search data
-      // if (hasSearchData) {
-      //   simplifiedSearch[entityType] = {
-      //     objectType: entityType,
-      //     key: { keys: [] },
-      //     fieldNameMap: {},
-      //     description: '',
-      //     data: {
-      //       data: { 
-      //         _search: request.search[entityType].data.data._search || "" 
-      //       }
-      //     },
-      //     order: 0
-      //   };
-      // }
+    // Create the fetch promise
+    const fetchPromise = (async () => {
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            ...apiConfig.headers
+          },
+          body: JSON.stringify(request),
+          // Add cache control headers to prevent browser caching
+          cache: 'no-store'
+        });
 
-      // // Send the request with a simplified search structure
-      // const sanitizedRequest = {
-      //   page: request.page,
-      //   size: request.size || 10,
-      //   sorts: request.sorts || [],
-      //   filters: request.filters || [],
-      //   // If there's no search data, send an empty object instead of complex structure
-      //   search: hasSearchData ? simplifiedSearch : {},
-      //   objectType: request.objectType,
-      //   // Add the required entityName property using the mapping
-      //   entityName: request.objectType
-      // };
+        // Handle errors
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`API request failed with status ${response.status}:`, errorText);
+          throw new Error(`API error: ${response.status} ${errorText ? '- ' + errorText : ''}`);
+        }
 
-      // console.log('Sending simplified request:', sanitizedRequest);
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          ...apiConfig.headers
-        },
-        body: JSON.stringify(request)
-      });
-
-      // Add more detailed error handling
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`API request failed with status ${response.status}:`, errorText);
-        throw new Error(`API error: ${response.status} ${errorText ? '- ' + errorText : ''}`);
+        const data = await response.json();
+        
+        // Store the successful response in the cache
+        if (requestCache.has(cacheKey)) {
+          requestCache.get(cacheKey)!.response = data;
+        }
+        
+        // If using mock data is enabled and no real data is available, use mock data
+        if (apiConfig.useMockData && (!data || !data.rows || data.rows.length === 0)) {
+          console.log(`No data returned from API for ${request.objectType}, using mock data instead.`);
+          return mockFetchTableData(request);
+        }
+        
+        return data;
+      } catch (error) {
+        // Remove failed requests from cache
+        requestCache.delete(cacheKey);
+        
+        console.error('Error fetching table data:', error);
+        
+        // If using mock data is enabled, use it as fallback
+        if (apiConfig.useMockData) {
+          console.log(`API request failed, using mock data as fallback for ${request.objectType}`);
+          return mockFetchTableData(request);
+        }
+        
+        throw error;
       }
+    })();
 
-      const data = await response.json();
-      
-      // If using mock data is enabled and no real data is available, use mock data as fallback
-      if (apiConfig.useMockData && (!data || !data.rows || data.rows.length === 0)) {
-        console.log(`No data returned from API for ${request.objectType}, using mock data instead.`);
-        return mockFetchTableData(request); // Use the imported function
-      }
-      
-      return data;
-    } catch (error) {
-      console.error('Error fetching table data:', error);
-      
-      // If using mock data is enabled, use it as a fallback on errors
-      if (apiConfig.useMockData) {
-        console.log(`API request failed, using mock data as fallback for ${request.objectType}`);
-        return mockFetchTableData(request); // Use the imported function
-      }
-      
-      // Otherwise propagate the error
-      throw error;
-    }
+    // Store the promise in the cache
+    requestCache.set(cacheKey, {
+      timestamp: Date.now(),
+      promise: fetchPromise
+    });
+
+    return fetchPromise;
   } catch (error) {
     console.error('Error in fetchTableData:', error);
     throw error;

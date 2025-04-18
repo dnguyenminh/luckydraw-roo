@@ -1,41 +1,49 @@
 'use client';
 
+import React, { memo } from 'react';
 import Link from 'next/link';
-import { ReactNode } from 'react';
 
 interface SidebarNavItemProps {
   href: string;
-  icon: ReactNode;
+  icon: React.ReactNode;
   label: string;
   isActive: boolean;
   collapsed: boolean;
+  onClick?: (e: React.MouseEvent) => void;
+  prefetch?: boolean;
 }
 
-export default function SidebarNavItem({
-  href, 
+// Memoize SidebarNavItem to prevent unnecessary re-renders
+export default memo(function SidebarNavItem({
+  href,
   icon,
   label,
   isActive,
-  collapsed
+  collapsed,
+  onClick,
+  prefetch = false
 }: SidebarNavItemProps) {
   return (
     <li>
       <Link 
-        href={href}
-        className={`
-          flex items-center p-2 rounded-md transition-colors
-          ${isActive 
+        href={href} 
+        prefetch={prefetch}
+        onClick={onClick}
+        className={`flex items-center p-2 rounded-md ${
+          isActive 
             ? 'bg-[#37373d] text-white' 
-            : 'text-gray-400 hover:bg-[#2a2d2e] hover:text-white'
-          }
-          ${collapsed ? 'justify-center' : 'justify-start'}
-        `}
+            : 'text-gray-300 hover:bg-[#2a2d2e] hover:text-white'
+        }`}
       >
-        <span className="w-5 h-5 flex items-center justify-center">
-          {icon}
+        <span className="flex-shrink-0">
+          {React.cloneElement(icon as React.ReactElement, { 
+            size: collapsed ? 20 : 18
+          })}
         </span>
-        {!collapsed && <span className="ml-3 whitespace-nowrap">{label}</span>}
+        {!collapsed && (
+          <span className="ml-3">{label}</span>
+        )}
       </Link>
     </li>
   );
-}
+});

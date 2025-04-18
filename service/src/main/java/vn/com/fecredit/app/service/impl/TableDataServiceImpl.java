@@ -29,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.repository.SimpleObjectRepository;
+import vn.com.fecredit.app.service.TableActionService;
 import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.DataObject;
@@ -40,6 +41,8 @@ import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.SortRequest;
 import vn.com.fecredit.app.service.dto.SortType;
 import vn.com.fecredit.app.service.dto.TabTableRow;
+import vn.com.fecredit.app.service.dto.TableActionRequest;
+import vn.com.fecredit.app.service.dto.TableActionResponse;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
@@ -62,6 +65,8 @@ public class TableDataServiceImpl implements TableDataService {
     private final RepositoryFactory repositoryFactory;
 
     private final RelatedTablesFactory relatedTablesFactory;
+
+    private final TableActionService tableActionService;
 
     @Override
     public TableFetchResponse fetchData(TableFetchRequest request) {
@@ -94,6 +99,19 @@ public class TableDataServiceImpl implements TableDataService {
         }
     }
 
+    @Override
+    public TableActionResponse executeAction(TableActionRequest request) {
+        if (request == null) {
+            return TableActionResponse.error(null, "Request cannot be null");
+        }
+        
+        log.info("Executing table action: {} for entity type: {}", 
+                request.getAction(), request.getObjectType());
+        
+        // Delegate to the dedicated action service
+        return tableActionService.processAction(request);
+    }
+
     /**
      * Fetch data based on ObjectType
      */
@@ -120,7 +138,7 @@ public class TableDataServiceImpl implements TableDataService {
                         tableName,
                         this::createEntitySpecification,
                         this::convertEntityToTableRow,
-                        () -> getColumnInfo(objectType));
+                        () -> getColumnInfo(objectType, request));
             } catch (IllegalArgumentException e) {
                 // This is now specifically for repository not found errors
                 log.error("Error getting repository for entity class {}: {}", entityClass.getName(), e.getMessage());
@@ -134,17 +152,39 @@ public class TableDataServiceImpl implements TableDataService {
     }
 
     /**
+     * Determine if a field should be editable
+     * 
+     * @param fieldName the name of the field
+     * @return true if the field should be editable, false otherwise
+     */
+    private boolean isFieldEditable(String fieldName) {
+        // List of fields that should not be editable
+        return !("id".equals(fieldName) ||
+                "version".equals(fieldName) ||
+                "createdBy".equals(fieldName) ||
+                "createdDate".equals(fieldName) ||
+                "updatedBy".equals(fieldName) ||
+                "lastModifiedDate".equals(fieldName));
+    }
+
+    /**
      * Get column info based on object type in a generic way using reflection
      */
-    private Map<String, ColumnInfo> getColumnInfo(ObjectType objectType) {
+    private Map<String, ColumnInfo> getColumnInfo(ObjectType objectType, TableFetchRequest request) {
         Map<String, ColumnInfo> columnInfo = new HashMap<>();
 
         try {
             // Get the entity class for this object type
             Class<?> entityClass = repositoryFactory.getEntityClass(objectType);
 
+            // Get current sort requests from the request context
+            List<SortRequest> sortRequests = null;
+            if (request != null && request.getSorts() != null) {
+                sortRequests = request.getSorts();
+            }
+
             // Recursively analyze fields in the class hierarchy
-            analyzeEntityFields(entityClass, columnInfo);
+            analyzeEntityFields(entityClass, columnInfo, sortRequests);
 
             log.debug("Generated {} columns for entity type {}", columnInfo.size(), objectType);
         } catch (Exception e) {
@@ -153,7 +193,7 @@ public class TableDataServiceImpl implements TableDataService {
 
         // If no columns found (error case), add at least id column
         if (columnInfo.isEmpty()) {
-            columnInfo.put("id", new ColumnInfo("id", FieldType.NUMBER.name(), SortType.ASCENDING));
+            columnInfo.put("id", ColumnInfo.createNonEditable("id", FieldType.NUMBER.name(), SortType.ASCENDING));
             log.warn("Using fallback column definition for {}", objectType);
         }
 
@@ -163,10 +203,12 @@ public class TableDataServiceImpl implements TableDataService {
     /**
      * Recursively analyze entity fields to build column info
      *
-     * @param entityClass the entity class to analyze
-     * @param columnInfo the map to populate with column info
+     * @param entityClass  the entity class to analyze
+     * @param columnInfo   the map to populate with column info
+     * @param sortRequests current sort requests from the table fetch request
      */
-    private void analyzeEntityFields(Class<?> entityClass, Map<String, ColumnInfo> columnInfo) {
+    private void analyzeEntityFields(Class<?> entityClass, Map<String, ColumnInfo> columnInfo,
+            List<SortRequest> sortRequests) {
         // If we've reached Object class or null, stop recursion
         if (entityClass == null || entityClass == Object.class) {
             return;
@@ -178,18 +220,19 @@ public class TableDataServiceImpl implements TableDataService {
         for (java.lang.reflect.Field field : entityClass.getDeclaredFields()) {
             // Skip static, transient, and fields with @Transient annotation
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) ||
-                java.lang.reflect.Modifier.isTransient(field.getModifiers()) ||
-                field.isAnnotationPresent(jakarta.persistence.Transient.class)) {
+                    java.lang.reflect.Modifier.isTransient(field.getModifiers()) ||
+                    field.isAnnotationPresent(jakarta.persistence.Transient.class)) {
                 continue;
             }
 
-            // Skip fields that represent relationships unless they're simple ManyToOne/OneToOne
+            // Skip fields that represent relationships unless they're simple
+            // ManyToOne/OneToOne
             boolean isCollection = java.util.Collection.class.isAssignableFrom(field.getType());
             boolean isDetailRelationship = false;
 
             if (field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
-                field.isAnnotationPresent(jakarta.persistence.ManyToMany.class) ||
-                isCollection) {
+                    field.isAnnotationPresent(jakarta.persistence.ManyToMany.class) ||
+                    isCollection) {
                 isDetailRelationship = true;
             }
 
@@ -208,27 +251,39 @@ public class TableDataServiceImpl implements TableDataService {
             // Determine field type
             FieldType fieldType = determineFieldType(field.getType());
 
-            // Determine default sort type - id is ascending, others are none
-            SortType sortType = "id".equals(fieldName) ? SortType.ASCENDING : SortType.NONE;
-
-            // For common name/description/code fields, set as sortable
-            if (fieldName.equals("name") || fieldName.equals("code") || fieldName.equals("description") ||
-                fieldName.equals("username") || fieldName.equals("email") || fieldName.equals("fullName")) {
-                sortType = SortType.ASCENDING;
+            // First check if this field is in current sort requests
+            SortType sortType = null;
+            if (sortRequests != null) {
+                for (SortRequest sortRequest : sortRequests) {
+                    if (fieldName.equals(sortRequest.getField())) {
+                        sortType = sortRequest.getSortType();
+                        log.debug("Using sort type from request for field {}: {}", fieldName, sortType);
+                        break;
+                    }
+                }
             }
 
-            // Date fields are often sortable
-            if (fieldType == FieldType.DATE || fieldType == FieldType.DATETIME) {
-                sortType = SortType.ASCENDING;
+            // If no sort type from request, always use NONE as default
+            if (sortType == null) {
+                sortType = SortType.NONE;
             }
+
+            // Check if this field should be editable
+            boolean editable = isFieldEditable(fieldName);
 
             // Create and add the column info
-            columnInfo.put(fieldName, new ColumnInfo(fieldName, fieldType.name(), sortType));
-            log.debug("Added column info for field: {}, type: {}, sort: {}", fieldName, fieldType, sortType);
+            if (editable) {
+                columnInfo.put(fieldName, new ColumnInfo(fieldName, fieldType.name(), sortType));
+            } else {
+                columnInfo.put(fieldName, ColumnInfo.createNonEditable(fieldName, fieldType.name(), sortType));
+            }
+
+            log.debug("Added column info for field: {}, type: {}, sort: {}, editable: {}",
+                    fieldName, fieldType, sortType, editable);
         }
 
         // Process superclass fields
-        analyzeEntityFields(entityClass.getSuperclass(), columnInfo);
+        analyzeEntityFields(entityClass.getSuperclass(), columnInfo, sortRequests);
     }
 
     /**
@@ -243,15 +298,15 @@ public class TableDataServiceImpl implements TableDataService {
         } else if (javaType.equals(Boolean.class) || javaType.equals(boolean.class)) {
             return FieldType.BOOLEAN;
         } else if (Number.class.isAssignableFrom(javaType) ||
-                  javaType.equals(int.class) ||
-                  javaType.equals(long.class) ||
-                  javaType.equals(float.class) ||
-                  javaType.equals(double.class)) {
+                javaType.equals(int.class) ||
+                javaType.equals(long.class) ||
+                javaType.equals(float.class) ||
+                javaType.equals(double.class)) {
             return FieldType.NUMBER;
         } else if (java.time.LocalDate.class.isAssignableFrom(javaType)) {
             return FieldType.DATE;
         } else if (java.time.LocalDateTime.class.isAssignableFrom(javaType) ||
-                  java.util.Date.class.isAssignableFrom(javaType)) {
+                java.util.Date.class.isAssignableFrom(javaType)) {
             return FieldType.DATETIME;
         } else if (java.time.LocalTime.class.isAssignableFrom(javaType)) {
             return FieldType.TIME;
@@ -833,13 +888,13 @@ public class TableDataServiceImpl implements TableDataService {
 
             for (Method method : methods) {
                 String methodName = method.getName();
-                
+
                 // Skip if method is a getter for an entity type
                 if (isEntityGetter(method)) {
                     log.debug("Skipping entity getter method: {}", methodName);
                     continue;
                 }
-                
+
                 // Only process getter methods (except getClass())
                 if (methodName.startsWith("get") &&
                         !methodName.equals("getClass") &&
@@ -857,9 +912,9 @@ public class TableDataServiceImpl implements TableDataService {
                         propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
 
                         // Skip known entity relationships
-                        if (propertyName.equals("user") || propertyName.equals("role") || 
-                            propertyName.equals("event") || propertyName.equals("participant") ||
-                            propertyName.equals("reward")) {
+                        if (propertyName.equals("user") || propertyName.equals("role") ||
+                                propertyName.equals("event") || propertyName.equals("participant") ||
+                                propertyName.equals("reward")) {
                             log.debug("Skipping known entity relationship field: {}", propertyName);
                             continue;
                         }
@@ -895,7 +950,7 @@ public class TableDataServiceImpl implements TableDataService {
                     }
                 }
             }
-            
+
             // As a safety net, remove any entity objects that might have slipped through
             // (in case we missed some entity type detection)
             List<String> keysToRemove = new ArrayList<>();
@@ -906,7 +961,7 @@ public class TableDataServiceImpl implements TableDataService {
                     log.debug("Removing missed entity property: {}", entry.getKey());
                 }
             }
-            
+
             for (String key : keysToRemove) {
                 data.remove(key);
             }
@@ -930,7 +985,7 @@ public class TableDataServiceImpl implements TableDataService {
             return row;
         }
     }
-    
+
     /**
      * Check if a method is a getter for an entity type
      * 
@@ -942,29 +997,28 @@ public class TableDataServiceImpl implements TableDataService {
         if (method.getParameterCount() > 0) {
             return false;
         }
-        
+
         // Must have "get" prefix (not checking for is/has as those return booleans)
         String methodName = method.getName();
         if (!methodName.startsWith("get") || methodName.equals("getClass")) {
             return false;
         }
-        
+
         Class<?> returnType = method.getReturnType();
-        
+
         // Check if return type is an entity class
         if (returnType.isAnnotationPresent(jakarta.persistence.Entity.class)) {
             return true;
         }
-        
+
         // Check if it's a JPA collection type
         if (java.util.Collection.class.isAssignableFrom(returnType)) {
             // For collections, we need to check the generic parameter
             try {
                 java.lang.reflect.Type genericReturnType = method.getGenericReturnType();
                 if (genericReturnType instanceof java.lang.reflect.ParameterizedType) {
-                    java.lang.reflect.ParameterizedType paramType = 
-                        (java.lang.reflect.ParameterizedType) genericReturnType;
-                    
+                    java.lang.reflect.ParameterizedType paramType = (java.lang.reflect.ParameterizedType) genericReturnType;
+
                     java.lang.reflect.Type[] typeArguments = paramType.getActualTypeArguments();
                     if (typeArguments.length > 0 && typeArguments[0] instanceof Class) {
                         Class<?> itemType = (Class<?>) typeArguments[0];
@@ -977,12 +1031,12 @@ public class TableDataServiceImpl implements TableDataService {
                 log.debug("Error checking collection generic type for {}: {}", methodName, e.getMessage());
             }
         }
-        
+
         // For common entity types we know by naming convention
         String propertyName = methodName.substring(3).toLowerCase();
-        return propertyName.equals("user") || propertyName.equals("event") || 
-               propertyName.equals("participant") || propertyName.equals("reward") ||
-               propertyName.equals("role") || propertyName.equals("permission");
+        return propertyName.equals("user") || propertyName.equals("event") ||
+                propertyName.equals("participant") || propertyName.equals("reward") ||
+                propertyName.equals("role") || propertyName.equals("permission");
     }
 
     /**
@@ -993,7 +1047,7 @@ public class TableDataServiceImpl implements TableDataService {
         if (obj.getClass().isAnnotationPresent(jakarta.persistence.Entity.class)) {
             return true;
         }
-        
+
         // Check for common entity characteristics
         // Entities typically have an ID field
         try {
@@ -1004,7 +1058,7 @@ public class TableDataServiceImpl implements TableDataService {
         } catch (NoSuchMethodException e) {
             // Not an entity or doesn't follow standard pattern
         }
-        
+
         return false;
     }
 

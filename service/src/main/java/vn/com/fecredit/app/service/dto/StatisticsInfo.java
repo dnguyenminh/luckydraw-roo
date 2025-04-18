@@ -1,28 +1,22 @@
 package vn.com.fecredit.app.service.dto;
 
+import java.util.List;
+import java.util.Map;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-
 /**
- * Contains statistical information.
- * Groups charts by category and provides data for visualization.
+ * Container for statistics information
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class StatisticsInfo implements Serializable {
-    /**
-     * Serial Version UID for serialization
-     */
-    private static final long serialVersionUID = 1L;
+public class StatisticsInfo {
     
     /**
-     * Map of chart categories to lists of charts
+     * Charts organized by chart category
      */
     private Map<String, List<ChartInfo>> charts;
 }

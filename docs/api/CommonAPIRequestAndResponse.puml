@@ -75,6 +75,15 @@ namespace vn.com.fecredit.app.service.dto {
         Integer order
     }
 
+    enum TableAction {
+        ADD
+        UPDATE
+        DELETE
+        VIEW
+        EXPORT
+        IMPORT
+    }
+
     class TableFetchRequest {
         ObjectType objectType
         String entityName
@@ -144,6 +153,36 @@ namespace vn.com.fecredit.app.service.dto {
     SortRequest --> SortType
     FilterRequest --> FilterType
     StatisticsInfo --> ChartInfo
+
+    enum TableAction {
+        ADD
+        UPDATE
+        DELETE
+        VIEW
+        EXPORT
+        IMPORT
+    }
+
+    class TableActionRequest {
+        ObjectType objectType
+        String entityName
+        TableAction action
+        TableRow data
+        UploadFile uploadFile
+        List<SortRequest> sorts
+        List<FilterRequest> filters
+        Map<ObjectType, DataObject> search
+    }
+
+    class UploadFile {
+        String fileName
+        byte[] fileContent
+    }
+
+    class TableActionResponse {
+        TableActionRequest originalRequest
+    }
+
 }
 
 @enduml

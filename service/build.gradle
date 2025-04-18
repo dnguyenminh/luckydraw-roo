@@ -37,6 +37,10 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
 
     testImplementation 'org.springframework.boot:spring-boot-starter'
+
+    // Apache POI for Excel handling
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
 }
 
 java {

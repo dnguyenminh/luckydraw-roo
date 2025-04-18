@@ -11,40 +11,55 @@ import {
   TableRow,
 } from '@/app/lib/api/interfaces';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import DataTable from './DataTable';
+import DataTable, { ColumnDef } from './DataTable'; // Import the ColumnDef type from DataTable
 import { fetchTableData } from '@/app/lib/api/tableService';
-import { Loader, AlertCircle, ChevronRight } from 'lucide-react';
+import { Loader, AlertCircle, ChevronRight, Save, X } from 'lucide-react';
 
-/**
- * EntityDetailTabs Component
- *
- * Renders detailed information about an entity with tabs for:
- * 1. Basic entity details
- * 2. Related tables (dynamically loaded)
- *
- * Features:
- * - Automatically detects related tables
- * - Lazy loads table data when tabs are selected
- * - Formats entity fields by type (ID, status, dates, simple fields, complex fields)
- * - Supports nested entity relationships
- */
-export default function EntityDetailTabs({
-  entityType,
-  tableRow,
-  tableInfo,
-  search
-}: {
-  entityType: ObjectType;
+export interface EntityDetailTabsProps {
   tableRow: TabTableRow;
-  tableInfo: TableFetchResponse;
+  entityType: ObjectType;
+  tableInfo?: TableFetchResponse;
   search?: Record<ObjectType, DataObject>;
-}) {
+  isEditing?: boolean;
+  isNewRow?: boolean;
+  onCancelEdit?: () => void;
+  onSaveEdit?: (editedData: any) => void;
+  columns?: ColumnDef[]; // Add columns property
+  excludedStatusOptions?: string[]; // Add excludedStatusOptions property
+}
+
+const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
+  tableRow,
+  entityType,
+  tableInfo,
+  search,
+  isEditing = false,
+  isNewRow = false,
+  onCancelEdit,
+  onSaveEdit,
+  columns, // Add columns parameter
+  excludedStatusOptions = [] // Add excludedStatusOptions with empty array default
+}) => {
   // State for tab management and data loading
   const [activeTab, setActiveTab] = useState<string>('details');
   const [loadedTabs, setLoadedTabs] = useState<Record<string, boolean>>({ details: true });
   const [relatedTableData, setRelatedTableData] = useState<Record<string, TableFetchResponse | null>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<Record<string, string | null>>({});
+  
+  // State for editing
+  const [editedData, setEditedData] = useState<Record<string, any>>({});
+
+  // Add the missing getStatusOptions function
+  const getStatusOptions = () => {
+    // Default status options available in the system
+    const defaultOptions = ['ACTIVE', 'INACTIVE', 'DELETE'];
+    
+    // Filter out any excluded options (like 'DELETE')
+    return defaultOptions.filter(option => 
+      !excludedStatusOptions.includes(option)
+    );
+  };
 
   // Extract the actual data object, handling both TabTableRow format and direct data objects
   const rowData = useMemo(() => {
@@ -67,6 +82,13 @@ export default function EntityDetailTabs({
     console.warn("No valid data found in tableRow");
     return null;
   }, [tableRow]);
+
+  // Initialize editedData from rowData when entering edit mode
+  useEffect(() => {
+    if (isEditing && rowData) {
+      setEditedData({ ...rowData });
+    }
+  }, [isEditing, rowData]);
 
   // Inspect tableRow for debugging - but don't modify it
   useEffect(() => {
@@ -107,6 +129,21 @@ export default function EntityDetailTabs({
     return Array.from(new Set(tabs)); // Remove duplicates
   }, [searchTabs, relatedTables]);
 
+  // Set active tab to details when entering edit mode
+  useEffect(() => {
+    if (isEditing) {
+      setActiveTab('details');
+    }
+  }, [isEditing]);
+
+  // Handle field change in edit mode
+  const handleFieldChange = (key: string, value: any) => {
+    setEditedData(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
   // Helper to get ObjectType from tab name
   const getObjectTypeForTab = (tabName: string): ObjectType => {
     // Check if tabName is an ObjectType key
@@ -132,7 +169,6 @@ export default function EntityDetailTabs({
     return mappings[tabName.toUpperCase()];
   };
 
-
   // Load data when tab changes
   useEffect(() => {
     loadRelatedTableData(activeTab, loadedTabs, relatedTables); 
@@ -151,8 +187,8 @@ export default function EntityDetailTabs({
         const searchContext: Record<ObjectType, DataObject> = search || {} as Record<ObjectType, DataObject>;
         searchContext[entityType] = {
           objectType: entityType,
-          key: tableInfo.key,
-          fieldNameMap: tableInfo.fieldNameMap,
+          key: tableInfo?.key || '',
+          fieldNameMap: tableInfo?.fieldNameMap || {},
           description: '',
           data: tableRow as TableRow
         } as DataObject;
@@ -188,21 +224,6 @@ export default function EntityDetailTabs({
     }
   }
 
-  // Debug output in useEffect
-  useEffect(() => {
-    console.log("EntityDetailTabs render state:", {
-      entityType,
-      rowData: !!rowData,
-      relatedTables,
-      searchTabs,
-      allTabs,
-      hasRelatedTablesProperty: 'relatedTables' in (tableRow || {}),
-      isRelatedTablesArray: Array.isArray(tableRow?.relatedTables),
-      relatedTablesLength: tableRow?.relatedTables?.length
-    });
-  }, [entityType, rowData, relatedTables, searchTabs, allTabs, tableRow]);
-
-
   // Format entity field names for display
   const formatFieldName = (key: string): string => {
     return key.charAt(0).toUpperCase() +
@@ -211,16 +232,6 @@ export default function EntityDetailTabs({
 
   // Format tab labels
   const formatTabLabel = (tabName: string): string => {
-    // If it's a numeric ObjectType, find its name
-    if (!isNaN(Number(tabName)) && Object.values(ObjectType).includes(tabName as ObjectType)) {
-      const enumKey = Object.keys(ObjectType).find(key =>
-        ObjectType[key as keyof typeof ObjectType] === tabName
-      );
-      if (enumKey) {
-        return formatFieldName(enumKey);
-      }
-    }
-
     return tabName
       .split('_')
       .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
@@ -236,7 +247,6 @@ export default function EntityDetailTabs({
     }
 
     if (typeof value === 'string') {
-      // Handle ISO date strings
       if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
         try {
           return new Date(value).toLocaleString();
@@ -260,30 +270,156 @@ export default function EntityDetailTabs({
     return String(value);
   };
 
+  // Render editable field based on field type
+  const renderEditableField = (key: string, value: any, type: string) => {
+    // Add 'version' to the list of non-editable fields
+    if (key === 'id' || key === 'version' || key.includes('createdBy') || key.includes('updatedBy') || 
+        key.includes('createdDate') || key.includes('lastModifiedDate')) {
+      return formatFieldValue(value);
+    }
+
+    if (typeof value === 'boolean' || value === true || value === false) {
+      return (
+        <select
+          className="w-full bg-[#2d2d2d] text-white p-2 rounded border border-[#3c3c3c]"
+          value={editedData[key] === true ? "true" : editedData[key] === false ? "false" : ""}
+          onChange={(e) => handleFieldChange(key, e.target.value === "true" ? true : e.target.value === "false" ? false : null)}
+        >
+          <option value="">Select</option>
+          <option value="true">Yes</option>
+          <option value="false">No</option>
+        </select>
+      );
+    }
+
+    if (type === 'date') {
+      const dateValue = value ? new Date(value).toISOString().split('T')[0] : '';
+      return (
+        <input
+          type="date"
+          className="w-full bg-[#2d2d2d] text-white p-2 rounded border border-[#3c3c3c]"
+          value={editedData[key] ? new Date(editedData[key]).toISOString().split('T')[0] : ''}
+          onChange={(e) => handleFieldChange(key, e.target.value)}
+        />
+      );
+    }
+
+    if (type === 'datetime') {
+      const datetimeValue = value ? new Date(value).toISOString().slice(0, 16) : '';
+      return (
+        <input
+          type="datetime-local"
+          className="w-full bg-[#2d2d2d] text-white p-2 rounded border border-[#3c3c3c]"
+          value={editedData[key] ? new Date(editedData[key]).toISOString().slice(0, 16) : ''}
+          onChange={(e) => handleFieldChange(key, e.target.value)}
+        />
+      );
+    }
+
+    if (typeof value === 'number') {
+      return (
+        <input
+          type="number"
+          className="w-full bg-[#2d2d2d] text-white p-2 rounded border border-[#3c3c3c]"
+          value={editedData[key] || ''}
+          onChange={(e) => handleFieldChange(key, e.target.value ? Number(e.target.value) : null)}
+        />
+      );
+    }
+    
+    return (
+      <input
+        type="text"
+        className="w-full bg-[#2d2d2d] text-white p-2 rounded border border-[#3c3c3c]"
+        value={editedData[key] || ''}
+        onChange={(e) => handleFieldChange(key, e.target.value)}
+      />
+    );
+  };
+
   // Render the detailed information about an entity in a card format
   const renderEntityDetails = (data: any, title: string = 'Details') => {
-    // Enhanced logging for debugging
     console.log("renderEntityDetails called with data:", data);
 
-    // More robust null check
     if (!data || Object.keys(data).length === 0) {
+      const emptyData = {
+        status: 'ACTIVE', // Default status for new entities
+        // Add any other default values needed for new entities
+      };
+
+      if (isEditing) {
+        // If we're creating a new entity, show empty form fields
+        return (
+          <div className="space-y-6 p-4 bg-[#1e1e1e] rounded border border-[#3c3c3c]">
+            <h2 className="text-lg font-medium text-white border-b border-[#3c3c3c] pb-2">
+              Create New {entityType} <span className="text-[#007acc] ml-2">(Edit Mode)</span>
+            </h2>
+            
+            {/* Render edit form with empty data */}
+            {renderEntityDetails(emptyData, `New ${entityType}`)}
+          </div>
+        );
+      }
+      
       console.warn("No data available for entity details");
       return <div className="p-4 text-center text-gray-400">No data available for {title}</div>;
     }
 
-    // Categorize fields for better display
     const excludedFields = ['relatedTables'];
+    // Always exclude currentServerTime field
+    excludedFields.push('currentServerTime');
+    
+    // When we're in new entity mode, ensure ALL audit-related fields are excluded
+    if (isNewRow) {
+      const auditFieldPatterns = [
+        'createdBy', 'updatedBy', 'lastUpdatedBy', 'modifiedBy',
+        'createdDate', 'lastModifiedDate', 'updatedDate', 'created', 'updated', 'modified',
+        'createTime', 'updateTime', 'createdAt', 'updatedAt'
+      ];
+      
+      // Add all potential audit fields to excluded list
+      excludedFields.push(...auditFieldPatterns);
+    }
+    
     const idField = data.id !== undefined ? { id: data.id } : {};
     const statusField = data.status !== undefined ? { status: data.status } : {};
     const dateFields: Record<string, any> = {};
     const simpleFields: Record<string, any> = {};
     const complexFields: Record<string, any> = {};
+    const auditFields: Record<string, any> = {}; // New separate category for audit fields
 
-    // Sort fields by category - more robust implementation
+    // Use columns metadata if available
+    const columnDefs = columns ? 
+      columns.reduce((acc, col) => ({ ...acc, [col.key]: col }), {} as Record<string, ColumnDef>) : 
+      null;
+
     Object.entries(data).forEach(([key, value]) => {
-      if (excludedFields.includes(key) || key === 'id' || key === 'status') return;
+      // Skip excluded fields and fields marked as hidden in columns definition
+      if (excludedFields.includes(key) || 
+          key === 'id' || 
+          key === 'status' ||
+          (columnDefs && columnDefs[key]?.hidden) ||
+          // Also exclude fields that match any of the audit field patterns in new mode
+          (isNewRow && excludedFields.some(pattern => key.toLowerCase().includes(pattern.toLowerCase())))) {
+        return;
+      }
 
-      // More explicit type checking
+      // Separate audit fields into their own category but don't exclude them when NOT in new mode
+      if (!isNewRow && (
+          key === 'createdBy' || key === 'updatedBy' || key === 'lastUpdatedBy' ||
+          key === 'createdDate' || key === 'lastModifiedDate' || key === 'updatedDate' ||
+          key.toLowerCase().includes('created') || key.toLowerCase().includes('updated') ||
+          key.toLowerCase().includes('modified'))) {
+        
+        // For date values
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(value)) {
+          auditFields[key] = value;
+        } else {
+          auditFields[key] = value;
+        }
+        return;
+      }
+
       if (value !== null && typeof value === 'object') {
         if (value instanceof Date) {
           dateFields[key] = value;
@@ -303,10 +439,9 @@ export default function EntityDetailTabs({
     return (
       <div className="space-y-6 p-4 bg-[#1e1e1e] rounded border border-[#3c3c3c]">
         <h2 className="text-lg font-medium text-white border-b border-[#3c3c3c] pb-2">
-          {title}
+          {title} {isEditing && <span className="text-[#007acc] ml-2">(Edit Mode)</span>}
         </h2>
 
-        {/* ID & Status Section */}
         {(idField.id || statusField.status) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {idField.id && (
@@ -320,55 +455,96 @@ export default function EntityDetailTabs({
               <div className="bg-[#252525] p-3 rounded">
                 <div className="text-sm text-gray-400 mb-1">Status</div>
                 <div>
-                  <span className={`px-2 py-1 rounded-full text-xs ${statusField.status === 'ACTIVE' ? 'bg-green-800 text-green-200' :
-                    statusField.status === 'INACTIVE' ? 'bg-red-800 text-red-200' :
-                      'bg-gray-800 text-gray-200'
-                    }`}>
-                    {statusField.status}
-                  </span>
+                  {isEditing ? (
+                    <select
+                      className="w-full bg-[#2d2d2d] text-white p-2 rounded border border-[#3c3c3c]"
+                      value={editedData.status || ''}
+                      onChange={(e) => handleFieldChange('status', e.target.value)}
+                    >
+                      {getStatusOptions().map(option => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className={`px-2 py-1 rounded-full text-xs ${statusField.status === 'ACTIVE' ? 'bg-green-800 text-green-200' :
+                      statusField.status === 'INACTIVE' ? 'bg-red-800 text-red-200' :
+                        'bg-gray-800 text-gray-200'
+                      }`}>
+                      {statusField.status}
+                    </span>
+                  )}
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Basic Fields Section */}
         {Object.keys(simpleFields).length > 0 && (
           <div>
             <h3 className="text-md font-medium text-gray-300 mb-3 border-b border-[#3c3c3c] pb-1">
               Basic Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(simpleFields).map(([key, value]) => (
-                <div key={key} className="bg-[#252525] p-3 rounded">
-                  <div className="text-sm text-gray-400 mb-1">{formatFieldName(key)}</div>
-                  <div className="font-medium overflow-hidden text-ellipsis">
-                    {formatFieldValue(value)}
+              {Object.entries(simpleFields)
+                .filter(([key]) => {
+                  // Additional check for hidden fields based on columns definition
+                  if (columnDefs && columnDefs[key]) {
+                    return isEditing ? columnDefs[key].editable !== false : true;
+                  }
+                  return true;
+                })
+                .map(([key, value]) => (
+                  <div key={key} className="bg-[#252525] p-3 rounded">
+                    <div className="text-sm text-gray-400 mb-1">{formatFieldName(key)}</div>
+                    <div className="font-medium overflow-hidden text-ellipsis">
+                      {isEditing 
+                        ? renderEditableField(key, value, typeof value === 'boolean' ? 'boolean' : 'text')
+                        : formatFieldValue(value)
+                      }
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}
 
-        {/* Date Fields Section */}
         {Object.keys(dateFields).length > 0 && (
           <div>
             <h3 className="text-md font-medium text-gray-300 mb-3 border-b border-[#3c3c3c] pb-1">
               Date & Time Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(dateFields).map(([key, value]) => (
-                <div key={key} className="bg-[#252525] p-3 rounded">
-                  <div className="text-sm text-gray-400 mb-1">{formatFieldName(key)}</div>
-                  <div className="font-medium">{formatFieldValue(value)}</div>
-                </div>
-              ))}
+              {Object.entries(dateFields)
+                .filter(([key]) => {
+                  // Only filter out currentServerTime in edit mode, not audit fields
+                  if (isEditing && key === 'currentServerTime') {
+                    return false;
+                  }
+                  
+                  // Additional check for hidden fields based on columns definition
+                  if (columnDefs && columnDefs[key]) {
+                    return isEditing ? columnDefs[key].editable !== false : true;
+                  }
+                  
+                  return true;
+                })
+                .map(([key, value]) => (
+                  <div key={key} className="bg-[#252525] p-3 rounded">
+                    <div className="text-sm text-gray-400 mb-1">{formatFieldName(key)}</div>
+                    <div className="font-medium">
+                      {isEditing && !key.includes('created') && !key.includes('updated') && !key.includes('modified')
+                        ? renderEditableField(key, value, 'datetime')
+                        : formatFieldValue(value)
+                      }
+                    </div>
+                  </div>
+                ))}
             </div>
           </div>
         )}
 
-        {/* Complex Fields Section */}
         {Object.keys(complexFields).length > 0 && (
           <div>
             <h3 className="text-md font-medium text-gray-300 mb-3 border-b border-[#3c3c3c] pb-1">
@@ -382,6 +558,42 @@ export default function EntityDetailTabs({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        
+        {/* Only show Audit Information section if we have audit fields AND we're not adding a new entity */}
+        {Object.keys(auditFields).length > 0 && !isNewRow && (
+          <div>
+            <h3 className="text-md font-medium text-gray-300 mb-3 border-b border-[#3c3c3c] pb-1">
+              Audit Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(auditFields).map(([key, value]) => (
+                <div key={key} className="bg-[#252525] p-3 rounded">
+                  <div className="text-sm text-gray-400 mb-1">{formatFieldName(key)}</div>
+                  <div className="font-medium">{formatFieldValue(value)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {isEditing && (
+          <div className="flex justify-end space-x-3 pt-4 mt-4 border-t border-[#3c3c3c]">
+            <button 
+              className="flex items-center px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
+              onClick={onCancelEdit}
+              type="button"
+            >
+              <X size={16} className="mr-2" /> {isNewRow ? "Cancel Add" : "Cancel Edit"}
+            </button>
+            <button 
+              className="flex items-center px-4 py-2 bg-[#007acc] text-white rounded hover:bg-[#0069ac]"
+              onClick={() => onSaveEdit && onSaveEdit(editedData)}
+              type="button"
+            >
+              <Save size={16} className="mr-2" /> {isNewRow ? "Create" : "Save Changes"}
+            </button>
           </div>
         )}
       </div>
@@ -399,7 +611,6 @@ export default function EntityDetailTabs({
     const searchItem = search[tabKey as unknown as ObjectType];
     console.log(`Search item for ${tabKey}:`, searchItem);
 
-    // If it has data, show it
     if (searchItem?.data?.data) {
       return renderEntityDetails(
         searchItem.data.data,
@@ -424,7 +635,6 @@ export default function EntityDetailTabs({
       );
     }
 
-    // Show loading state
     if (loading[tabId]) {
       return (
         <div className="p-8 flex flex-col items-center justify-center">
@@ -434,7 +644,6 @@ export default function EntityDetailTabs({
       );
     }
 
-    // Show error state
     if (error[tabId]) {
       return (
         <div className="p-6 text-center">
@@ -453,17 +662,13 @@ export default function EntityDetailTabs({
 
     const tableData = relatedTableData[tabId];
 
-    // If we have data, render the DataTable
     if (tableData) {
-      // Create merged search context for the nested DataTable
       const mergedSearch: Record<ObjectType, DataObject> = search || {} as Record<ObjectType, DataObject>;
 
-
-      // Add parent entity to search context
       mergedSearch[entityType] = {
         objectType: entityType,
-        key: tableInfo.key,
-        fieldNameMap: tableInfo.fieldNameMap,
+        key: tableInfo?.key || '',
+        fieldNameMap: tableInfo?.fieldNameMap || {},
         description: '',
         data: tableRow,
         order: 0
@@ -481,7 +686,6 @@ export default function EntityDetailTabs({
       );
     }
 
-    // Show empty state with load button
     return (
       <div className="p-8 flex flex-col items-center justify-center text-gray-400">
         <ChevronRight className="h-6 w-6 mb-2" />
@@ -496,8 +700,26 @@ export default function EntityDetailTabs({
     );
   };
 
-  // More robust empty data check
-  if (!rowData) {
+  if (!rowData || Object.keys(rowData).length === 0) {
+    const emptyData = {
+      status: 'ACTIVE', // Default status for new entities
+      // Add any other default values needed for new entities
+    };
+
+    if (isEditing) {
+      // When creating a new entity, show only the edit form
+      return (
+        <div className="space-y-6 p-4 bg-[#1e1e1e] rounded border border-[#3c3c3c]">
+          <h2 className="text-lg font-medium text-white border-b border-[#3c3c3c] pb-2">
+            Create New {entityType} <span className="text-[#007acc] ml-2">(Edit Mode)</span>
+          </h2>
+          
+          {/* Render edit form with empty data */}
+          {renderEntityDetails(emptyData, `New ${entityType}`)}
+        </div>
+      );
+    }
+    
     console.warn("EntityDetailTabs: No rowData available");
     return <div className="p-4 text-center text-gray-400">No entity data available</div>;
   }
@@ -510,25 +732,23 @@ export default function EntityDetailTabs({
             key={tab}
             value={tab}
             className="data-[state=active]:bg-[#2a2d2e] data-[state=active]:shadow-none"
+            disabled={isEditing && tab !== 'details'}
           >
             {formatTabLabel(tab)}
           </TabsTrigger>
         ))}
       </TabsList>
 
-      {/* Details Tab - use rowData instead of tableRow.data */}
       <TabsContent value="details" className="pt-4">
         {renderEntityDetails(rowData, `${entityType} Details`)}
       </TabsContent>
 
-      {/* Search Item Tabs */}
       {searchTabs.map(tab => (
         <TabsContent key={tab} value={tab} className="pt-4">
           {activeTab === tab && renderSearchItemTab(tab)}
         </TabsContent>
       ))}
 
-      {/* Related Tables Tabs - Lazy Loaded */}
       {relatedTables.map(tab => (
         <TabsContent key={tab} value={tab} className="pt-4">
           {activeTab === tab && renderRelatedTableTab(tab)}
@@ -536,4 +756,6 @@ export default function EntityDetailTabs({
       ))}
     </Tabs>
   );
-}
+};
+
+export default EntityDetailTabs;

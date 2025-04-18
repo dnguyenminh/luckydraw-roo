@@ -50,7 +50,8 @@ export enum FetchStatus {
 export enum SortType {
     ASCENDING = 'ASCENDING',
     DESCENDING = 'DESCENDING',
-    NONE = 'NONE'
+    NONE = 'NONE',
+    UNSORTABLE = 'UNSORTABLE'
 }
 
 export enum FilterType {
@@ -78,11 +79,20 @@ export enum FieldType {
     OBJECT = 'OBJECT'
 }
 
+// Enum matching backend TableAction
+export enum TableAction {
+    ADD = "ADD",
+    UPDATE = "UPDATE",
+    DELETE = "DELETE",
+    VIEW = "VIEW",
+    EXPORT = "EXPORT",
+    IMPORT = "IMPORT"
+}
+
 // DataObjectKey from UML
 export interface DataObjectKey {
     keys: string[];
 }
-
 
 // Updated to match the UML definition
 export interface TableFetchRequest {
@@ -100,7 +110,11 @@ export interface ColumnInfo {
     fieldName: string;
     fieldType: string;
     sortType: SortType;
+    editable?: boolean;
 }
+
+// Helper array of non-editable field names
+export const NON_EDITABLE_FIELDS = ["id", "version", "createdBy", "createdDate", "updatedBy", "lastModifiedDate"];
 
 // Table information structure - updated to match UML
 export interface TableInfo {
@@ -125,7 +139,7 @@ export interface TableInfo {
 export interface TableRow {
     data: Record<string, any>; // Actual row data
     tableInfo?: TableInfo; // Reference to the parent table info
-    }
+}
 
 // Extended table row with related tables - updated based on UML
 export interface TabTableRow extends TableRow {
@@ -158,6 +172,37 @@ export interface StatisticsInfo {
 export interface TableFetchResponse extends TableInfo {
     originalRequest: TableFetchRequest;
     statistics: StatisticsInfo;
+    // New properties to align with Java DTO
+    actionRequest?: TableActionRequest;
+    data?: TableRow;
+    uploadFile?: UploadFile;
+}
+
+// Upload file interface for file operations
+export interface UploadFile {
+    fileName: string;
+    fileContent: Uint8Array | string; // byte array represented as Uint8Array or base64 string
+}
+
+// Table action request interface
+export interface TableActionRequest {
+    objectType: ObjectType;
+    entityName?: string;
+    action: TableAction;
+    data?: TableRow;
+    uploadFile?: UploadFile;
+    sorts?: SortRequest[];
+    filters?: FilterRequest[];
+    search?: Record<ObjectType, DataObject>;
+}
+
+// Table action response interface
+export interface TableActionResponse {
+    originalRequest: TableActionRequest;
+    status?: FetchStatus;
+    message?: string;
+    data?: TableRow;
+    downloadFile?: UploadFile;
 }
 
 // For backward compatibility

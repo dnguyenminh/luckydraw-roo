@@ -18,5 +18,10 @@ public enum SortType {
     /**
      * No specific sort order
      */
-    NONE
+    NONE,
+    
+    /**
+     * Column cannot be sorted
+     */
+    UNSORTABLE // New value for non-sortable columns
 }
