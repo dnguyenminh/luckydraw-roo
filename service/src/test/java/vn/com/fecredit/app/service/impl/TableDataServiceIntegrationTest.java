@@ -76,7 +76,7 @@ public class TableDataServiceIntegrationTest {
                         // First, execute the schema creation script directly
                         ScriptUtils.executeSqlScript(
                                         connection,
-                                        new EncodedResource(new ClassPathResource("/schema-test.sql"), "UTF-8"),
+                                        new EncodedResource(new ClassPathResource("/schema.sql"), "UTF-8"),
                                         false, true,
                                         "--", ";",
                                         "/*", "*/");
@@ -193,7 +193,6 @@ public class TableDataServiceIntegrationTest {
                                 assertTrue(userData.containsKey("email"), "User data should contain email");
                                 assertTrue(userData.containsKey("fullName"), "User data should contain fullName");
                                 assertTrue(userData.containsKey("status"), "User data should contain status");
-                                assertTrue(userData.containsKey("enabled"), "User data should contain enabled flag");
 
                                 // Log the first user data for information
                                 log.info("First user: id={}, username={}, email={}",
@@ -474,13 +473,13 @@ public class TableDataServiceIntegrationTest {
         void testFetchDataWithComplexSearch() {
                 // First fetch actual data from repositories
                 Role adminRole = findAdminRole();
-                Permission manageUsersPermission = findManageUsersPermission();
+                Permission createUsersPermission = findCreateUsersPermission();
 
                 assertNotNull(adminRole, "Admin role should exist in test database");
-                assertNotNull(manageUsersPermission, "MANAGE_USERS permission should exist in test database");
+                assertNotNull(createUsersPermission, "CREATE_USER permission should exist in test database");
 
                 log.info("Found role: type: {}", adminRole.getRoleType());
-                log.info("Found permission: {}", manageUsersPermission.getName());
+                log.info("Found permission: {}", createUsersPermission.getName());
 
                 // Create a request with multiple search criteria for different related entities
                 Map<ObjectType, DataObject> searchMap = new HashMap<>();
@@ -490,7 +489,7 @@ public class TableDataServiceIntegrationTest {
                 searchMap.put(ObjectType.Role, roleSearch);
 
                 // 2. Convert Permission entity to DataObject using the utility
-                DataObject permissionSearch = entityConverter.convertToDataObject(manageUsersPermission);
+                DataObject permissionSearch = entityConverter.convertToDataObject(createUsersPermission);
                 searchMap.put(ObjectType.Permission, permissionSearch);
 
                 // 3. Create additional sort and filter parameters
@@ -551,7 +550,7 @@ public class TableDataServiceIntegrationTest {
                         "Related linked objects should include Permission data");
                 DataObject returnedPermissionData = response.getRelatedLinkedObjects().get(ObjectType.Permission);
                 assertNotNull(returnedPermissionData, "Permission data should not be null");
-                assertEquals(manageUsersPermission.getName(), returnedPermissionData.getData().getData().get("name"),
+                assertEquals(createUsersPermission.getName().name(), returnedPermissionData.getData().getData().get("name"),
                         "Permission search criteria should be preserved");
         }
 
@@ -576,17 +575,17 @@ public class TableDataServiceIntegrationTest {
         /**
          * Helper method to find the MANAGE_USERS permission from the database
          */
-        private Permission findManageUsersPermission() {
+        private Permission findCreateUsersPermission() {
             try {
                 return entityManager.createQuery(
-                        "SELECT p FROM Permission p WHERE p.name = 'MANAGE_USERS'", Permission.class)
+                        "SELECT p FROM Permission p WHERE p.name = 'CREATE_USER'", Permission.class)
                         .setMaxResults(1)
                         .getResultList()
                         .stream()
                         .findFirst()
                         .orElse(null);
             } catch (Exception e) {
-                log.error("Error finding MANAGE_USERS permission: {}", e.getMessage());
+                log.error("Error finding CREATE_USER permission: {}", e.getMessage());
                 return null;
             }
         }

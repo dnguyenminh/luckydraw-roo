@@ -89,7 +89,7 @@ INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status,
 (3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 30, 30, 0.15, 0);
 
 -- Insert Reward Events (with composite key)
-INSERT INTO reward_events (event_id, region_id, reward_id, created_by, created_at, updated_by, updated_at, status, quantity, todayQantity, version) VALUES
+INSERT INTO reward_events (event_id, region_id, reward_id, created_by, created_at, updated_by, updated_at, status, quantity, today_quantity, version) VALUES
 (1, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 5, 2, 0),
 (1, 1, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 10, 4, 0),
 (1, 3, 3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 15, 6, 0);
@@ -101,9 +101,9 @@ INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, st
 
 -- Insert Spin Histories (some wins, some losses) with correct references for composite keys
 INSERT INTO spin_histories (id, created_by, created_at, updated_by, updated_at, status, participant_id, participant_event_id, participant_region_id, spin_time, reward_id, reward_event_id, reward_region_id, golden_hour_id, win, wheel_position, multiplier, server_seed, client_seed, version) VALUES
-(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, 1, CURRENT_TIMESTAMP - INTERVAL '1 HOUR', 1, 1, 1, 1, true, 120.5, 2.0, 'server-seed-1', 'client-seed-1', 0),
-(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, 1, CURRENT_TIMESTAMP - INTERVAL '2 HOUR', NULL, NULL, NULL, NULL, false, 45.2, 1.0, 'server-seed-2', 'client-seed-2', 0),
-(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 2, 1, 3, CURRENT_TIMESTAMP - INTERVAL '3 HOUR', 3, 1, 3, NULL, true, 230.7, 1.0, 'server-seed-3', 'client-seed-3', 0);
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, 1, DATEADD('HOUR', -1, CURRENT_TIMESTAMP), 1, 1, 1, 1, true, 120.5, 2.0, 'server-seed-1', 'client-seed-1', 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, 1, DATEADD('HOUR', -2, CURRENT_TIMESTAMP), NULL, NULL, NULL, NULL, false, 45.2, 1.0, 'server-seed-2', 'client-seed-2', 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 2, 1, 3, DATEADD('HOUR', -3, CURRENT_TIMESTAMP), 3, 1, 3, NULL, true, 230.7, 1.0, 'server-seed-3', 'client-seed-3', 0);
 
 -- Insert Blacklisted Tokens
 INSERT INTO blacklisted_tokens (id, created_by, created_at, updated_by, updated_at, status, token, token_type, expiration_time, user_id, version) VALUES
@@ -117,5 +117,5 @@ INSERT INTO configurations (id, created_by, created_at, updated_by, updated_at, 
 
 -- Insert Audit Logs
 INSERT INTO audit_logs (id, created_by, created_at, updated_by, updated_at, status, object_type, object_id, property_path, old_value, new_value, value_type, update_time, context, action_type, version) VALUES
-(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Event', '1', 'name', NULL, 'Summer Festival', 'String', CURRENT_TIMESTAMP - INTERVAL '1 DAY', 'Event creation', 'CREATED', 0),
-(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Reward', '1', 'prizeValue', NULL, '1000.00', 'BigDecimal', CURRENT_TIMESTAMP - INTERVAL '12 HOUR', 'Reward creation', 'CREATED', 0);
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Event', '1', 'name', NULL, 'Summer Festival', 'String', DATEADD('DAY', -1, CURRENT_TIMESTAMP), 'Event creation', 'CREATED', 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Reward', '1', 'prizeValue', NULL, '1000.00', 'BigDecimal', DATEADD('HOUR', -12, CURRENT_TIMESTAMP), 'Reward creation', 'CREATED', 0);

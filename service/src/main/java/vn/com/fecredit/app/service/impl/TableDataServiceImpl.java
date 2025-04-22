@@ -120,13 +120,13 @@ public class TableDataServiceImpl implements TableDataService {
 
                 // Fetch the entities using the generic method
                 return fetchEntities(
-                        request,
-                        pageable,
-                        repository,
-                        tableName,
-                        this::createEntitySpecification,
-                        this::convertEntityToTableRow,
-                        () -> getColumnInfo(objectType, request));
+                    request,
+                    pageable,
+                    repository,
+                    tableName,
+                    this::createEntitySpecification,
+                    this::convertEntityToTableRow,
+                    () -> getColumnInfo(objectType, request));
             } catch (IllegalArgumentException e) {
                 // This is now specifically for repository not found errors
                 log.error("Error getting repository for entity class {}: {}", entityClass.getName(), e.getMessage());
@@ -148,11 +148,11 @@ public class TableDataServiceImpl implements TableDataService {
     private boolean isFieldEditable(String fieldName) {
         // List of fields that should not be editable
         return !("id".equals(fieldName) ||
-                "version".equals(fieldName) ||
-                "createdBy".equals(fieldName) ||
-                "createdDate".equals(fieldName) ||
-                "updatedBy".equals(fieldName) ||
-                "lastModifiedDate".equals(fieldName));
+            "version".equals(fieldName) ||
+            "createdBy".equals(fieldName) ||
+            "createdDate".equals(fieldName) ||
+            "updatedBy".equals(fieldName) ||
+            "lastModifiedDate".equals(fieldName));
     }
 
     /**
@@ -196,7 +196,7 @@ public class TableDataServiceImpl implements TableDataService {
      * @param sortRequests current sort requests from the table fetch request
      */
     private void analyzeEntityFields(Class<?> entityClass, Map<String, ColumnInfo> columnInfo,
-            List<SortRequest> sortRequests) {
+                                     List<SortRequest> sortRequests) {
         // If we've reached Object class or null, stop recursion
         if (entityClass == null || entityClass == Object.class) {
             return;
@@ -208,8 +208,8 @@ public class TableDataServiceImpl implements TableDataService {
         for (java.lang.reflect.Field field : entityClass.getDeclaredFields()) {
             // Skip static, transient, and fields with @Transient annotation
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) ||
-                    java.lang.reflect.Modifier.isTransient(field.getModifiers()) ||
-                    field.isAnnotationPresent(jakarta.persistence.Transient.class)) {
+                java.lang.reflect.Modifier.isTransient(field.getModifiers()) ||
+                field.isAnnotationPresent(jakarta.persistence.Transient.class)) {
                 continue;
             }
 
@@ -219,8 +219,8 @@ public class TableDataServiceImpl implements TableDataService {
             boolean isDetailRelationship = false;
 
             if (field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
-                    field.isAnnotationPresent(jakarta.persistence.ManyToMany.class) ||
-                    isCollection) {
+                field.isAnnotationPresent(jakarta.persistence.ManyToMany.class) ||
+                isCollection) {
                 isDetailRelationship = true;
             }
 
@@ -267,7 +267,7 @@ public class TableDataServiceImpl implements TableDataService {
             }
 
             log.debug("Added column info for field: {}, type: {}, sort: {}, editable: {}",
-                    fieldName, fieldType, sortType, editable);
+                fieldName, fieldType, sortType, editable);
         }
 
         // Process superclass fields
@@ -286,15 +286,15 @@ public class TableDataServiceImpl implements TableDataService {
         } else if (javaType.equals(Boolean.class) || javaType.equals(boolean.class)) {
             return FieldType.BOOLEAN;
         } else if (Number.class.isAssignableFrom(javaType) ||
-                javaType.equals(int.class) ||
-                javaType.equals(long.class) ||
-                javaType.equals(float.class) ||
-                javaType.equals(double.class)) {
+            javaType.equals(int.class) ||
+            javaType.equals(long.class) ||
+            javaType.equals(float.class) ||
+            javaType.equals(double.class)) {
             return FieldType.NUMBER;
         } else if (java.time.LocalDate.class.isAssignableFrom(javaType)) {
             return FieldType.DATE;
         } else if (java.time.LocalDateTime.class.isAssignableFrom(javaType) ||
-                java.util.Date.class.isAssignableFrom(javaType)) {
+            java.util.Date.class.isAssignableFrom(javaType)) {
             return FieldType.DATETIME;
         } else if (java.time.LocalTime.class.isAssignableFrom(javaType)) {
             return FieldType.TIME;
@@ -309,13 +309,13 @@ public class TableDataServiceImpl implements TableDataService {
      * Generic method to fetch entities and create a response
      */
     private <T extends AbstractStatusAwareEntity> TableFetchResponse fetchEntities(
-            TableFetchRequest request,
-            Pageable pageable,
-            SimpleObjectRepository<T> repository,
-            String tableName,
-            Function<TableFetchRequest, Specification<T>> specificationBuilder,
-            Function<T, TableRow> rowConverter,
-            Supplier<Map<String, ColumnInfo>> columnInfoProvider) {
+        TableFetchRequest request,
+        Pageable pageable,
+        SimpleObjectRepository<T> repository,
+        String tableName,
+        Function<TableFetchRequest, Specification<T>> specificationBuilder,
+        Function<T, TableRow> rowConverter,
+        Supplier<Map<String, ColumnInfo>> columnInfoProvider) {
 
         // Check if repository is null - this should happen if the entity class was not
         // found
@@ -342,7 +342,7 @@ public class TableDataServiceImpl implements TableDataService {
                 return createErrorResponse("Entity class not found for object type: " + objectType);
             } else {
                 return createErrorResponse(
-                        "Repository not found for entity class: vn.com.fecredit.app.entity." + objectType);
+                    "Repository not found for entity class: vn.com.fecredit.app.entity." + objectType);
             }
         }
 
@@ -367,8 +367,8 @@ public class TableDataServiceImpl implements TableDataService {
 
         // Convert to response format
         List<TableRow> rows = page.getContent().stream()
-                .map(rowConverter)
-                .collect(Collectors.toList());
+            .map(rowConverter)
+            .collect(Collectors.toList());
 
         // Create response
         TableFetchResponse response = new TableFetchResponse();
@@ -381,8 +381,8 @@ public class TableDataServiceImpl implements TableDataService {
         response.setOriginalRequest(request);
         response.setRows(rows);
         // // Get related linked objects based on search criteria in the request
-        // Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
-        // response.setRelatedLinkedObjects(relatedLinkedObjects);
+        Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
+        response.setRelatedLinkedObjects(relatedLinkedObjects);
         response.setKey(getDataObjectKey(request));
 
         // Add column metadata
@@ -467,7 +467,7 @@ public class TableDataServiceImpl implements TableDataService {
             }
         } catch (Exception e) {
             log.warn("Error finding primary key fields for class {}: {}",
-                    entityClass.getName(), e.getMessage());
+                entityClass.getName(), e.getMessage());
             pkFields.add("id"); // Default to 'id' on error
         }
 
@@ -549,10 +549,10 @@ public class TableDataServiceImpl implements TableDataService {
      * Uses a recursive algorithm to traverse entity relationships
      */
     private <T> void applySearch(
-            TableFetchRequest request,
-            List<Predicate> predicates,
-            CriteriaBuilder cb,
-            Root<T> root) {
+        TableFetchRequest request,
+        List<Predicate> predicates,
+        CriteriaBuilder cb,
+        Root<T> root) {
 
         if (request.getSearch() == null || request.getSearch().isEmpty()) {
             return;
@@ -584,12 +584,12 @@ public class TableDataServiceImpl implements TableDataService {
      * @return true if any search criteria were processed, false otherwise
      */
     private <T> boolean searchRecursively(
-            Class<?> currentEntityClass,
-            Map<ObjectType, DataObject> remainingSearchCriteria,
-            Stack<JoinInfo> joinPathStack,
-            List<Predicate> predicates,
-            CriteriaBuilder cb,
-            Root<T> root) {
+        Class<?> currentEntityClass,
+        Map<ObjectType, DataObject> remainingSearchCriteria,
+        Stack<JoinInfo> joinPathStack,
+        List<Predicate> predicates,
+        CriteriaBuilder cb,
+        Root<T> root) {
 
         if (remainingSearchCriteria.isEmpty()) {
             log.debug("All search criteria processed");
@@ -626,7 +626,7 @@ public class TableDataServiceImpl implements TableDataService {
 
                     // Check if this search type matches the current relationship
                     if (searchEntityClass.isAssignableFrom(relatedEntityClass) ||
-                            relatedEntityClass.isAssignableFrom(searchEntityClass)) {
+                        relatedEntityClass.isAssignableFrom(searchEntityClass)) {
                         matchingObjectType = entry.getKey();
                         matchingDataObject = entry.getValue();
                         log.debug("Found matching search criteria for: {}", searchEntityClass.getName());
@@ -668,12 +668,12 @@ public class TableDataServiceImpl implements TableDataService {
 
                     // Recurse to process any remaining criteria with the related entity
                     boolean deeperProcessing = searchRecursively(
-                            relatedEntityClass,
-                            remainingSearchCriteria,
-                            joinPathStack,
-                            predicates,
-                            cb,
-                            root);
+                        relatedEntityClass,
+                        remainingSearchCriteria,
+                        joinPathStack,
+                        predicates,
+                        cb,
+                        root);
 
                     // If we couldn't process anything at deeper levels, add the search criteria
                     // back
@@ -703,7 +703,7 @@ public class TableDataServiceImpl implements TableDataService {
         private final Class<?> entityClass;
 
         public JoinInfo(String propertyName, jakarta.persistence.criteria.Join<Object, Object> join,
-                Class<?> entityClass) {
+                        Class<?> entityClass) {
             this.propertyName = propertyName;
             this.join = join;
             this.entityClass = entityClass;
@@ -735,9 +735,9 @@ public class TableDataServiceImpl implements TableDataService {
             field.setAccessible(true);
             // Check for JPA relationship annotations
             if (field.isAnnotationPresent(jakarta.persistence.OneToOne.class) ||
-                    field.isAnnotationPresent(jakarta.persistence.ManyToOne.class) ||
-                    field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
-                    field.isAnnotationPresent(jakarta.persistence.ManyToMany.class)) {
+                field.isAnnotationPresent(jakarta.persistence.ManyToOne.class) ||
+                field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
+                field.isAnnotationPresent(jakarta.persistence.ManyToMany.class)) {
 
                 Class<?> relatedType = field.getType();
 
@@ -761,7 +761,7 @@ public class TableDataServiceImpl implements TableDataService {
 
         // Check superclass for additional relationships
         if (entityClass.getSuperclass() != null &&
-                !entityClass.getSuperclass().equals(Object.class)) {
+            !entityClass.getSuperclass().equals(Object.class)) {
             discoverEntityRelationships(entityClass.getSuperclass(), relationships);
         }
     }
@@ -775,10 +775,10 @@ public class TableDataServiceImpl implements TableDataService {
      * @param searchRow  The search criteria data
      */
     private void applySearchCriteriaToJoin(
-            jakarta.persistence.criteria.Join<?, ?> join,
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            TableRow searchRow) {
+        jakarta.persistence.criteria.Join<?, ?> join,
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        TableRow searchRow) {
 
         if (searchRow == null || searchRow.getData() == null) {
             return;
@@ -812,7 +812,7 @@ public class TableDataServiceImpl implements TableDataService {
                 if (attributeType.isEnum() && fieldValue instanceof String) {
                     // Handle enum conversion
                     try {
-                        @SuppressWarnings({ "unchecked", "rawtypes" })
+                        @SuppressWarnings({"unchecked", "rawtypes"})
                         Enum<?> enumValue = Enum.valueOf((Class<Enum>) attributeType, (String) fieldValue);
                         predicates.add(cb.equal(join.get(fieldName), enumValue));
                     } catch (IllegalArgumentException e) {
@@ -824,8 +824,8 @@ public class TableDataServiceImpl implements TableDataService {
                 } else if (fieldValue instanceof String) {
                     // Case-insensitive search for strings
                     predicates.add(cb.like(
-                            cb.lower(join.get(fieldName)),
-                            "%" + ((String) fieldValue).toLowerCase() + "%"));
+                        cb.lower(join.get(fieldName)),
+                        "%" + ((String) fieldValue).toLowerCase() + "%"));
                 } else {
                     // Equals for other types
                     predicates.add(cb.equal(join.get(fieldName), fieldValue));
@@ -857,10 +857,10 @@ public class TableDataServiceImpl implements TableDataService {
      * Apply filters from the request to the specification
      */
     private <T> void applyFilters(
-            TableFetchRequest request,
-            List<Predicate> predicates,
-            CriteriaBuilder cb,
-            Root<T> root) {
+        TableFetchRequest request,
+        List<Predicate> predicates,
+        CriteriaBuilder cb,
+        Root<T> root) {
 
         if (request.getFilters() != null && !request.getFilters().isEmpty()) {
             for (FilterRequest filter : request.getFilters()) {
@@ -869,7 +869,7 @@ public class TableDataServiceImpl implements TableDataService {
 
                 if (field != null && filterType != null) {
                     addPredicateForField(predicates, cb, root, field, filterType,
-                            filter.getMinValue(), filter.getMaxValue());
+                        filter.getMinValue(), filter.getMaxValue());
                 }
             }
         }
@@ -879,12 +879,12 @@ public class TableDataServiceImpl implements TableDataService {
      * Add a predicate based on field and filter type
      */
     private <T> void addPredicateForField(List<Predicate> predicates,
-            CriteriaBuilder cb,
-            Root<T> root,
-            String field,
-            FilterType filterType,
-            String minValue,
-            String maxValue) {
+                                          CriteriaBuilder cb,
+                                          Root<T> root,
+                                          String field,
+                                          FilterType filterType,
+                                          String minValue,
+                                          String maxValue) {
         try {
             // Check if the path exists in the entity to avoid invalid path issues
             Class<?> attributeType = null;
@@ -902,7 +902,7 @@ public class TableDataServiceImpl implements TableDataService {
                         // Convert string to enum using reflection
                         try {
                             // Create method reference to valueOf method of the enum class
-                            @SuppressWarnings({ "unchecked", "rawtypes" })
+                            @SuppressWarnings({"unchecked", "rawtypes"})
                             Enum<?> enumValue = Enum.valueOf((Class<Enum>) attributeType, minValue);
                             predicates.add(cb.equal(root.get(field), enumValue));
                         } catch (IllegalArgumentException e) {
@@ -913,7 +913,7 @@ public class TableDataServiceImpl implements TableDataService {
                         return;
                     case NOT_EQUALS:
                         try {
-                            @SuppressWarnings({ "unchecked", "rawtypes" })
+                            @SuppressWarnings({"unchecked", "rawtypes"})
                             Enum<?> enumValue = Enum.valueOf((Class<Enum>) attributeType, minValue);
                             predicates.add(cb.notEqual(root.get(field), enumValue));
                         } catch (IllegalArgumentException e) {
@@ -978,8 +978,8 @@ public class TableDataServiceImpl implements TableDataService {
                     // Use case-insensitive LIKE as default
                     if (minValue != null) {
                         predicates.add(cb.like(
-                                cb.lower(root.get(field)),
-                                "%" + minValue.toLowerCase() + "%"));
+                            cb.lower(root.get(field)),
+                            "%" + minValue.toLowerCase() + "%"));
                     }
                     break;
             }
@@ -1013,8 +1013,8 @@ public class TableDataServiceImpl implements TableDataService {
 
                 // Only process getter methods (except getClass())
                 if (methodName.startsWith("get") &&
-                        !methodName.equals("getClass") &&
-                        method.getParameterCount() == 0) {
+                    !methodName.equals("getClass") &&
+                    method.getParameterCount() == 0) {
 
                     // Skip temporaryAttributes field
                     if (methodName.equals("getTemporaryAttributes")) {
@@ -1029,8 +1029,8 @@ public class TableDataServiceImpl implements TableDataService {
 
                         // Skip known entity relationships
                         if (propertyName.equals("user") || propertyName.equals("role") ||
-                                propertyName.equals("event") || propertyName.equals("participant") ||
-                                propertyName.equals("reward")) {
+                            propertyName.equals("event") || propertyName.equals("participant") ||
+                            propertyName.equals("reward")) {
                             log.debug("Skipping known entity relationship field: {}", propertyName);
                             continue;
                         }
@@ -1047,12 +1047,12 @@ public class TableDataServiceImpl implements TableDataService {
                 }
                 // Also handle is/has methods for booleans
                 else if ((methodName.startsWith("is") || methodName.startsWith("has")) &&
-                        method.getParameterCount() == 0 &&
-                        (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
+                    method.getParameterCount() == 0 &&
+                    (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
                     try {
                         // Extract property name (remove "is"/"has" and lowercase first character)
                         String propertyName = methodName.startsWith("is") ? methodName.substring(2)
-                                : methodName.substring(3);
+                            : methodName.substring(3);
                         propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
 
                         // Invoke the method to get the boolean value
@@ -1151,8 +1151,8 @@ public class TableDataServiceImpl implements TableDataService {
         // For common entity types we know by naming convention
         String propertyName = methodName.substring(3).toLowerCase();
         return propertyName.equals("user") || propertyName.equals("event") ||
-                propertyName.equals("participant") || propertyName.equals("reward") ||
-                propertyName.equals("role") || propertyName.equals("permission");
+            propertyName.equals("participant") || propertyName.equals("reward") ||
+            propertyName.equals("role") || propertyName.equals("permission");
     }
 
     /**

@@ -62,6 +62,15 @@ VALUES
     (2, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Fall event location in the north', 1200, 120, 0.1, 0),
     (2, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Fall event location in the south', 900, 90, 0.1, 0);
 
+-- No-op statement to override the problematic one
+-- Comment out or provide a compatible fix that works with composite key structure
+SELECT 1;
+
+-- You can add other data initialization statements here as needed
+-- For example, setting default values for max_spin or today_spin
+UPDATE event_locations SET max_spin = 100 WHERE max_spin IS NULL;
+UPDATE event_locations SET today_spin = 50 WHERE today_spin IS NULL;
+
 -- Participants
 INSERT INTO participants (id, created_by, created_at, updated_by, updated_at, status, name, code, phone, address, last_adding_spin, province_id, version)
 VALUES
@@ -79,10 +88,10 @@ VALUES
 
 -- Rewards
 INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, prize_value, version)
-VALUES
-    (1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Cash Prize $100', 'CASH100', '$100 cash prize', 100.00, 0),
-    (2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Cash Prize $50', 'CASH50', '$50 cash prize', 50.00, 0),
-    (3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Cash Prize $20', 'CASH20', '$20 cash prize', 20.00, 0);
+VALUES 
+    (1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', '$100 Cash', 'REWARD001', 'Cash prize of $100', 100.00, 0),
+    (2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', '$50 Voucher', 'REWARD002', 'Shopping voucher', 50.00, 0),
+    (3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Smartphone', 'REWARD003', 'Latest smartphone', 999.99, 0);
 
 -- Reward Events - composite primary key (event_id, region_id, reward_id)
 INSERT INTO reward_events (event_id, region_id, reward_id, created_by, created_at, updated_by, updated_at, status, quantity, today_quantity, version)

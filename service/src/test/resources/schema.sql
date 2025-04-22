@@ -85,7 +85,7 @@ CREATE TABLE event_locations (
     FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
--- Roles table - MOVED BEFORE users table
+-- Roles table - MUST BE CREATED BEFORE users table
 CREATE TABLE roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
@@ -113,7 +113,7 @@ CREATE TABLE permissions (
     version BIGINT DEFAULT 0
 );
 
--- Users table
+-- Users table - MUST BE CREATED AFTER roles table
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),

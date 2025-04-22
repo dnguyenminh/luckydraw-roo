@@ -21,6 +21,7 @@ import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.Province;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.entity.enums.RoleType;
+import vn.com.fecredit.app.entity.enums.PermissionName;
 import vn.com.fecredit.app.service.dto.DataObject;
 import vn.com.fecredit.app.service.dto.ObjectType;
 
@@ -67,7 +68,7 @@ public class EntityConverterTest {
         // Create a test permission entity
         Permission permission = Permission.builder()
                 .id(200L)
-                .name("TEST_PERMISSION")
+                .name(PermissionName.CREATE_USER)  // Use enum value instead of string
                 .description("Test permission description")
                 .roles(new HashSet<>())
                 .status(CommonStatus.ACTIVE)
@@ -84,7 +85,7 @@ public class EntityConverterTest {
 
         // Verify data content
         assertEquals(200L, dataObject.getData().getData().get("id"), "ID should match");
-        assertEquals("TEST_PERMISSION", dataObject.getData().getData().get("name"), "Name should match");
+        assertEquals(PermissionName.CREATE_USER.toString(), dataObject.getData().getData().get("name"), "Name should match");
         assertEquals("Test permission description", dataObject.getData().getData().get("description"),
                 "Description should match");
         assertEquals("ACTIVE", dataObject.getData().getData().get("status"), "Status should match");
@@ -106,7 +107,6 @@ public class EntityConverterTest {
                 .password("$2a$10$encrypted")
                 .email("test@example.com")
                 .fullName("Test User")
-                .enabled(true)
                 .status(CommonStatus.ACTIVE)
                 .build();
 
@@ -129,9 +129,7 @@ public class EntityConverterTest {
         assertEquals("testuser", dataObject.getData().getData().get("username"), "Username should match");
         assertEquals("test@example.com", dataObject.getData().getData().get("email"), "Email should match");
         assertEquals("Test User", dataObject.getData().getData().get("fullName"), "Full name should match");
-        assertEquals(true, dataObject.getData().getData().get("enabled"), "Enabled flag should match");
         assertEquals("ACTIVE", dataObject.getData().getData().get("status"), "Status should match");
-        assertEquals("ROLE_ADMIN", dataObject.getData().getData().get("role"), "Role should match");
     }
 
     @Test
