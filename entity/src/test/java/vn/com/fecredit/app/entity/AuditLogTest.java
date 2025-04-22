@@ -22,7 +22,7 @@ class AuditLogTest  {
     void setUp() {
         auditLog = AuditLog.builder()
                 .objectType("User")
-                .objectId(1L)
+                .objectId(Long.toString(1l))
                 .oldValue("{\"username\":\"oldName\"}")
                 .newValue("{\"username\":\"newName\"}")
                 .valueType("String")
@@ -30,7 +30,7 @@ class AuditLogTest  {
                 .propertyPath("username")
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         auditLog.setCreatedBy("testUser");
         auditLog.setUpdatedBy("testUser");
     }
@@ -45,7 +45,7 @@ class AuditLogTest  {
     void testValidateState_WithNullObjectType_ShouldThrowException() {
         // Given
         auditLog.setObjectType(null);
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> auditLog.validateState());
     }
@@ -54,7 +54,7 @@ class AuditLogTest  {
     void testValidateState_WithEmptyObjectType_ShouldThrowException() {
         // Given
         auditLog.setObjectType("  ");
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> auditLog.validateState());
     }
@@ -63,7 +63,7 @@ class AuditLogTest  {
     void testValidateState_WithNullObjectId_ShouldThrowException() {
         // Given
         auditLog.setObjectId(null);
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> auditLog.validateState());
     }
@@ -72,10 +72,10 @@ class AuditLogTest  {
     void testValidateState_WithNullUpdateTime_ShouldAutomaticallySet() {
         // Given
         auditLog.setUpdateTime(null);
-        
+
         // When
         auditLog.validateState();
-        
+
         // Then
         assertNotNull(auditLog.getUpdateTime());
     }
@@ -85,7 +85,7 @@ class AuditLogTest  {
         // Given
         auditLog.setOldValue(null);
         auditLog.setNewValue(null);
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> auditLog.validateState());
     }
@@ -95,7 +95,7 @@ class AuditLogTest  {
         // Given
         auditLog.setOldValue("");
         auditLog.setNewValue("");
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> auditLog.validateState());
     }
@@ -105,7 +105,7 @@ class AuditLogTest  {
         // Given
         auditLog.setNewValue(null);
         auditLog.setOldValue("oldValue");
-        
+
         // When & Then
         assertDoesNotThrow(() -> auditLog.validateState());
     }
@@ -115,7 +115,7 @@ class AuditLogTest  {
         // Given
         auditLog.setOldValue(null);
         auditLog.setNewValue("newValue");
-        
+
         // When & Then
         assertDoesNotThrow(() -> auditLog.validateState());
     }
@@ -132,11 +132,11 @@ class AuditLogTest  {
             "user.name",
             "testUser"
         );
-        
+
         // Then
         assertNotNull(createdLog);
         assertEquals("User", createdLog.getObjectType());
-        assertEquals(1L, createdLog.getObjectId());
+        assertEquals(Long.toString(1L), createdLog.getObjectId());
         assertEquals("oldData", createdLog.getOldValue());
         assertEquals("newData", createdLog.getNewValue());
         assertEquals("String", createdLog.getValueType());

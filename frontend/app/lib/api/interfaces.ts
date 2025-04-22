@@ -89,6 +89,21 @@ export enum TableAction {
     IMPORT = "IMPORT"
 }
 
+// Interface for table action responses
+export interface TableActionResponse {
+    success: boolean;
+    message?: string;
+    data?: TableRow;
+    downloadFile?: UploadFile;
+}
+
+// Interface for file upload/download
+export interface UploadFile {
+    fileName: string;
+    fileType: string;
+    fileContent: ArrayBuffer | null;
+}
+
 // DataObjectKey from UML
 export interface DataObjectKey {
     keys: string[];
@@ -138,7 +153,6 @@ export interface TableInfo {
 // Table row structure updated to match UML with tableInfo reference
 export interface TableRow {
     data: Record<string, any>; // Actual row data
-    tableInfo?: TableInfo; // Reference to the parent table info
 }
 
 // Extended table row with related tables - updated based on UML
@@ -172,16 +186,8 @@ export interface StatisticsInfo {
 export interface TableFetchResponse extends TableInfo {
     originalRequest: TableFetchRequest;
     statistics: StatisticsInfo;
-    // New properties to align with Java DTO
-    actionRequest?: TableActionRequest;
     data?: TableRow;
     uploadFile?: UploadFile;
-}
-
-// Upload file interface for file operations
-export interface UploadFile {
-    fileName: string;
-    fileContent: Uint8Array | string; // byte array represented as Uint8Array or base64 string
 }
 
 // Table action request interface
@@ -189,7 +195,7 @@ export interface TableActionRequest {
     objectType: ObjectType;
     entityName?: string;
     action: TableAction;
-    data?: TableRow;
+    data: TableRow; // Changed from TableRow? to any to match usage in the application
     uploadFile?: UploadFile;
     sorts?: SortRequest[];
     filters?: FilterRequest[];

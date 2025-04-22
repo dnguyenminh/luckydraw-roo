@@ -21,10 +21,15 @@ public interface ParticipantRepository extends SimpleObjectRepository<Participan
 
     List<Participant> findByProvinceId(Long provinceId);
 
-    @Query("SELECT p FROM Participant p JOIN p.participantEvents pe WHERE pe.event.id = :eventId")
+    @Query("SELECT p FROM Participant p JOIN p.participantEvents pe WHERE pe.eventLocation.event.id = :eventId")
     List<Participant> findByEventId(@Param("eventId") Long eventId);
 
-    @Query("SELECT p FROM Participant p JOIN p.participantEvents pe WHERE pe.event.id = :eventId AND p.status = 'ACTIVE' AND pe.status = 'ACTIVE'")
+    /**
+     * Find active participants in an event
+     * @param eventId the event ID
+     * @return list of active participants in the event
+     */
+    @Query("SELECT p FROM Participant p JOIN p.participantEvents pe WHERE pe.eventLocation.event.id = :eventId AND p.status = 'ACTIVE' AND pe.status = 'ACTIVE'")
     List<Participant> findActiveParticipantsInEvent(@Param("eventId") Long eventId);
 
     List<Participant> findByStatus(CommonStatus status);

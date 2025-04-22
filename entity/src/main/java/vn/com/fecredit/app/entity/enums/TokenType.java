@@ -41,6 +41,21 @@ public enum TokenType {
     public static class TokenTypeConverter implements AttributeConverter<TokenType, String> {
 
         /**
+         * Default constructor.
+         * Creates a new TokenTypeConverter for converting between enum values and database strings.
+         */
+        public TokenTypeConverter() {
+            // Default constructor
+        }
+
+        /**
+         * JPA AttributeConverter implementation for TokenType enum.
+         * <p>
+         * Handles conversion between TokenType enum values and their string
+         * representation for database storage and retrieval.
+         */
+
+        /**
          * Convert TokenType enum to database column value
          * @param tokenType the enum to convert
          * @return string representation for database

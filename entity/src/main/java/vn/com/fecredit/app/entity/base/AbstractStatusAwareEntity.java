@@ -1,5 +1,6 @@
 package vn.com.fecredit.app.entity.base;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,16 +21,27 @@ import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
- * Base entity class that includes status management.
- * Extends AuditEntity to include auditing information.
+ * Base class for entities with status tracking capability.
+ * Extends audit capabilities and implements the StatusAware interface.
+ * <p>
+ * This class provides common functionality for all entities that need
+ * status management (like ACTIVE, INACTIVE, etc.). It implements status
+ * lifecycle methods and status-based filtering capabilities.
+ * </p>
+ * 
+ * <p>
+ * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
+ * annotation and is required for JPA entity instantiation. It initializes a new instance
+ * with default values including the default status.
+ * </p>
  */
 @MappedSuperclass
 @Getter
 @SuperBuilder
-@NoArgsConstructor
+@NoArgsConstructor // Creates a default no-args constructor for JPA
 @AllArgsConstructor
 @ToString(callSuper = true)
-public abstract class AbstractStatusAwareEntity extends AbstractAuditEntity implements StatusAware {
+public abstract class AbstractStatusAwareEntity<T extends Serializable> extends AbstractAuditEntity<T> implements StatusAware {
 
     /**
      * Status of this entity (ACTIVE, INACTIVE, etc.)

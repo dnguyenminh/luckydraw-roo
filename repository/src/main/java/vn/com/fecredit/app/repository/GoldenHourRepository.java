@@ -7,23 +7,25 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import vn.com.fecredit.app.entity.EventLocation;
+import vn.com.fecredit.app.entity.EventLocationKey;
 import vn.com.fecredit.app.entity.GoldenHour;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
 public interface GoldenHourRepository extends SimpleObjectRepository<GoldenHour> {
 
-       List<GoldenHour> findByEventLocationId(Long locationId);
+       List<GoldenHour> findByEventLocationId(EventLocationKey locationId);
 
-       List<GoldenHour> findByEventLocationIdAndStatus(Long locationId, CommonStatus status);
+       List<GoldenHour> findByEventLocationIdAndStatus(EventLocationKey locationId, CommonStatus status);
 
        @Query("SELECT gh FROM GoldenHour gh " +
                      "WHERE gh.eventLocation.id = :locationId " +
                      "AND gh.status = 'ACTIVE' " +
                      "AND gh.startTime <= :currentTime " +
                      "AND gh.endTime > :currentTime")
-       List<GoldenHour> findActiveGoldenHours(
-                     @Param("locationId") Long locationId,
+       GoldenHour findActiveGoldenHours(
+                     @Param("locationId") EventLocationKey locationId,
                      @Param("currentTime") LocalDateTime currentTime);
 
        @Query("SELECT gh FROM GoldenHour gh " +
@@ -104,4 +106,23 @@ public interface GoldenHourRepository extends SimpleObjectRepository<GoldenHour>
                      @Param("startTime") LocalDateTime startTime,
                      @Param("endTime") LocalDateTime endTime,
                      @Param("status") CommonStatus status);
+
+       @Query("SELECT gh FROM GoldenHour gh WHERE gh.status = 'ACTIVE' " +
+              "AND gh.eventLocation = :eventLocation " +
+              "AND gh.startTime < :endTime AND gh.endTime > :startTime " +
+              "ORDER BY gh.startTime")
+       List<GoldenHour> findActiveGoldenHoursInPeriod(
+              @Param("eventLocation") EventLocation eventLocation, 
+              @Param("startTime") LocalDateTime startTime, 
+              @Param("endTime") LocalDateTime endTime);
+
+       @Query("SELECT COUNT(gh) FROM GoldenHour gh WHERE gh.status = 'ACTIVE' " +
+              "AND gh.eventLocation = :eventLocation " +
+              "AND gh.startTime < :endTime AND gh.endTime > :startTime " +
+              "AND (gh.id != :excludeId OR :excludeId IS NULL)")
+       long countOverlappingActiveHoursExcluding(
+              @Param("eventLocation") EventLocation eventLocation, 
+              @Param("startTime") LocalDateTime startTime, 
+              @Param("endTime") LocalDateTime endTime, 
+              @Param("excludeId") Long excludeId);
 }

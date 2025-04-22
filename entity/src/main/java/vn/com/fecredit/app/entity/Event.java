@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.listener.EntityAuditListener;
 
@@ -15,28 +16,33 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Event entity representing lucky draw events organized within the system.
- * Events have a specific time period, can span multiple locations, and
- * track participants. This is the top-level organizing entity for the lucky draw system.
+ * Entity representing a promotional event in the Lucky Draw application.
+ * <p>
+ * An Event is a time-bounded promotional activity that serves as the container for
+ * event locations, rewards, and participants. It defines the overall campaign structure
+ * including start and end dates, name, code, and description.
+ * </p>
+ * <p>
+ * Events can be active or inactive, and they contain multiple event locations across
+ * different regions. Each event can have its own set of specific rules, rewards,
+ * and participation criteria.
+ * </p>
  */
 @Entity
-@Table(
-    name = "events",
-    indexes = {
+@Table(name = "events", indexes = {
         @Index(name = "idx_event_code", columnList = "code", unique = true),
         @Index(name = "idx_event_status", columnList = "status"),
         @Index(name = "idx_event_dates", columnList = "start_time, end_time")
-    }
-)
+})
 @EntityListeners(EntityAuditListener.class)
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {"locations", "participantEvents"})
+@ToString(callSuper = true, exclude = { "locations" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class Event extends AbstractStatusAwareEntity {
+public class Event extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Logger for this class
@@ -44,14 +50,16 @@ public class Event extends AbstractStatusAwareEntity {
     private static final Logger log = LoggerFactory.getLogger(Event.class);
 
     /**
-     * Display name of the event
+     * Human-readable name of the event
+     * Used for display purposes in UI and reports
      */
     @NotBlank(message = "Event name is required")
     @Column(name = "name", nullable = false)
     private String name;
 
     /**
-     * Unique code identifier for this event
+     * Unique code identifier for the event
+     * Used for programmatic identification and URL slugs
      */
     @NotBlank(message = "Event code is required")
     @Column(name = "code", nullable = false, unique = true)
@@ -59,27 +67,31 @@ public class Event extends AbstractStatusAwareEntity {
     private String code;
 
     /**
-     * Detailed description of the event
+     * Optional detailed description of the event
+     * Provides additional information about the event purpose and activities
      */
     @Column(name = "description")
     private String description;
 
     /**
-     * Start time of the event period
+     * Start date and time of the event
+     * Defines when the event begins accepting participants and spins
      */
     @NotNull(message = "Start time is required")
     @Column(name = "start_time", nullable = false)
     private LocalDateTime startTime;
 
     /**
-     * End time of the event period
+     * End date and time of the event
+     * Defines when the event stops accepting new participants and spins
      */
     @NotNull(message = "End time is required")
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
     /**
-     * Locations where this event is being held, in order of addition
+     * Locations where this event takes place
+     * Each event can have multiple locations across different regions
      */
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL)
     @OrderBy("id asc")
@@ -87,14 +99,8 @@ public class Event extends AbstractStatusAwareEntity {
     private Set<EventLocation> locations = new LinkedHashSet<>();
 
     /**
-     * Records of participant engagement in this event
-     */
-    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private Set<ParticipantEvent> participantEvents = new HashSet<>();
-
-    /**
      * Get current server time (used for spins and other time-sensitive operations)
+     * 
      * @return current time
      */
     @Transient
@@ -104,8 +110,10 @@ public class Event extends AbstractStatusAwareEntity {
 
     /**
      * Add a location to this event
+     * 
      * @param location the location to add
-     * @throws IllegalArgumentException if location's region overlaps with existing locations
+     * @throws IllegalArgumentException if location's region overlaps with existing
+     *                                  locations
      */
     public void addLocation(EventLocation location) {
         if (location == null) {
@@ -116,8 +124,8 @@ public class Event extends AbstractStatusAwareEntity {
         if (location.getRegion() != null) {
             for (EventLocation existing : locations) {
                 if (existing.getRegion() != null
-                    && !existing.equals(location)
-                    && existing.getRegion().hasOverlappingProvinces(location.getRegion())) {
+                        && !existing.equals(location)
+                        && existing.getRegion().hasOverlappingProvinces(location.getRegion())) {
                     throw new IllegalArgumentException("Cannot add location - region has overlapping provinces");
                 }
             }
@@ -131,6 +139,7 @@ public class Event extends AbstractStatusAwareEntity {
 
     /**
      * Remove a location from this event
+     * 
      * @param location the location to remove
      */
     public void removeLocation(EventLocation location) {
@@ -142,52 +151,34 @@ public class Event extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Add a participant event with proper relationship management
-     * @param participantEvent the participant event to add
-     * @throws IllegalStateException if event is inactive
+     * Checks if the event is currently active based on start and end times
+     * 
+     * @return true if the event is currently active (current time is between start and end time)
      */
-    public void addParticipantEvent(ParticipantEvent participantEvent) {
-        if (!isActive()) {
-            throw new IllegalStateException("Cannot add participants to inactive event");
-        }
-
-        if (participantEvent != null) {
-            participantEvents.add(participantEvent);
-            if (participantEvent.getEvent() != this) {
-                participantEvent.setEvent(this);
-            }
-        }
-    }
-
-    /**
-     * Remove a participant event record
-     * @param participantEvent the participant event to remove
-     */
-    public void removeParticipantEvent(ParticipantEvent participantEvent) {
-        if (participantEvent != null && participantEvents.remove(participantEvent)) {
-            if (participantEvent.getEvent() == this) {
-                participantEvent.setEvent(null);
-            }
-        }
+    public boolean isCurrentlyActive() {
+        LocalDateTime now = LocalDateTime.now();
+        return isActive() && now.isAfter(startTime) && now.isBefore(endTime);
     }
 
     /**
      * Check if this event overlaps with another event
+     * 
      * @param other the other event to check
      * @return true if events overlap in time
      */
     public boolean overlaps(Event other) {
         if (other == null || startTime == null || endTime == null
-            || other.startTime == null || other.endTime == null) {
+                || other.startTime == null || other.endTime == null) {
             return false;
         }
 
         return !endTime.isBefore(other.startTime) &&
-               !startTime.isAfter(other.endTime);
+                !startTime.isAfter(other.endTime);
     }
 
     /**
      * Check if the event is currently active
+     * 
      * @return true if the event is active and within its time period
      */
     @Override
@@ -199,12 +190,13 @@ public class Event extends AbstractStatusAwareEntity {
 
         LocalDateTime now = getCurrentServerTime();
         return super.isActive() &&
-               startTime.isBefore(now) &&
-               endTime.isAfter(now);
+                startTime.isBefore(now) &&
+                endTime.isAfter(now);
     }
 
     /**
      * Get the default location for this event (first added location)
+     * 
      * @return the default location or null if no locations
      */
     @Transient
@@ -227,6 +219,7 @@ public class Event extends AbstractStatusAwareEntity {
 
     /**
      * Validate the event's time period and constraints
+     * 
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {
@@ -256,7 +249,7 @@ public class Event extends AbstractStatusAwareEntity {
         if (durationMinutes > 1440) {
             // Log warning instead of throwing exception to allow longer events
             log.warn("Event duration exceeds 24 hours - Start: {}, End: {}, Duration: {} minutes ({} hours)",
-                startTime, endTime, durationMinutes, durationHours);
+                    startTime, endTime, durationMinutes, durationHours);
         }
 
         if (code != null) {

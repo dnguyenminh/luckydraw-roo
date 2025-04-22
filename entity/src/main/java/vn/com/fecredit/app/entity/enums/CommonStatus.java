@@ -1,35 +1,54 @@
 package vn.com.fecredit.app.entity.enums;
 
 /**
- * Enumeration of common entity statuses.
- * Used across all entities that implement the StatusAware interface.
+ * Common status values for entities in the system.
+ * <p>
+ * This enum defines standard status values that can be used across
+ * different entities to maintain consistency in status representation.
+ * </p>
  */
 public enum CommonStatus {
+
     /**
-     * Entity is active and can be used
+     * Entity is active and available for use
      */
     ACTIVE,
-    
+
     /**
-     * Entity is inactive and should not be used
+     * Entity is inactive but still exists in the system
      */
     INACTIVE,
-    
+
     /**
-     * Entity is pending activation
+     * Entity is pending activation or approval
      */
     PENDING,
-    
+
     /**
-     * Entity has been archived (soft delete)
+     * Entity is archived (historical record)
      */
-    ARCHIVED;
-    
+    ARCHIVED,
+
+    /**
+     * Entity has been deleted (soft delete)
+     */
+    DELETED;
+
     /**
      * Check if this status represents an active state
-     * @return true if this status is ACTIVE
+     *
+     * @return true if the status is ACTIVE
      */
     public boolean isActive() {
         return this == ACTIVE;
+    }
+
+    /**
+     * Check if this status represents an inactive state
+     *
+     * @return true if the status is not ACTIVE
+     */
+    public boolean isInactive() {
+        return this != ACTIVE;
     }
 }

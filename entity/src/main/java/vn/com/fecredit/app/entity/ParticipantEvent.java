@@ -1,55 +1,77 @@
 package vn.com.fecredit.app.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
-
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractComplexPersistableEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+
+/**
+ * Entity representing a participant's registration to a specific event.
+ * <p>
+ * ParticipantEvent tracks the relationship between participants and events,
+ * including the specific event location, participant details, and the remaining
+ * spins available to the participant. It serves as the core entity for tracking
+ * event participation and engagement metrics.
+ */
 @Entity
-@Table(
-    name = "participant_events",
-    indexes = {
-        @Index(name = "idx_participant_event", columnList = "event_id"),
-        @Index(name = "idx_participant_location", columnList = "event_location_id"),
-        @Index(name = "idx_participant", columnList = "participant_id"),
-        @Index(name = "idx_participant_status", columnList = "status")
-    }
-)
+@Table(name = "participant_events", indexes = {
+    @Index(name = "idx_participant_location", columnList = "event_id, region_id"),
+    @Index(name = "idx_participant", columnList = "participant_id"),
+    @Index(name = "idx_participant_status", columnList = "status")
+})
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {"event", "eventLocation", "participant", "spinHistories"})
+@ToString(callSuper = true, exclude = { "eventLocation", "participant", "spinHistories" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class ParticipantEvent extends AbstractStatusAwareEntity {
-
-    @NotNull(message = "Event is required")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_id", nullable = false)
-    private Event event;
-
+public class ParticipantEvent extends AbstractComplexPersistableEntity<ParticipantEventKey> {
     @NotNull(message = "Event location is required")
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_location_id", nullable = false)
+    @MapsId("eventLocationKey")
+    @JoinColumns({
+        @JoinColumn(name = "event_id", referencedColumnName = "event_id", nullable = false),
+        @JoinColumn(name = "region_id", referencedColumnName = "region_id", nullable = false)
+    })
     private EventLocation eventLocation;
 
     @NotNull(message = "Participant is required")
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("participantId")
     @JoinColumn(name = "participant_id", nullable = false)
     private Participant participant;
 
     @Min(value = 0, message = "Spins remaining cannot be negative")
     @Column(name = "spins_remaining", nullable = false)
-    private int spinsRemaining;
+    @Builder.Default
+    private int spinsRemaining = 0;
 
     @OneToMany(mappedBy = "participantEvent", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("spinTime ASC")
@@ -57,40 +79,23 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
     private List<SpinHistory> spinHistories = new ArrayList<>();
 
     /**
-     * Get count of spins used today
-     * @return number of spins used today
-     */
-    public long getTodaySpinCount() {
-        LocalDateTime currentTime = event != null ? event.getCurrentServerTime() : LocalDateTime.now();
-        LocalDate today = currentTime.toLocalDate();
-
-        synchronized (spinHistories) {
-            return spinHistories.stream()
-                .filter(spin -> spin != null &&
-                              spin.getSpinTime() != null &&
-                              spin.getSpinTime().toLocalDate().equals(today))
-                .count();
-        }
-    }
-
-    /**
      * Check if participant can spin
+     *
      * @return true if can spin
      */
     public boolean canSpin() {
         if (!getStatus().isActive() ||
-            event == null || !event.getStatus().isActive() ||
-            eventLocation == null || !eventLocation.getStatus().isActive() ||
-            spinsRemaining <= 0) {
+                eventLocation == null ||
+                !eventLocation.getStatus().isActive() ||
+                !eventLocation.getEvent().isActive()) {
             return false;
         }
-
-        long todayCount = getTodaySpinCount();
-        return todayCount < eventLocation.getMaxSpin();
+        return spinsRemaining > 0;
     }
 
     /**
      * Add spin history with proper bidirectional relationship
+     *
      * @param spinHistory the spin history to add
      */
     public void addSpinHistory(SpinHistory spinHistory) {
@@ -112,6 +117,7 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
 
     /**
      * Remove spin history with proper bidirectional relationship
+     *
      * @param spinHistory the spin history to remove
      */
     public void removeSpinHistory(SpinHistory spinHistory) {
@@ -124,22 +130,8 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Set event with proper bidirectional relationship
-     * @param newEvent the event to set
-     */
-    public void setEvent(Event newEvent) {
-        Event oldEvent = this.event;
-        if (oldEvent != null && oldEvent.getParticipantEvents() != null) {
-            oldEvent.getParticipantEvents().remove(this);
-        }
-        this.event = newEvent;
-        if (newEvent != null && newEvent.getParticipantEvents() != null) {
-            newEvent.getParticipantEvents().add(this);
-        }
-    }
-
-    /**
      * Set event location with proper bidirectional relationship
+     *
      * @param newLocation the location to set
      */
     public void setEventLocation(EventLocation newLocation) {
@@ -155,15 +147,13 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
 
     /**
      * Perform a spin with proper thread safety
+     *
      * @return spin history record
      * @throws IllegalStateException if cannot spin
      */
     public synchronized SpinHistory spin() {
         // Double-check locking pattern
         if (!canSpin()) {
-            if (getTodaySpinCount() >= eventLocation.getMaxSpin()) {
-                throw new IllegalStateException("Maximum spins reached");
-            }
             throw new IllegalStateException("Cannot spin");
         }
 
@@ -172,14 +162,14 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
         spinsRemaining = remainingSpins - 1;
 
         // Create new spin history
-        LocalDateTime spinTime = event != null ? event.getCurrentServerTime() : LocalDateTime.now();
+        LocalDateTime spinTime = LocalDateTime.now();
         SpinHistory spinHistory = SpinHistory.builder()
-            .spinTime(spinTime)
-            .status(CommonStatus.ACTIVE)
-            .build();
+                .spinTime(spinTime)
+                .status(CommonStatus.ACTIVE)
+                .build();
 
         // Establish bidirectional relationship with thread safety
-        synchronized(this.spinHistories) {
+        synchronized (this.spinHistories) {
             spinHistory.setParticipantEvent(this);
             this.spinHistories.add(spinHistory);
         }
@@ -189,6 +179,7 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
 
     /**
      * Calculate total winnings from all spins
+     *
      * @return sum of all winning spins' effective values
      */
     @Transient
@@ -204,7 +195,7 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
                 total = total.add(BigDecimal.ONE);
             }
         }
-        
+
         return total;
     }
 
@@ -222,13 +213,10 @@ public class ParticipantEvent extends AbstractStatusAwareEntity {
 
     /**
      * Validate participation state
+     *
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {
-        if (event == null) {
-            throw new IllegalStateException("Event is required");
-        }
-
         if (eventLocation == null) {
             throw new IllegalStateException("Event location is required");
         }

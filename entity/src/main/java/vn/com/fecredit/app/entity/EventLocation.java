@@ -1,114 +1,165 @@
 package vn.com.fecredit.app.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import lombok.extern.slf4j.Slf4j;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.base.StatusAware;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.base.AbstractComplexPersistableEntity;
+import vn.com.fecredit.app.entity.base.StatusAware;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+
+/**
+ * Entity representing a physical location where events take place.
+ * <p>
+ * EventLocation links events to specific geographical locations and manages
+ * capacity
+ * tracking, reward distribution, and participant management for a given
+ * location.
+ * It maintains relationships with regions, events, rewards, golden hours, and
+ * participant events.
+ * </p>
+ *
+ * <p>
+ * The default no-argument constructor is provided by Lombok's
+ * {@code @NoArgsConstructor}
+ * annotation and is required for JPA entity instantiation.
+ * </p>
+ */
 @Entity
 @Slf4j
-@Table(
-    name = "event_locations",
-    indexes = {
-        @Index(name = "idx_location_code", columnList = "code", unique = true),
-        @Index(name = "idx_location_event", columnList = "event_id"),
-        @Index(name = "idx_location_region", columnList = "region_id"),
-        @Index(name = "idx_location_status", columnList = "status")
-    }
-)
+@Table(name = "event_locations", indexes = {
+    @Index(name = "idx_location_event", columnList = "event_id"),
+    @Index(name = "idx_location_region", columnList = "region_id"),
+    @Index(name = "idx_location_status", columnList = "status")
+})
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor
+@NoArgsConstructor // Creates a default no-args constructor required by JPA
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {"event", "region", "participantEvents", "rewards", "goldenHours"})
+@ToString(callSuper = true, exclude = {"event", "region", "participantEvents", "rewardEvents", "goldenHours"})
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class EventLocation extends AbstractStatusAwareEntity {
+public class EventLocation extends AbstractComplexPersistableEntity<EventLocationKey> {
 
-    @NotBlank(message = "Location name is required")
-    @Column(name = "name", nullable = false)
-    private String name;
-
-    @NotBlank(message = "Location code is required")
-    @Column(name = "code", nullable = false, unique = true)
-    @EqualsAndHashCode.Include
-    private String code;
-
+    /**
+     * Additional description about the event location
+     * Provides more details about the location's facilities or characteristics
+     */
     @Column(name = "description")
     private String description;
 
-    @Min(value = 1, message = "Maximum spins must be at least 1")
+    /**
+     * Maximum number of spins allowed at this location
+     * Represents the capacity limit for participation at this venue
+     * Must be a non-negative value
+     */
+    @Min(value = 0, message = "Maximum spins must be not negative number")
     @Column(name = "max_spin", nullable = false)
     @Builder.Default
-    private Integer maxSpin = 100;
-    
-    @Min(value = 0, message = "Quantity must be non-negative")
-    @Column(name = "quantity", nullable = false)
-    @Builder.Default
-    private Integer quantity = 1;
+    private int maxSpin = 100;
 
-    @DecimalMin(value = "0.0", message = "Win probability must be between 0 and 1")
-    @DecimalMax(value = "1.0", message = "Win probability must be between 0 and 1")
-    @Column(name = "win_probability", nullable = false)
+    /**
+     * Number of spins allowed today at this location
+     * Used for daily quotas to manage participation rates
+     * Must be a non-negative value
+     */
+    @Min(value = 0, message = "Today spins must be not negative number")
+    @Column(name = "today_spin", nullable = false)
     @Builder.Default
-    private Double winProbability = 0.1;
+    private int todaySpin = 100;
 
+    /**
+     * Rate at which daily spins are distributed
+     * Controls the distribution of spins throughout the day
+     * Must be a non-negative value
+     */
+    @Min(value = 0, message = "Remaining spins must be not negative number")
+    @Column(name = "remaining_today_spin", nullable = false)
+    @Builder.Default
+    private double dailySpinDistributingRate = 0;
+
+    /**
+     * Parent event to which this location belongs
+     * Establishes a many-to-one relationship with Event entity
+     */
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("eventId")
     @JoinColumn(name = "event_id")
     private Event event;
 
+    /**
+     * Geographical region where this location is situated
+     * Required field establishing a many-to-one relationship with Region entity
+     */
     @NotNull(message = "Region is required")
     @ManyToOne(fetch = FetchType.LAZY)
+    @MapsId("regionId")
     @JoinColumn(name = "region_id", nullable = false)
     private Region region;
 
+    /**
+     * Collection of participant events occurring at this location
+     * Tracks participant engagement through a one-to-many relationship
+     */
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL)
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();
 
+    /**
+     * Collection of rewards available at this location
+     * Manages the prizes that can be won at this specific venue
+     */
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL)
     @Builder.Default
-    private Set<Reward> rewards = new HashSet<>();
+    private Set<RewardEvent> rewardEvents = new HashSet<>();
 
+    /**
+     * Collection of golden hours scheduled at this location
+     * Defines special time periods with increased rewards or chances
+     */
     @OneToMany(mappedBy = "eventLocation", cascade = CascadeType.ALL)
     @Builder.Default
     private Set<GoldenHour> goldenHours = new HashSet<>();
 
     /**
      * Add a reward to this location
-     * @param reward the reward to add
+     *
+     * @param rewardEvent the rewardEvent to add
      */
-    public void addReward(Reward reward) {
-        if (reward != null) {
-            rewards.add(reward);
-            if (reward.getEventLocation() != this) {
-                reward.setEventLocation(this);
-            }
-        }
-    }
-
-    /**
-     * Remove a reward from this location
-     * @param reward the reward to remove
-     */
-    public void removeReward(Reward reward) {
-        if (reward != null && rewards.remove(reward)) {
-            if (reward.getEventLocation() == this) {
-                reward.setEventLocation(null);
+    public void addRewardEvent(RewardEvent rewardEvent) {
+        if (rewardEvent != null) {
+            rewardEvents.add(rewardEvent);
+            if (rewardEvent.getEventLocation() != this) {
+                rewardEvent.setEventLocation(this);
             }
         }
     }
 
     /**
      * Add a golden hour to this location
+     *
      * @param goldenHour the golden hour to add
      */
     public void addGoldenHour(GoldenHour goldenHour) {
@@ -122,6 +173,7 @@ public class EventLocation extends AbstractStatusAwareEntity {
 
     /**
      * Remove a golden hour from this location
+     *
      * @param goldenHour the golden hour to remove
      */
     public void removeGoldenHour(GoldenHour goldenHour) {
@@ -134,6 +186,7 @@ public class EventLocation extends AbstractStatusAwareEntity {
 
     /**
      * Add a participant event to this location
+     *
      * @param participantEvent the participant event to add
      */
     public void addParticipantEvent(ParticipantEvent participantEvent) {
@@ -147,9 +200,10 @@ public class EventLocation extends AbstractStatusAwareEntity {
 
     /**
      * Remove a participant event from this location
+     *
      * @param participantEvent the participant event to remove
      */
-    public void removeParticipantEvent(ParticipantEvent participantEvent) {
+    public void removeParticipantEvent(RewardEvent participantEvent) {
         if (participantEvent != null && participantEvents.remove(participantEvent)) {
             if (participantEvent.getEventLocation() == this) {
                 participantEvent.setEventLocation(null);
@@ -159,6 +213,7 @@ public class EventLocation extends AbstractStatusAwareEntity {
 
     /**
      * Set region with proper bidirectional relationship management
+     *
      * @param newRegion the new region
      */
     public void setRegion(Region newRegion) {
@@ -173,10 +228,14 @@ public class EventLocation extends AbstractStatusAwareEntity {
                 setStatus(CommonStatus.INACTIVE);
             }
         }
+
+        // Initialize or update the ID whenever the region is set
+        initializeOrUpdateId();
     }
 
     /**
      * Set event with proper bidirectional relationship management
+     *
      * @param newEvent the new event
      */
     public void setEvent(Event newEvent) {
@@ -188,14 +247,33 @@ public class EventLocation extends AbstractStatusAwareEntity {
         if (newEvent != null && newEvent.getLocations() != null) {
             newEvent.getLocations().add(this);
         }
+
+        // Initialize or update the ID whenever the event is set
+        initializeOrUpdateId();
     }
 
     /**
-     * Check if location has available capacity
-     * @return true if capacity available
+     * Initialize or update the composite ID based on event and region
      */
+    private void initializeOrUpdateId() {
+        // Only try to create the ID when both event and region are present
+        if (this.event != null && this.region != null) {
+            // Get existing ID or create new one
+            EventLocationKey key = getId();
+            if (key == null) {
+                key = new EventLocationKey();
+                setId(key);
+            }
+
+            // Set the ID fields
+            key.setEventId(this.event.getId());
+            key.setRegionId(this.region.getId());
+        }
+    }
+
     /**
      * Check if location has available capacity based on active participant events
+     *
      * @return true if capacity available
      */
     @Transient
@@ -210,23 +288,6 @@ public class EventLocation extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Check if location is available for an event
-     * @param otherEvent the event to check
-     * @return true if available
-     */
-    public boolean isAvailable(Event otherEvent) {
-        if (event != null && event.equals(otherEvent)) {
-            return false;
-        }
-
-        if (event != null && otherEvent != null) {
-            return !event.overlaps(otherEvent);
-        }
-
-        return true;
-    }
-
-    /**
      * Set status and cascade changes to dependent entities
      *
      * @param newStatus the new status
@@ -235,18 +296,22 @@ public class EventLocation extends AbstractStatusAwareEntity {
     @Override
     public StatusAware setStatus(CommonStatus newStatus) {
         // Check if we can change to active status
-        if (newStatus != null && newStatus.isActive() && region != null && !region.getStatus().isActive()) {
-            throw new IllegalStateException("Cannot activate location when region is inactive");
+        if (newStatus != null && newStatus.isActive()) {
+            if (region != null && !region.getStatus().isActive()) {
+                throw new IllegalStateException("Cannot activate location when region is inactive");
+            } else if (event != null && !event.getStatus().isActive()) {
+                throw new IllegalStateException("Cannot activate location when event is inactive");
+            }
         }
 
         super.setStatus(newStatus);
 
-        // Cascade deactivation to dependent entities
-        if (newStatus != null && !newStatus.isActive()) {
-            participantEvents.forEach(pe -> pe.setStatus(CommonStatus.INACTIVE));
-            rewards.forEach(r -> r.setStatus(CommonStatus.INACTIVE));
-            goldenHours.forEach(gh -> gh.setStatus(CommonStatus.INACTIVE));
-        }
+//        // Cascade deactivation to dependent entities
+//        if (newStatus != null && !newStatus.isActive()) {
+//            participantEvents.forEach(pe -> pe.setStatus(CommonStatus.INACTIVE));
+//            rewardEvents.forEach(r -> r.setStatus(CommonStatus.INACTIVE));
+//            goldenHours.forEach(gh -> gh.setStatus(CommonStatus.INACTIVE));
+//        }
 
         validateState();
         return this; // Fixed: was returning null
@@ -263,6 +328,10 @@ public class EventLocation extends AbstractStatusAwareEntity {
     @Override
     public void doPrePersist() {
         super.doPrePersist();
+
+        // Ensure ID is initialized before persisting
+        initializeOrUpdateId();
+
         this.validateState();
     }
 
@@ -274,35 +343,20 @@ public class EventLocation extends AbstractStatusAwareEntity {
 
     /**
      * Validate location state
+     *
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {
-        if (code != null) {
-            code = code.toUpperCase();
-        }
-
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalStateException("Location name must be specified");
-        }
-
-        if (code == null || code.trim().isEmpty()) {
-            throw new IllegalStateException("Location code must be specified");
-        }
-
         if (region == null) {
             throw new IllegalStateException("Region must be specified");
         }
 
-        if (maxSpin == null || maxSpin < 1) {
-            throw new IllegalStateException("Maximum spins must be at least 1");
-        }
-        
-        if (quantity == null || quantity < 0) {
-            throw new IllegalStateException("Quantity must be non-negative");
+        if (maxSpin < 0) {
+            throw new IllegalStateException("Maximum spins must be non-negative");
         }
 
-        if (winProbability == null || winProbability < 0.0 || winProbability > 1.0) {
-            throw new IllegalStateException("Win probability must be between 0 and 1");
+        if (todaySpin < 0) {
+            throw new IllegalStateException("Today Spin must be non-negative");
         }
 
         // Debug logging for class loading issue

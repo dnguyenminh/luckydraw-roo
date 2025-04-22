@@ -25,6 +25,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.base.AbstractPersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.service.TableActionService;
@@ -56,8 +57,21 @@ public class TableActionServiceImpl implements TableActionService {
 
     private final TableDataServiceImpl tableDataService;
 
+    
     @Override
     @Transactional
+    public TableActionResponse executeAction(TableActionRequest request) {
+        if (request == null) {
+            return TableActionResponse.error(null, "Request cannot be null");
+        }
+        
+        log.info("Executing table action: {} for entity type: {}", 
+                request.getAction(), request.getObjectType());
+        
+        // Delegate to the dedicated action service
+        return processAction(request);
+    }
+
     public TableActionResponse processAction(TableActionRequest request) {
         if (request == null) {
             return TableActionResponse.error(null, "Request cannot be null");
@@ -92,7 +106,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Process an ADD action request
      */
     @Transactional
-    private <T extends AbstractStatusAwareEntity> TableActionResponse processAddAction(TableActionRequest request) {
+    private <T extends AbstractPersistableEntity> TableActionResponse processAddAction(TableActionRequest request) {
         try {
             // Get the entity class
             Class<T> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
@@ -769,4 +783,6 @@ public class TableActionServiceImpl implements TableActionService {
                 type == Byte.class ||
                 type == Short.class;
     }
+
+
 }

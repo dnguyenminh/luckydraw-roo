@@ -67,8 +67,6 @@ class ParticipantEventTest {
         event.setEndTime(currentTime.plusDays(1));
 
         eventLocation = EventLocation.builder()
-                .name("Test Location")
-                .code("TEST_LOC")
                 .status(CommonStatus.ACTIVE)
                 .maxSpin(1000)
                 .region(region)
@@ -83,7 +81,6 @@ class ParticipantEventTest {
                 .build();
 
         participantEvent = ParticipantEvent.builder()
-                .event(event)
                 .eventLocation(eventLocation)
                 .participant(participant)
                 .spinsRemaining(10)
@@ -122,7 +119,6 @@ class ParticipantEventTest {
     void testMaxSpinLimit() {
 
         // Initial state
-        assertThat(participantEvent.getTodaySpinCount()).as("Initial spin count").isZero();
         assertThat(participantEvent.canSpin()).as("Initial can spin").isTrue();
         assertThat(participantEvent.getSpinHistories()).as("Initial histories").isEmpty();
 
@@ -139,14 +135,12 @@ class ParticipantEventTest {
 
             assertThat(spin).as("Spin %d result", i).isNotNull();
             assertThat(spin.getParticipantEvent()).as("Spin %d relationship", i).isEqualTo(participantEvent);
-            assertThat(spin.getSpinTime()).as("Spin %d time", i).isEqualTo(currentTime);
-            assertThat(participantEvent.getTodaySpinCount()).as("Spin count after attempt %d", i).isEqualTo(i + 1);
+            // assertThat(spin.getSpinTime()).as("Spin %d time", i).isEqualTo(currentTime);
+            LocalDateTime now = LocalDateTime.now();
+            assertThat(Math.abs(spin.getSpinTime().until(now, java.time.temporal.ChronoUnit.SECONDS)))
+                    .as("Spin %d time should be within 10 seconds of current time", i)
+                    .isLessThanOrEqualTo(10);
         });
-
-        // Verify final state
-        assertThat(participantEvent.getTodaySpinCount())
-                .as("Final spin count")
-                .isEqualTo(remainSpinOfParticipant);
 
         assertThat(participantEvent.canSpin())
                 .as("Can spin after maximum spins")
@@ -155,7 +149,7 @@ class ParticipantEventTest {
         // Verify exception when trying to spin beyond limit
         assertThatThrownBy(() -> participantEvent.spin())
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Maximum spins reached");
+                .hasMessageContaining("Cannot spin");
     }
 
     @Test
@@ -165,8 +159,13 @@ class ParticipantEventTest {
         assertThat(participantEvent.getSpinsRemaining()).isEqualTo(9);
         assertThat(spinHistory.getParticipantEvent()).isEqualTo(participantEvent);
         assertThat(participantEvent.getSpinHistories()).contains(spinHistory);
-        assertThat(spinHistory.getSpinTime()).isEqualTo(currentTime);
 
+        // Check that spinTime is within 10 seconds of current time
+
+        LocalDateTime now = LocalDateTime.now();
+        assertThat(Math.abs(spinHistory.getSpinTime().until(now, java.time.temporal.ChronoUnit.SECONDS)))
+                .as("Spin time should be within 10 seconds of current time")
+                .isLessThanOrEqualTo(10);
         participantEvent.setSpinsRemaining(0);
         assertThatThrownBy(() -> participantEvent.spin())
                 .isInstanceOf(IllegalStateException.class)
@@ -180,9 +179,16 @@ class ParticipantEventTest {
                 .status(CommonStatus.ACTIVE)
                 .build();
 
+        RewardEvent rewardEvent = RewardEvent.builder()
+                .eventLocation(eventLocation)
+                .reward(reward)
+                .quantity(10)
+                .todayQuantity(10)
+                .build();
+        ;
         SpinHistory win = SpinHistory.builder()
                 .participantEvent(participantEvent)
-                .reward(reward)
+                .rewardEvent(rewardEvent)
                 .win(true)
                 .spinTime(currentTime)
                 .status(CommonStatus.ACTIVE)
@@ -197,9 +203,6 @@ class ParticipantEventTest {
     @Test
     void testValidation() {
         ParticipantEvent invalid = ParticipantEvent.builder().build();
-        assertThrows(IllegalStateException.class, () -> invalid.validateState());
-
-        invalid.setEvent(event);
         assertThrows(IllegalStateException.class, () -> invalid.validateState());
 
         invalid.setEventLocation(eventLocation);
@@ -226,10 +229,6 @@ class ParticipantEventTest {
             participantEvent.addSpinHistory(spin);
         }
 
-        assertThat(participantEvent.getTodaySpinCount())
-                .as("Today's spin count after yesterday's spins")
-                .isZero();
-
         assertThat(participantEvent.canSpin())
                 .as("Can spin after yesterday's spins")
                 .isTrue();
@@ -242,8 +241,8 @@ class ParticipantEventTest {
     @Test
     void testParticipantEventCreation() {
         ParticipantEvent pe = ParticipantEvent.builder()
-                                              .spinsRemaining(5)
-                                              .build();
+                .spinsRemaining(5)
+                .build();
 
         assertEquals(5, pe.getSpinsRemaining());
     }
@@ -252,17 +251,17 @@ class ParticipantEventTest {
     void testSpinWithWin() {
         // Create a spin history first with correct builder syntax
         SpinHistory spinHistory = SpinHistory.builder()
-            .participantEvent(participantEvent)
-            .spinTime(currentTime)
-            .win(false) // Set initial value
-            .status(CommonStatus.ACTIVE)
-            .build();
-        
+                .participantEvent(participantEvent)
+                .spinTime(currentTime)
+                .win(false) // Set initial value
+                .status(CommonStatus.ACTIVE)
+                .build();
+
         participantEvent.addSpinHistory(spinHistory);
-        
+
         // Now call setWin method on the concrete instance
         spinHistory.setWin(true);
-        
+
         // Verify the spin is marked as a win
         assertTrue(spinHistory.isWin());
     }

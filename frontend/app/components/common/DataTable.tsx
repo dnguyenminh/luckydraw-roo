@@ -17,6 +17,12 @@ import { Search, Filter, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Chev
 import { TableFetchRequest, TableFetchResponse, ObjectType, TabTableRow, FetchStatus, DataObject, SortType, FilterType, ColumnInfo, TableRow } from '@/app/lib/api/interfaces';
 import EntityDetailTabs from './EntityDetailTabs';
 import { fetchTableData } from '@/app/lib/api/tableService';
+import { 
+  addRecord, 
+  updateRecord, 
+  deleteRecord, 
+  exportTableData 
+} from '@/app/lib/api/tableActionService';
 
 // Page size options
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100, 500, 1000];
@@ -1198,30 +1204,84 @@ export default function DataTable({
     setIsEditConfirmOpen(true);
   }, []);
 
+  // Update the handleSaveEdit callback with console logging for debugging
   const handleSaveEdit = useCallback((rowData: any, data: any) => {
+    console.log('Save edit triggered', { rowData, editedData: data });
     setEditedData(data);
     setEditAction('save');
-    setIsSaveConfirmOpen(true);
+    
+    // Force state update and ensure the dialog shows
+    setTimeout(() => {
+      setIsSaveConfirmOpen(true);
+    }, 0);
   }, []);
 
+  // Improve the handleConfirmation function to better handle save action
   const handleConfirmation = useCallback(async (confirmed: boolean) => {
+    console.log('Confirmation action', { confirmed, action: editAction });
+    
     if (editAction === 'cancel') {
       setIsEditConfirmOpen(false);
       if (confirmed) {
         setEditingRowId(null);
+        setIsAddingNewRow(false);
       }
     } else if (editAction === 'save') {
       setIsSaveConfirmOpen(false);
-      if (confirmed && editedData && onSave) {
-        const saveResult = await onSave(data.rows.find(r => r.data?.id === editingRowId)?.data, editedData);
-        if (saveResult) {
-          setEditingRowId(null);
-          // Reload data after successful save
-          loadData({ isForceReload: true });
+      
+      if (confirmed && editedData) {
+        try {
+          console.log('Attempting to save data:', editedData);
+          
+          // Determine if this is a new record or an update
+          const isNewRecord = isAddingNewRow || (editedData.id === undefined || editedData.id < 0);
+          
+          if (onSave) {
+            const saveResult = await onSave(
+              isNewRecord ? null : editingRowId, 
+              editedData
+            );
+            
+            if (saveResult) {
+              // Reset edit state
+              setEditingRowId(null);
+              setIsAddingNewRow(false);
+              
+              // Reload the data
+              loadData({ isForceReload: true });
+            } else {
+              console.error('Save operation returned false');
+            }
+          } else {
+            console.log('No onSave handler provided, using built-in save handler');
+            
+            // Create a TableRow with the edited data
+            const tableRowData: TableRow = { data: editedData };
+            
+            // Use the appropriate action service
+            const result = isNewRecord 
+              ? await addRecord(entityType as ObjectType, tableRowData, data)
+              : await updateRecord(entityType as ObjectType, tableRowData, data);
+            
+            if (result.success) {
+              // Reset edit state
+              setEditingRowId(null);
+              setIsAddingNewRow(false);
+              
+              // Reload data after successful save
+              loadData({ isForceReload: true });
+            } else {
+              console.error('Error saving record:', result.message);
+              alert(`Error: ${result.message || 'Failed to save record'}`);
+            }
+          }
+        } catch (error) {
+          console.error('Error during save operation:', error);
+          alert(`Error: ${error instanceof Error ? error.message : 'Failed to save record'}`);
         }
       }
     }
-  }, [editAction, editedData, editingRowId, onSave, data, loadData]);
+  }, [editAction, editedData, editingRowId, isAddingNewRow, loadData, onSave, entityType, data]);
 
   const handleAddNewRow = useCallback(() => {
     // Create empty data structure based on columns
@@ -1290,7 +1350,10 @@ export default function DataTable({
           search={search}
           isEditing={isEditing}
           onCancelEdit={handleCancelEdit}
-          onSaveEdit={(editedData) => handleSaveEdit(rowData.data, editedData)}
+          onSaveEdit={(editedData) => {
+            console.log('onSaveEdit called from EntityDetailTabs', editedData);
+            handleSaveEdit(rowData.data, editedData);
+          }}
           columns={effectiveColumns} // Pass column definitions with edit/hide info
           excludedStatusOptions={['DELETE']} // Exclude DELETE option from status dropdown
         />
@@ -1799,7 +1862,7 @@ export default function DataTable({
       
       {/* Confirmation dialog for saving edit */}
       {isSaveConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
           <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
             <h3 className="text-lg font-medium mb-4">Confirm Save</h3>
             <p className="mb-6">Are you sure you want to save these changes?</p>

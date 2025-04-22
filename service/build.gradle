@@ -41,6 +41,9 @@ dependencies {
     // Apache POI for Excel handling
     implementation 'org.apache.poi:poi:5.2.3'
     implementation 'org.apache.poi:poi-ooxml:5.2.3'
+
+    // Add Jackson JSR310 module for Java 8 date/time support
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 }
 
 java {

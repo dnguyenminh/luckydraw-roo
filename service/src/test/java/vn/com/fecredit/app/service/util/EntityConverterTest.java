@@ -107,15 +107,13 @@ public class EntityConverterTest {
                 .email("test@example.com")
                 .fullName("Test User")
                 .enabled(true)
-                .role(RoleType.ROLE_ADMIN)
                 .status(CommonStatus.ACTIVE)
-                .roles(new HashSet<>())
                 .build();
 
         // Add role to user's roles collection
         // Set the roles collection first to avoid NPE
-        user.setRoles(new HashSet<>());
-        user.getRoles().add(role);
+        user.setRole(role);
+        role.addUser(user);
 
         // Convert to DataObject
         DataObject dataObject = entityConverter.convertToDataObject(user);

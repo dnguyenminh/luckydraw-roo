@@ -38,7 +38,7 @@ class GoldenHourTest {
     @BeforeEach
     void setUp() {
         now = LocalDateTime.now();
-        
+
         event = Event.builder()
                 .name("Test Event")
                 .code("TEST_EVENT")
@@ -46,7 +46,7 @@ class GoldenHourTest {
                 .startTime(now.minusHours(2))
                 .endTime(now.plusHours(2))
                 .build();
-                
+
         region = Region.builder()
                 .code("TEST_REGION")
                 .name("Test Region")
@@ -59,10 +59,8 @@ class GoldenHourTest {
                 .status(CommonStatus.ACTIVE)
                 .region(region)
                 .build();
-                
+
         location = EventLocation.builder()
-                .name("Test Location")
-                .code("TEST_LOC")
                 .status(CommonStatus.ACTIVE)
                 .region(region)
                 .maxSpin(1000)
@@ -72,14 +70,14 @@ class GoldenHourTest {
         // Set up bidirectional relationships
         region.addEventLocation(location);
         event.addLocation(location);
-                
+
         goldenHour = GoldenHour.builder()
                 .multiplier(BigDecimal.valueOf(2.0))
                 .status(CommonStatus.ACTIVE)
                 .startTime(now.minusHours(1))
                 .endTime(now.plusHours(1))
                 .build();
-                
+
         // Set up bidirectional relationship
         location.addGoldenHour(goldenHour);
     }
@@ -90,13 +88,13 @@ class GoldenHourTest {
     @Test
     void testIsActive() {
         assertTrue(goldenHour.isActive(now));
-        
+
         // Before start time
         assertFalse(goldenHour.isActive(now.minusHours(2)));
-        
+
         // After end time
         assertFalse(goldenHour.isActive(now.plusHours(2)));
-        
+
         // Inactive status
         goldenHour.setStatus(CommonStatus.INACTIVE);
         assertFalse(goldenHour.isActive(now));
@@ -164,8 +162,6 @@ class GoldenHourTest {
 
         // Create and set new location
         EventLocation newLocation = EventLocation.builder()
-                .name("New Location")
-                .code("NEW_LOC")
                 .status(CommonStatus.ACTIVE)
                 .region(region)
                 .maxSpin(500)
@@ -177,7 +173,7 @@ class GoldenHourTest {
         event.addLocation(newLocation);
 
         goldenHour.setEventLocation(newLocation);
-        
+
         assertTrue(newLocation.getGoldenHours().contains(goldenHour));
         assertFalse(location.getGoldenHours().contains(goldenHour));
     }

@@ -21,57 +21,64 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.base.StatusAware;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
- * Province entity representing administrative divisions within regions.
- * Provinces belong to regions and contain participants, forming part of the
- * geographical hierarchy in the system.
+ * Entity representing a province or administrative division within a region.
+ * <p>
+ * Provinces are geographical subdivisions of regions that help organize participants
+ * and track regional participation statistics. Each province belongs to exactly one
+ * region and contains multiple participants.
+ * </p>
+ * <p>
+ * The province hierarchy allows for detailed geographical analysis of participation
+ * rates and helps target marketing efforts more effectively.
+ * </p>
  */
 @Entity
-@Table(
-    name = "provinces",
-    indexes = {
+@Table(name = "provinces", indexes = {
         @Index(name = "idx_province_code", columnList = "code", unique = true),
         @Index(name = "idx_province_region", columnList = "region_id"),
         @Index(name = "idx_province_status", columnList = "status")
-    }
-)
+})
 @Data
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {"region", "participants"})
+@ToString(callSuper = true, exclude = { "region", "participants" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class Province extends AbstractStatusAwareEntity {
-
-    // private static final long serialVersionUID = 1L;
+public class Province extends AbstractSimplePersistableEntity<Long> {
 
     /**
-     * Name of the province
+     * Human-readable name of the province
+     * Used for display purposes in UI and reports
      */
-    @NotBlank(message = "Province name is required")
+    @NotBlank(message = "Name is required")
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
     /**
-     * Unique code identifier for this province
+     * Unique code identifier for the province
+     * Used for programmatic identification and reporting
      */
-    @NotBlank(message = "Province code is required")
+    @NotBlank(message = "Code is required")
     @Column(name = "code", nullable = false, unique = true, length = 20)
     @EqualsAndHashCode.Include
     private String code;
 
     /**
-     * Extended description of the province
+     * Optional detailed description of the province
+     * Provides additional information about the geographical area
      */
     @Column(name = "description")
     private String description;
 
     /**
-     * Region to which this province belongs
+     * The region this province belongs to
+     * Represents the parent geographical entity containing this province
      */
     @NotNull(message = "Region is required")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -79,9 +86,10 @@ public class Province extends AbstractStatusAwareEntity {
     private Region region;
 
     /**
-     * Participants registered in this province
+     * Collection of participants residing in this province
+     * All users who have registered with this province as their location
      */
-    @OneToMany(mappedBy = "province", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "province", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<Participant> participants = new HashSet<>();
 
@@ -111,6 +119,7 @@ public class Province extends AbstractStatusAwareEntity {
 
     /**
      * Set status with proper cascading to related entities
+     * 
      * @param status the new status
      * @return this province for method chaining
      */
@@ -118,29 +127,29 @@ public class Province extends AbstractStatusAwareEntity {
     public StatusAware setStatus(CommonStatus status) {
         // Store old status for comparison
         CommonStatus oldStatus = getStatus();
-        
+
         super.setStatus(status);
-        
+
         // If province is deactivated and was previously active, cascade to participants
         if (status != null && !status.isActive() && (oldStatus == null || oldStatus.isActive())) {
             // Cascade to participants
             if (participants != null) {
                 participants.forEach(participant -> participant.setStatus(CommonStatus.INACTIVE));
             }
-            
+
             // Check if this is the last active province in the region
             if (region != null && region.getProvinces() != null) {
                 boolean anyOtherActiveProvinces = region.getProvinces().stream()
-                    .filter(p -> !p.equals(this)) // Exclude this province 
-                    .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
-                
+                        .filter(p -> !p.equals(this)) // Exclude this province
+                        .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
+
                 if (!anyOtherActiveProvinces && region.getStatus() != null && region.getStatus().isActive()) {
                     // Deactivate region if no other active provinces
                     region.setStatus(CommonStatus.INACTIVE);
                 }
             }
         }
-        
+
         return this;
     }
 

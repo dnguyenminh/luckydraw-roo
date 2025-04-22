@@ -1,20 +1,21 @@
 package vn.com.fecredit.app.service.base;
 
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.entity.base.AbstractPersistableEntity;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.service.exception.EntityNotFoundException;
 
-import java.util.List;
-import java.util.Optional;
-
 @Slf4j
 @Transactional
-public abstract class AbstractServiceImpl<T extends AbstractStatusAwareEntity> implements AbstractService<T> {
+public abstract class AbstractServiceImpl<T extends AbstractPersistableEntity> implements AbstractService<T> {
 
     protected final JpaRepository<T, Long> repository;
 

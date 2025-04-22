@@ -72,16 +72,12 @@ class EventTest {
             .build();
 
         location1 = EventLocation.builder()
-            .name("Location 1")
-            .code("LOC1")
             .region(region1)
             .status(CommonStatus.ACTIVE)
             .maxSpin(1000)
             .build();
 
         location2 = EventLocation.builder()
-            .name("Location 2")
-            .code("LOC2")
             .region(region2)
             .status(CommonStatus.ACTIVE)
             .maxSpin(1000)
@@ -137,10 +133,10 @@ class EventTest {
     void testOverlappingProvinces() {
         // Setup regions with overlapping province
         region1.addProvince(province1);
-        region2.addProvince(province1); 
+        region2.addProvince(province1);
 
         event.addLocation(location1);
-        
+
         // Should throw exception when adding location with overlapping province
         assertThrows(IllegalArgumentException.class, () -> {
             event.addLocation(location2);
@@ -157,7 +153,7 @@ class EventTest {
     @Test
     void testEventTimeBoundaryActivation() {
         LocalDateTime now = LocalDateTime.now();
-        
+
         // Test current active event
         event.setStartTime(now.minusDays(1));
         event.setEndTime(now.plusDays(1));

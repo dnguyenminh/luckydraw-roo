@@ -1,5 +1,6 @@
 package vn.com.fecredit.app.entity.base;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -18,16 +19,25 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
 /**
- * Abstract base entity with audit fields using Spring Data JPA Auditing.
- * Provides created/updated timestamps and user information.
+ * Base abstract entity that adds audit capability to persistable entities.
+ * Tracks creation and modification metadata including timestamps and users.
+ * <p>
+ * This class extends AbstractPersistableEntity by adding standard audit fields
+ * that automatically record when and by whom entities are created and modified.
+ * </p>
+ * 
+ * <p>
+ * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
+ * annotation and is required for JPA entity instantiation.
+ * </p>
  */
 @MappedSuperclass
 @Getter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor
+@NoArgsConstructor // Creates a default no-args constructor for JPA
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
-public abstract class AbstractAuditEntity extends AbstractPersistableEntity {
+public abstract class AbstractAuditEntity<T extends Serializable> {
 
     /**
      * The username of the user who created this entity

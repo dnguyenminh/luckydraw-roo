@@ -82,19 +82,19 @@ INSERT INTO participant_events (id, created_by, created_at, updated_by, updated_
 (10, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 1, 3, 10, 7, 0);
 
 -- Insert Rewards
-INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, event_location_id, version) VALUES
-(1, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Cash Prize $100', 'CASH100', '$100 cash prize', 1, 0),
-(2, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Gift Card $50', 'GIFT50', '$50 gift card', 1, 0),
-(3, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smartphone', 'PHONE', 'Latest smartphone', 2, 0),
-(4, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Tablet Device', 'TABLET', 'New tablet device', 2, 0),
-(5, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smart Watch', 'WATCH', 'Smart watch', 3, 0),
-(6, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Wireless Headphones', 'HEADPHONE', 'Premium wireless headphones', 3, 0),
-(7, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Winter Jacket', 'JACKET', 'Warm winter jacket', 4, 0),
-(8, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Snow Boots', 'BOOTS', 'Waterproof snow boots', 4, 0),
-(9, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Garden Tool Set', 'GARDEN', 'Spring gardening tools', 5, 0),
-(10, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'INACTIVE', 'Umbrella', 'UMBRELLA', 'Stylish umbrella', 6, 0),
-(11, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Anniversary Cake', 'CAKE', 'Celebratory cake', 7, 0),
-(12, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Champagne Bottle', 'CHAMPAGNE', 'Premium champagne', 7, 0);
+INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, event_location_id, prizeValue, version) VALUES
+(1, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Cash Prize $100', 'CASH100', '$100 cash prize', 1, 100.00, 0),
+(2, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Gift Card $50', 'GIFT50', '$50 gift card', 1, 50.00, 0),
+(3, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smartphone', 'PHONE', 'Latest smartphone', 2, 800.00, 0),
+(4, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Tablet Device', 'TABLET', 'New tablet device', 2, 400.00, 0),
+(5, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smart Watch', 'WATCH', 'Smart watch', 3, 250.00, 0),
+(6, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Wireless Headphones', 'HEADPHONE', 'Premium wireless headphones', 3, 150.00, 0),
+(7, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Winter Jacket', 'JACKET', 'Warm winter jacket', 4, 100.00, 0),
+(8, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Snow Boots', 'BOOTS', 'Waterproof snow boots', 4, 80.00, 0),
+(9, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Garden Tool Set', 'GARDEN', 'Spring gardening tools', 5, 90.00, 0),
+(10, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'INACTIVE', 'Umbrella', 'UMBRELLA', 'Stylish umbrella', 6, 25.00, 0),
+(11, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Anniversary Cake', 'CAKE', 'Celebratory cake', 7, 40.00, 0),
+(12, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Champagne Bottle', 'CHAMPAGNE', 'Premium champagne', 7, 60.00, 0);
 
 -- Insert Golden Hours
 INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, status, event_location_id, start_time, end_time, multiplier, version) VALUES
@@ -196,14 +196,14 @@ INSERT INTO configurations (id, created_by, created_at, updated_by, updated_at, 
 (4, 'admin', '2023-01-01 00:00:00', 'admin', '2023-01-01 00:00:00', 'ACTIVE', 'TOKEN_EXPIRY_MINUTES', '60', 'Authentication token expiry in minutes', 0),
 (5, 'admin', '2023-01-01 00:00:00', 'admin', '2023-01-01 00:00:00', 'ACTIVE', 'REWARD_CLAIM_EXPIRY_DAYS', '7', 'Number of days to claim a reward before it expires', 0);
 
--- Insert Audit Logs
+-- Insert Audit Logs (updated object_id to be string values)
 INSERT INTO audit_logs (id, created_by, created_at, updated_by, updated_at, status, object_type, object_id, property_path, old_value, new_value, value_type, update_time, context, action_type, version) VALUES
-(1, 'admin', '2023-01-15 10:00:00', 'admin', '2023-01-15 10:00:00', 'ACTIVE', 'Event', 1, 'name', NULL, 'Summer Festival', 'String', '2023-01-15 10:00:00', 'Event creation', 'CREATED', 0),
-(2, 'admin', '2023-01-15 10:30:00', 'admin', '2023-01-15 10:30:00', 'ACTIVE', 'Event', 2, 'name', NULL, 'Winter Wonderland', 'String', '2023-01-15 10:30:00', 'Event creation', 'CREATED', 0),
-(3, 'admin', '2023-01-20 11:00:00', 'admin', '2023-01-20 11:00:00', 'ACTIVE', 'EventLocation', 1, 'name', NULL, 'North Mall', 'String', '2023-01-20 11:00:00', 'Location creation', 'CREATED', 0),
-(4, 'admin', '2023-02-10 12:00:00', 'admin', '2023-02-10 12:00:00', 'ACTIVE', 'Reward', 1, 'name', NULL, 'Cash Prize $100', 'String', '2023-02-10 12:00:00', 'Reward creation', 'CREATED', 0),
-(5, 'system', '2023-02-01 09:00:00', 'system', '2023-02-01 09:00:00', 'ACTIVE', 'Participant', 1, 'name', NULL, 'John Doe', 'String', '2023-02-01 09:00:00', 'Participant creation', 'CREATED', 0),
-(6, 'admin', '2023-06-15 12:30:00', 'admin', '2023-06-15 12:30:00', 'ACTIVE', 'SpinHistory', 1, 'win', NULL, 'true', 'Boolean', '2023-06-15 12:30:00', 'Spin result', 'CREATED', 0),
-(8, 'admin', '2023-01-01 08:00:00', 'admin', '2023-01-01 08:00:00', 'ACTIVE', 'User', 1, 'username', NULL, 'admin', 'String', '2023-01-01 08:00:00', 'User creation', 'CREATED', 0),
-(9, 'admin', '2023-03-15 15:00:00', 'admin', '2023-03-15 15:00:00', 'ACTIVE', 'GoldenHour', 5, 'multiplier', NULL, '3.0', 'BigDecimal', '2023-03-15 15:00:00', 'Golden hour creation', 'CREATED', 0),
-(10, 'admin', '2023-09-05 16:00:00', 'admin', '2023-09-05 16:00:00', 'ACTIVE', 'Event', 4, 'status', 'ACTIVE', 'INACTIVE', 'CommonStatus', '2023-09-05 16:00:00', 'Event deactivated', 'DEACTIVATED', 0);
+(1, 'admin', '2023-01-15 10:00:00', 'admin', '2023-01-15 10:00:00', 'ACTIVE', 'Event', '1', 'name', NULL, 'Summer Festival', 'String', '2023-01-15 10:00:00', 'Event creation', 'CREATED', 0),
+(2, 'admin', '2023-01-15 10:30:00', 'admin', '2023-01-15 10:30:00', 'ACTIVE', 'Event', '2', 'name', NULL, 'Winter Wonderland', 'String', '2023-01-15 10:30:00', 'Event creation', 'CREATED', 0),
+(3, 'admin', '2023-01-20 11:00:00', 'admin', '2023-01-20 11:00:00', 'ACTIVE', 'EventLocation', '1', 'name', NULL, 'North Mall', 'String', '2023-01-20 11:00:00', 'Location creation', 'CREATED', 0),
+(4, 'admin', '2023-02-10 12:00:00', 'admin', '2023-02-10 12:00:00', 'ACTIVE', 'Reward', '1', 'name', NULL, 'Cash Prize $100', 'String', '2023-02-10 12:00:00', 'Reward creation', 'CREATED', 0),
+(5, 'system', '2023-02-01 09:00:00', 'system', '2023-02-01 09:00:00', 'ACTIVE', 'Participant', '1', 'name', NULL, 'John Doe', 'String', '2023-02-01 09:00:00', 'Participant creation', 'CREATED', 0),
+(6, 'admin', '2023-06-15 12:30:00', 'admin', '2023-06-15 12:30:00', 'ACTIVE', 'SpinHistory', '1', 'win', NULL, 'true', 'Boolean', '2023-06-15 12:30:00', 'Spin result', 'CREATED', 0),
+(8, 'admin', '2023-01-01 08:00:00', 'admin', '2023-01-01 08:00:00', 'ACTIVE', 'User', '1', 'username', NULL, 'admin', 'String', '2023-01-01 08:00:00', 'User creation', 'CREATED', 0),
+(9, 'admin', '2023-03-15 15:00:00', 'admin', '2023-03-15 15:00:00', 'ACTIVE', 'GoldenHour', '5', 'multiplier', NULL, '3.0', 'BigDecimal', '2023-03-15 15:00:00', 'Golden hour creation', 'CREATED', 0),
+(10, 'admin', '2023-09-05 16:00:00', 'admin', '2023-09-05 16:00:00', 'ACTIVE', 'Event', '4', 'status', 'ACTIVE', 'INACTIVE', 'CommonStatus', '2023-09-05 16:00:00', 'Event deactivated', 'DEACTIVATED', 0);

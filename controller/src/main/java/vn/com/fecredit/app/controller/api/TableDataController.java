@@ -41,7 +41,7 @@ public class TableDataController {
 
     private final TableDataService tableDataService;
     private final TableActionService tableActionService;
-    
+
     // In-memory storage for download tokens (in production, use a more robust solution)
     private final Map<String, UploadFile> downloadTokens = new HashMap<>();
 
@@ -82,114 +82,112 @@ public class TableDataController {
      * Path-based endpoint for fetching entity data
      */
     @PostMapping("/fetch/{entityName}")
-    public ResponseEntity<TableFetchResponse> fetchEntityData(
-            @PathVariable("entityName") String entityNamePath,
-            @RequestBody TableFetchRequest request) {
-            
-        String entityName = request.getEntityName() != null ? request.getEntityName() : entityNamePath;
+    public ResponseEntity<TableFetchResponse> fetchEntityData(@RequestBody TableFetchRequest request) {
 
-        log.debug("REST request to fetch {} data: {}", entityName, request);
+//        String entityName = request.getEntityName() != null ? request.getEntityName() : entityNamePath;
+
+        log.debug("REST request to fetch {} data: {}", request.getObjectType(), request);
 
         // Convert the entity name to the appropriate ObjectType
-        ObjectType objectType = null;
-        
-        try {
-            objectType = ObjectType.valueOf(entityName);
-        } catch (IllegalArgumentException e) {
-            // Try to resolve from our mapping
-            objectType = ENTITY_NAME_MAP.get(entityName.toLowerCase());
-            
-            if (objectType == null) {
-                // Try enum format 
-                objectType = ENUM_NAME_MAP.get(entityName.toUpperCase());
-            }
-        }
+        ObjectType objectType = request.getObjectType();
+
+//        try {
+//            objectType = ObjectType.valueOf(entityName);
+//        } catch (IllegalArgumentException e) {
+//            // Try to resolve from our mapping
+//            objectType = ENTITY_NAME_MAP.get(entityName.toLowerCase());
+//
+//            if (objectType == null) {
+//                // Try enum format
+//                objectType = ENUM_NAME_MAP.get(entityName.toUpperCase());
+//            }
+//        }
 
         if (objectType == null) {
-            log.error("Unknown entity type from path: {}", entityName);
+            log.error("Unknown entity type from path: {}", objectType);
             return ResponseEntity.badRequest().build();
         }
 
         // Set the entity name in the request too
-        request.setEntityName(entityName);
+//        request.setEntityName(objectType.toString());
 
         // Override the objectType in the request with the one from the URL
-        request.setObjectType(objectType);
+//        request.setObjectType(objectType);
 
         TableFetchResponse response = tableDataService.fetchData(request);
         return ResponseEntity.ok(response);
     }
-    
+
     /**
      * Process table actions like add, update, delete, export, and import
      */
     @PostMapping("/action/{entityName}")
     public ResponseEntity<TableActionResponse> processAction(@RequestBody TableActionRequest request) {
         log.debug("REST request to process action {}: {}", request.getAction(), request);
-        
-        TableActionResponse response = tableActionService.processAction(request);
-        
+
+        TableActionResponse response = tableActionService.executeAction(request);
+
         // For export operations, store the file for download and return a download token
         if (response.getDownloadFile() != null) {
             // Generate a download token
             String token = UUID.randomUUID().toString();
-            
+
             // Store the file in our token map
             downloadTokens.put(token, response.getDownloadFile());
-            
+
             // Don't include the file content in the response
             response.getDownloadFile().setFileContent(null);
-            
+
             // Add the download token to the response
             Map<String, Object> responseData = new HashMap<>();
             responseData.put("downloadToken", token);
             responseData.put("fileName", response.getDownloadFile().getFileName());
-            
+
             // Create a data object if needed
             if (response.getData() == null) {
                 response.setData(new TableRow());
             }
-            
+
             // Update the data with download information
             response.getData().setData(responseData);
         }
-        
+
         return ResponseEntity.ok(response);
     }
-    
+
     /**
      * Download exported file using a token
      */
     @GetMapping("/download/{filename}")
     public ResponseEntity<ByteArrayResource> downloadFile(
-            @PathVariable String filename,
-            @RequestParam(name = "token", required = true) String token) {
-        
+        @PathVariable String filename,
+        @RequestParam(name = "token", required = true) String token) {
+
         log.debug("REST request to download file {} with token {}", filename, token);
-        
+
         // Check if the token is valid
         if (token == null || !downloadTokens.containsKey(token)) {
             return ResponseEntity.badRequest().build();
         }
-        
+
         // Get the file from our token map
         UploadFile file = downloadTokens.get(token);
-        
+
         // Check if the filename matches
         if (!filename.equals(file.getFileName())) {
             return ResponseEntity.badRequest().build();
         }
-        
+
         // Remove the token after use
         downloadTokens.remove(token);
-        
+
         // Create ByteArrayResource from the file content
         ByteArrayResource resource = new ByteArrayResource(file.getFileContent());
-        
+
         // Set up headers for the download
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
-        
+
         // Return the file as a download
         return ResponseEntity.ok()
             .headers(headers)

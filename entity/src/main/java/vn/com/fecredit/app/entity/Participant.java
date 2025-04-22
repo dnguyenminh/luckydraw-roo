@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
@@ -12,50 +13,89 @@ import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Entity representing an individual who participates in events.
+ * <p>
+ * Participants are the users who engage with the lucky draw events. They register
+ * with their personal information and province, then participate in events at specific
+ * locations. Each participant can join multiple events and has a tracking record of
+ * their participation and spin history.
+ * </p>
+ * <p>
+ * The participant's province is important for regional analysis and targeting specific
+ * demographic groups with tailored events and rewards.
+ * </p>
+ */
 @Entity
-@Table(
-    name = "participants",
-    indexes = {
+@Table(name = "participants", indexes = {
         @Index(name = "idx_participant_code", columnList = "code", unique = true),
         @Index(name = "idx_participants_status", columnList = "status"),
         @Index(name = "idx_participant_province", columnList = "province_id")
-    }
-)
+})
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor
+@NoArgsConstructor // Creates a default no-args constructor required by JPA
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {"participantEvents", "province"})
+@ToString(callSuper = true, exclude = { "province", "participantEvents" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class Participant extends AbstractStatusAwareEntity {
+public class Participant extends AbstractSimplePersistableEntity<Long> {
 
+    /**
+     * Full name of the participant
+     */
     @NotBlank(message = "Name is required")
     @Column(name = "name", nullable = false)
     private String name;
 
+    /**
+     * Unique code identifier for the participant
+     * Often used for quick lookups and QR code generation
+     */
     @NotBlank(message = "Code is required")
     @Column(name = "code", nullable = false, unique = true)
     @EqualsAndHashCode.Include
     private String code;
 
+    /**
+     * Contact phone number of the participant
+     */
     @Column(name = "phone")
     private String phone;
 
+    /**
+     * Physical address of the participant
+     */
     @Column(name = "address")
     private String address;
 
+    /**
+     * Tracks the last number of spins added to this participant
+     * Used for auditing and preventing abuse
+     */
+    @Column(name = "lastAddingSpin")
+    private int lastAddingSpin;
+
+    /**
+     * Province where the participant is located
+     * Important for demographic analysis and regional targeting
+     */
     @NotNull(message = "Province is required")
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "province_id", nullable = false)
     private Province province;
 
+    /**
+     * Collection of event participation records for this participant
+     * Tracks all events the participant has joined
+     */
     @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<ParticipantEvent> participantEvents = new HashSet<>();
 
     /**
      * Set the participant's province with proper bidirectional relationship
+     *
      * @param province the province to set
      */
     public void setProvince(Province province) {
@@ -69,66 +109,16 @@ public class Participant extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Join an event
-     * @param event the event to join
-     * @return the participant event record
-     */
-    public ParticipantEvent joinEvent(Event event) {
-        if (!getStatus().isActive()) {
-            throw new IllegalStateException("Cannot join event: participant is not active");
-        }
-
-        if (!event.isActive()) {
-            throw new IllegalStateException("Cannot join inactive event");
-        }
-
-        if (getEventParticipation(event) != null) {
-            throw new IllegalStateException("Already participating in this event");
-        }
-
-        ParticipantEvent pe = ParticipantEvent.builder()
-            .event(event)
-            .eventLocation(event.getDefaultLocation())
-            .participant(this)
-            .spinsRemaining(10) // Default number of spins
-            .status(CommonStatus.ACTIVE)
-            .build();
-
-        participantEvents.add(pe);
-        return pe;
-    }
-
-    /**
-     * Get total winnings across all events
-     * @return total winnings value
-     */
-    @Transient
-    public BigDecimal getTotalWinnings() {
-        return participantEvents.stream()
-            .map(ParticipantEvent::getTotalWinnings)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    /**
      * Get participation record for an event
+     *
      * @param event the event to check
      * @return participation record or null
      */
     public ParticipantEvent getEventParticipation(Event event) {
         return participantEvents.stream()
-            .filter(pe -> pe.getEvent().equals(event))
-            .findFirst()
-            .orElse(null);
-    }
-
-    /**
-     * Check if participant is currently active in any event
-     * @return true if active in any event
-     */
-    @Transient
-    public boolean isActiveInAnyEvent() {
-        return participantEvents.stream()
-            .anyMatch(pe -> pe.getStatus().isActive() && pe.getEvent().isActive());
+                .filter(pe -> pe.getEventLocation().getEvent().equals(event))
+                .findFirst()
+                .orElse(null);
     }
 
     @Override
@@ -145,6 +135,7 @@ public class Participant extends AbstractStatusAwareEntity {
 
     /**
      * Validate participant state
+     *
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {

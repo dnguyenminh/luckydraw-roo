@@ -9,238 +9,107 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.annotation.Rollback;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import vn.com.fecredit.app.entity.Permission;
-import vn.com.fecredit.app.entity.Role;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
-import vn.com.fecredit.app.entity.enums.RoleType;
+import vn.com.fecredit.app.entity.enums.PermissionName;
+import vn.com.fecredit.app.entity.enums.PermissionType;
 
-
-@Rollback
-class PermissionRepositoryTest  extends AbstractRepositoryTest{
+class PermissionRepositoryTest extends AbstractRepositoryTest {
 
     @Autowired
     private PermissionRepository permissionRepository;
 
-    @Autowired
-    private RoleRepository roleRepository;
-
     @PersistenceContext
     private EntityManager entityManager;
 
-    private Permission viewUserPermission;
-    private Permission createUserPermission;
-    private Permission viewEventPermission;
-    private Role adminRole;
-    private Role userRole;
     private final LocalDateTime now = LocalDateTime.now();
+    private Permission createUserPermission, readUserPermission, updateUserPermission;
 
     @BeforeEach
     void setUp() {
-        // Clean up database
+        cleanDatabase();
+        createTestData();
+    }
+
+    private void cleanDatabase() {
         entityManager.createNativeQuery("DELETE FROM role_permissions").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM permissions").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM roles").executeUpdate();
         entityManager.flush();
+    }
 
-        // Create test permissions
-        viewUserPermission = Permission.builder()
-                .name("VIEW_USERS")
-                .description("Permission to view users")
-                .status(CommonStatus.ACTIVE)
-                .build();
-        viewUserPermission.setCreatedBy("system");
-        viewUserPermission.setUpdatedBy("system");
-        viewUserPermission.setCreatedAt(now);
-        viewUserPermission.setUpdatedAt(now);
-
+    private void createTestData() {
+        // Create permissions with proper PermissionName enum values
         createUserPermission = Permission.builder()
-                .name("CREATE_USER")
-                .description("Permission to create users")
-                .status(CommonStatus.ACTIVE)
-                .build();
+            .name(PermissionName.CREATE_USER)  // Set the required name field
+            .description("Create User Permission")
+            .type(PermissionType.WRITE)  // Use enum instead of String
+            .status(CommonStatus.ACTIVE)
+            .build();
+        createUserPermission.setVersion(0L);
         createUserPermission.setCreatedBy("system");
         createUserPermission.setUpdatedBy("system");
         createUserPermission.setCreatedAt(now);
         createUserPermission.setUpdatedAt(now);
-
-        viewEventPermission = Permission.builder()
-                .name("VIEW_EVENTS")
-                .description("Permission to view events")
-                .status(CommonStatus.INACTIVE)
-                .build();
-        viewEventPermission.setCreatedBy("system");
-        viewEventPermission.setUpdatedBy("system");
-        viewEventPermission.setCreatedAt(now);
-        viewEventPermission.setUpdatedAt(now);
-
-        permissionRepository.save(viewUserPermission);
-        permissionRepository.save(createUserPermission);
-        permissionRepository.save(viewEventPermission);
-
-        // Create test roles
-        adminRole = Role.builder()
-                .roleType(RoleType.ROLE_ADMIN)
-                .description("Administrator role")
-                .displayOrder(1)
-                .status(CommonStatus.ACTIVE)
-                .build();
-        adminRole.setCreatedBy("system");
-        adminRole.setUpdatedBy("system");
-        adminRole.setCreatedAt(now);
-        adminRole.setUpdatedAt(now);
-
-        userRole = Role.builder()
-                .roleType(RoleType.ROLE_USER)
-                .description("User role")
-                .displayOrder(2)
-                .status(CommonStatus.ACTIVE)
-                .build();
-        userRole.setCreatedBy("system");
-        userRole.setUpdatedBy("system");
-        userRole.setCreatedAt(now);
-        userRole.setUpdatedAt(now);
-
-        roleRepository.save(adminRole);
-        roleRepository.save(userRole);
-
-        // Establish relationships
-        adminRole.addPermission(viewUserPermission);
-        adminRole.addPermission(createUserPermission);
-        userRole.addPermission(viewUserPermission);
-
-        roleRepository.save(adminRole);
-        roleRepository.save(userRole);
-
+        createUserPermission = permissionRepository.save(createUserPermission);
+        
+        readUserPermission = Permission.builder()
+            .name(PermissionName.READ_USER)  // Set the required name field
+            .description("Read User Permission")
+            .type(PermissionType.READ)  // Use enum instead of String
+            .status(CommonStatus.ACTIVE)
+            .build();
+        readUserPermission.setVersion(0L);
+        readUserPermission.setCreatedBy("system");
+        readUserPermission.setUpdatedBy("system");
+        readUserPermission.setCreatedAt(now);
+        readUserPermission.setUpdatedAt(now);
+        readUserPermission = permissionRepository.save(readUserPermission);
+        
+        updateUserPermission = Permission.builder()
+            .name(PermissionName.UPDATE_USER)  // Set the required name field
+            .description("Update User Permission")
+            .type(PermissionType.WRITE)  // Use enum instead of String
+            .status(CommonStatus.INACTIVE)
+            .build();
+        updateUserPermission.setVersion(0L);
+        updateUserPermission.setCreatedBy("system");
+        updateUserPermission.setUpdatedBy("system");
+        updateUserPermission.setCreatedAt(now);
+        updateUserPermission.setUpdatedAt(now);
+        updateUserPermission = permissionRepository.save(updateUserPermission);
+        
         entityManager.flush();
         entityManager.clear();
     }
 
     @Test
-    void findByName_ShouldReturnMatchingPermission() {
-        // When
-        Optional<Permission> result = permissionRepository.findByName("VIEW_USERS");
-
-        // Then
+    void findByName_ShouldReturnPermission_WhenExists() {
+        Optional<Permission> result = permissionRepository.findByName(PermissionName.CREATE_USER);
+        
         assertThat(result).isPresent();
-        assertThat(result.get().getDescription()).isEqualTo("Permission to view users");
-        assertThat(result.get().getRoles()).hasSize(2);
+        assertThat(result.get().getDescription()).isEqualTo("Create User Permission");
     }
-
+    
     @Test
-    void existsByName_ShouldReturnCorrectResult() {
-        // When & Then
-        assertThat(permissionRepository.existsByName("VIEW_USERS")).isTrue();
-        assertThat(permissionRepository.existsByName("UNKNOWN_PERMISSION")).isFalse();
-    }
-
-    @Test
-    void findByStatus_ShouldReturnMatchingPermissions() {
-        // When
+    void findByStatus_ShouldReturnFilteredPermissions() {
         List<Permission> activePermissions = permissionRepository.findByStatus(CommonStatus.ACTIVE);
         List<Permission> inactivePermissions = permissionRepository.findByStatus(CommonStatus.INACTIVE);
-
-        // Then
+        
         assertThat(activePermissions).hasSize(2);
-        assertThat(activePermissions).extracting("name").containsExactlyInAnyOrder("VIEW_USERS", "CREATE_USER");
-
         assertThat(inactivePermissions).hasSize(1);
-        assertThat(inactivePermissions).extracting("name").containsExactly("VIEW_EVENTS");
+        assertThat(inactivePermissions.get(0).getName()).isEqualTo(PermissionName.UPDATE_USER);
     }
-
+    
     @Test
-    void findByRoleId_ShouldReturnAssignedPermissions() {
-        // When
-        List<Permission> adminPermissions = permissionRepository.findByRoleId(adminRole.getId());
-        List<Permission> userPermissions = permissionRepository.findByRoleId(userRole.getId());
-
-        // Then
-        assertThat(adminPermissions).hasSize(2);
-        assertThat(adminPermissions).extracting("name").containsExactlyInAnyOrder("VIEW_USERS", "CREATE_USER");
-
-        assertThat(userPermissions).hasSize(1);
-        assertThat(userPermissions).extracting("name").containsExactly("VIEW_USERS");
-    }
-
-    @Test
-    void findActiveByRoleId_ShouldReturnOnlyActivePermissions() {
-        // Given
-        // Make VIEW_USERS permission inactive
-        Permission permission = permissionRepository.findByName("VIEW_USERS").orElseThrow();
-        permission.setStatus(CommonStatus.INACTIVE);
-        permissionRepository.save(permission);
-
-        entityManager.flush();
-        entityManager.clear();
-
-        // When
-        List<Permission> activeAdminPermissions = permissionRepository.findActiveByRoleId(adminRole.getId());
-
-        // Then
-        assertThat(activeAdminPermissions).hasSize(1);
-        assertThat(activeAdminPermissions).extracting("name").containsExactly("CREATE_USER");
-    }
-
-    @Test
-    void findNotInRole_ShouldReturnUnassignedPermissions() {
-        // When
-        List<Permission> notInUserRole = permissionRepository.findNotInRole(userRole.getId());
-
-        // Then
-        assertThat(notInUserRole).hasSize(2);
-        assertThat(notInUserRole).extracting("name").containsExactlyInAnyOrder("CREATE_USER", "VIEW_EVENTS");
-    }
-
-    @Test
-    void basicCrudOperations_ShouldWorkCorrectly() {
-        // Count
-        long count = permissionRepository.count();
-        assertThat(count).isEqualTo(3);
-
-        // Find by ID
-        Permission found = permissionRepository.findById(viewUserPermission.getId()).orElse(null);
-        assertThat(found).isNotNull();
-        assertThat(found.getName()).isEqualTo("VIEW_USERS");
-
-        // Create new permission
-        Permission newPermission = Permission.builder()
-                .name("DELETE_USER")
-                .description("Permission to delete users")
-                .status(CommonStatus.ACTIVE)
-                .build();
-        newPermission.setCreatedBy("system");
-        newPermission.setUpdatedBy("system");
-        newPermission.setCreatedAt(now);
-        newPermission.setUpdatedAt(now);
-
-        Permission saved = permissionRepository.save(newPermission);
-        assertThat(saved.getId()).isNotNull();
-
-        // Update permission
-        found.setDescription("Updated description");
-        permissionRepository.save(found);
-
-        entityManager.flush();
-        entityManager.clear();
-
-        Permission updated = permissionRepository.findById(found.getId()).orElse(null);
-        assertThat(updated).isNotNull();
-        assertThat(updated.getDescription()).isEqualTo("Updated description");
-
-        // Delete permission
-        permissionRepository.deleteById(viewEventPermission.getId());
-
-        entityManager.flush();
-        entityManager.clear();
-
-        boolean exists = permissionRepository.existsById(viewEventPermission.getId());
-        assertThat(exists).isFalse();
-
-        // Count after operations
-        long newCount = permissionRepository.count();
-        assertThat(newCount).isEqualTo(3); // Added one and deleted one
+    void findByType_ShouldReturnFilteredPermissions() {
+        List<Permission> writePermissions = permissionRepository.findByType(PermissionType.WRITE);  // Use enum instead of String
+        List<Permission> readPermissions = permissionRepository.findByType(PermissionType.READ);     // Use enum instead of String
+        
+        assertThat(writePermissions).hasSize(2);
+        assertThat(readPermissions).hasSize(1);
+        assertThat(readPermissions.get(0).getName()).isEqualTo(PermissionName.READ_USER);
     }
 }

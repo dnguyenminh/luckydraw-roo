@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.listener.EntityAuditListener;
 
@@ -12,18 +13,18 @@ import java.time.LocalDateTime;
 
 /**
  * BlacklistedToken entity for tracking invalidated authentication tokens.
- * Used to maintain security by explicitly revoking tokens that are no longer valid,
+ * Used to maintain security by explicitly revoking tokens that are no longer
+ * valid,
  * such as when a user logs out or when a token is compromised.
+ * Part of the security infrastructure to prevent token reuse and session
+ * hijacking.
  */
 @Entity
-@Table(
-    name = "blacklisted_tokens",
-    indexes = {
+@Table(name = "blacklisted_tokens", indexes = {
         @Index(name = "idx_blacklisted_token_user", columnList = "user_id"),
         @Index(name = "idx_blacklisted_token_status", columnList = "status"),
         @Index(name = "idx_blacklisted_token_type", columnList = "token_type")
-    }
-)
+})
 @EntityListeners(EntityAuditListener.class)
 @Data
 @SuperBuilder(toBuilder = true)
@@ -31,10 +32,12 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @ToString(callSuper = true, exclude = "user")
 @EqualsAndHashCode(callSuper = true)
-public class BlacklistedToken extends AbstractStatusAwareEntity {
+public class BlacklistedToken extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * The actual token string that has been blacklisted
+     * Contains the JWT or other token value that should no longer be accepted
+     * Required field that cannot be blank
      */
     @NotBlank(message = "Token is required")
     @Column(name = "token", nullable = false)
@@ -42,6 +45,8 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
 
     /**
      * Type of the token (e.g., ACCESS, REFRESH)
+     * Distinguishes between different types of tokens in the system
+     * Required field that cannot be blank
      */
     @NotBlank(message = "Token type is required")
     @Column(name = "token_type", nullable = false)
@@ -49,6 +54,8 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
 
     /**
      * Time when the token expires and can be removed from the blacklist
+     * Used for blacklist cleanup to prevent unlimited growth
+     * Required field that cannot be null
      */
     @NotNull(message = "Expiration time is required")
     @Column(name = "expiration_time", nullable = false)
@@ -56,6 +63,7 @@ public class BlacklistedToken extends AbstractStatusAwareEntity {
 
     /**
      * User who owned this token, if known
+     * Optional relationship to track which user's token was invalidated
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")

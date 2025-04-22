@@ -40,19 +40,21 @@ class SpinHistoryTest {
                 .build();
 
         EventLocation location = EventLocation.builder()
-                .name("Test Location")
-                .code("TEST_LOC")
                 .maxSpin(1000)
                 .event(event)
                 .region(region)
                 .status(CommonStatus.ACTIVE)
                 .build();
 
-        Reward.builder()
+        Reward reward = Reward.builder()
                 .name("Test Reward")
                 .code("TEST_REWARD")
-                .eventLocation(location)
                 .status(CommonStatus.ACTIVE)
+                .build();
+
+        RewardEvent rewardEvent = RewardEvent.builder()
+                .reward(reward)
+                .eventLocation(location)
                 .build();
 
         goldenHour = GoldenHour.builder()
@@ -72,7 +74,6 @@ class SpinHistoryTest {
                 .build();
 
         participantEvent = ParticipantEvent.builder()
-                .event(event)
                 .eventLocation(location)
                 .participant(participant)
                 .spinsRemaining(5)
@@ -80,7 +81,8 @@ class SpinHistoryTest {
                 .build();
 
         spinHistory = SpinHistory.builder()
-                .participantEvent(participantEvent)
+                .participantEvent(participantEvent)                
+                .rewardEvent(rewardEvent)
                 .spinTime(now)
                 .status(CommonStatus.ACTIVE)
                 .build();
@@ -88,13 +90,13 @@ class SpinHistoryTest {
 
     // @Test
     // void testDefaultMultiplier() {
-    //     SpinHistory newHistory = SpinHistory.builder()
-    //             .participantEvent(participantEvent)
-    //             .spinTime(LocalDateTime.now())
-    //             .status(CommonStatus.ACTIVE)
-    //             .build();
+    // SpinHistory newHistory = SpinHistory.builder()
+    // .participantEvent(participantEvent)
+    // .spinTime(LocalDateTime.now())
+    // .status(CommonStatus.ACTIVE)
+    // .build();
 
-    //     assertThat(newHistory.getMultiplier()).isEqualByComparingTo(BigDecimal.ONE);
+    // assertThat(newHistory.getMultiplier()).isEqualByComparingTo(BigDecimal.ONE);
     // }
 
     @Test
@@ -124,14 +126,14 @@ class SpinHistoryTest {
         // Test win without reward
         assertThrows(IllegalStateException.class, () -> {
             spinHistory.setWin(true);
-            spinHistory.setReward(null);
+            spinHistory.setRewardEvent(null);
             spinHistory.validateState();
         });
 
         // // Test invalid multiplier
         // assertThrows(IllegalStateException.class, () -> {
-        //     spinHistory.setMultiplier(BigDecimal.ZERO);
-        //     spinHistory.validateState();
+        // spinHistory.setMultiplier(BigDecimal.ZERO);
+        // spinHistory.validateState();
         // });
     }
 

@@ -1,230 +1,143 @@
 package vn.com.fecredit.app.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 import vn.com.fecredit.app.entity.enums.RoleType;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 
 import java.util.HashSet;
 import java.util.Set;
 
+
 /**
- * User entity representing users in the system.
- * This entity stores user authentication and authorization information,
- * including credentials, personal details, and role assignments.
- * 
- * The User entity is central to the security model of the application,
- * connecting authentication (who the user is) to authorization (what they can do).
+ * Entity representing a user in the system with authentication and authorization capabilities.
+ * <p>
+ * The User entity stores authentication credentials, personal information, and account status
+ * flags that determine the user's ability to access the system. Each user can be associated with
+ * a role that defines their permissions within the application.
+ * <p>
+ * The entity also maintains a collection of blacklisted authentication tokens for security
+ * purposes, enabling token revocation during logout or when security is compromised.
+ * <p>
+ * Key features:
+ * <ul>
+ *   <li>Username and password-based authentication</li>
+ *   <li>Email validation for communication purposes</li>
+ *   <li>Account status tracking (enabled, locked, expired)</li>
+ *   <li>Role-based authorization</li>
+ *   <li>Token blacklisting for enhanced security</li>
+ * </ul>
+ * <p>
+ * This entity forms the foundation of the application's security model and user management system.
+ *
+ * @see Role
+ * @see BlacklistedToken
+ * @see AbstractSimplePersistableEntity
  */
 @Entity
-@Table(
-    name = "users",
-    indexes = {
-        @Index(name = "idx_user_username", columnList = "username", unique = true),
-        @Index(name = "idx_user_email", columnList = "email", unique = true)
-    }
-)
+@Table(name = "users", indexes = {
+    @Index(name = "idx_user_username", columnList = "username", unique = true),
+    @Index(name = "idx_user_email", columnList = "email", unique = true)
+})
 @Data
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class User extends AbstractStatusAwareEntity {
+public class User extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Unique username for authentication
+     * Used as the login identifier
      */
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "Username is required")
+    @Column(name = "username", nullable = false, unique = true)
     @EqualsAndHashCode.Include
     private String username;
 
     /**
      * Encrypted password for authentication
+     * Stored using secure hashing algorithm (BCrypt)
      */
-    @Column(nullable = false)
+    @NotBlank(message = "Password is required")
+    @Column(name = "password", nullable = false)
     private String password;
 
     /**
-     * User's email address, must be unique
+     * User's email address for communications and notifications
      */
-    @Column(nullable = false, unique = true)
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email must be valid")
+    @Column(name = "email", nullable = false)
     private String email;
 
     /**
      * User's full name for display purposes
      */
-    @Column(name = "full_name")
+    @NotBlank(message = "Full name is required")
+    @Column(name = "full_name", nullable = false)
     private String fullName;
 
-    /**
-     * Role type for this user (primary role)
-     */
-    @NotNull(message = "Role is required")
-    @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
-    private RoleType role;
+//    /**
+//     * Flag indicating if the account is currently enabled
+//     * Disabled accounts cannot log in
+//     */
+//    @Column(name = "enabled", nullable = false)
+//    private boolean enabled = true;
+
 
     /**
-     * Flag indicating if the account is currently enabled
+     * Role assigned to this user for authorization purposes
+     * Defines the permissions and access level of the user
      */
-    @Column(nullable = false)
-    private boolean enabled;
+    @ManyToOne(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private Role role;
 
     /**
-     * Flag indicating if the account has expired
+     * Collection of blacklisted tokens associated with this user
+     * Used for tracking revoked authentication tokens
      */
-    @Builder.Default
-    private boolean accountExpired = false;
-
-    /**
-     * Flag indicating if the account is locked
-     */
-    @Builder.Default
-    private boolean accountLocked = false;
-
-    /**
-     * Flag indicating if the credentials have expired
-     */
-    @Builder.Default
-    private boolean credentialsExpired = false;
-
-    /**
-     * Roles assigned to this user for authorization
-     */
-    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "user_roles",
-        joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "role_id")
-    )
-    @ToString.Exclude
-    @Builder.Default
-    private Set<Role> roles = new HashSet<>();
-    
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @ToString.Exclude
     private Set<BlacklistedToken> blacklistedTokens = new HashSet<>();
 
-    // Fix the relationship with BlacklistedToken - ensure back references are properly maintained
+    /**
+     * Adds a blacklisted token to this user with proper bidirectional relationship
+     *
+     * @param token the token to blacklist and associate with this user
+     */
     public void addBlacklistedToken(BlacklistedToken token) {
         blacklistedTokens.add(token);
         token.setUser(this);
     }
 
+    /**
+     * Removes a blacklisted token from this user with proper relationship cleanup
+     *
+     * @param token the token to remove from this user's blacklist
+     */
     public void removeBlacklistedToken(BlacklistedToken token) {
         blacklistedTokens.remove(token);
         token.setUser(null);
     }
 
-
     /**
-     * Returns whether the user account is currently enabled
-     * @return true if the user account is enabled, false otherwise
+     * Check if the user's account is valid for authentication
+     *
+     * @return true if the account can be used for login
      */
-    public boolean isEnabled() {
-        return enabled;
+    @Transient
+    public boolean isAccountValid() {
+        return role != null;
     }
 
-    /**
-     * Sets the enabled status for this user account
-     * @param enabled true to enable the account, false to disable it
-     */
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    /**
-     * Gets the collection of roles assigned to this user
-     * @return set of Role objects associated with this user
-     */
-    public Set<Role> getRoles() {
-        return roles;
-    }
-
-    /**
-     * Sets the collection of roles for this user
-     * @param roles the set of roles to assign to this user
-     */
-    public void setRoles(Set<Role> roles) {
-        this.roles = roles;
-    }
-
-    /**
-     * Check if user has the specified role
-     * @param roleType the role type to check
-     * @return true if the user has an active role with the given name
-     */
-    public boolean hasRole(RoleType roleType) {
-        if (roles == null) {
-            return false;
-        }
-        
-        // Fixed - avoid NPE in database queries by checking each role object first
-        return roles.stream()
-                .filter(role -> role != null)
-                .filter(role -> role.getStatus() != null && role.getStatus().isActive())
-                .filter(role -> role.getRoleType() != null)
-                .anyMatch(role -> role.getRoleType() == roleType);
-    }
-    
-    /**
-     * Add a role to this user
-     * @param role the role to add
-     */
-    public void addRole(Role role) {
-        if (role == null) return;
-        
-        if (this.roles == null) {
-            this.roles = new HashSet<>();
-        }
-        
-        this.roles.add(role);
-        Set<User> users = role.getUsers();
-        if (users == null) {
-            users = new HashSet<>();
-            role.setUsers(users);
-        }
-        users.add(this);
-    }
-    
-    /**
-     * Remove a role from this user
-     * @param role the role to remove
-     */
-    public void removeRole(Role role) {
-        if (role == null) return;
-        if (this.roles != null) {
-            this.roles.remove(role);
-        }
-        
-        Set<User> users = role.getUsers();
-        if (users != null) {
-            users.remove(this);
-        }
-    }
-    
-    /**
-     * Check if the account is active (enabled and not expired/locked/etc)
-     * @return true if the account is active and can be used
-     */
-    public boolean isAccountActive() {
-        return isEnabled() && !accountExpired && !accountLocked && !credentialsExpired;
-    }
-
-    /**
-     * Initialize collections after loading
-     * Ensures that no collections are null after entity is loaded from database
-     */
-    @PostLoad
-    public void initializeCollections() {
-        if (roles == null) {
-            roles = new HashSet<>();
-        }
+    public boolean hasRole(Role adminRole) {
+        return this.role != null && adminRole != null && adminRole.isActive() && this.role.getRoleType() == adminRole.getRoleType();
     }
 }

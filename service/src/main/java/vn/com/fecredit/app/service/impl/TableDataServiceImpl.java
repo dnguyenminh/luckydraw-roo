@@ -1,7 +1,9 @@
 package vn.com.fecredit.app.service.impl;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,7 @@ import vn.com.fecredit.app.service.TableActionService;
 import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.DataObject;
+import vn.com.fecredit.app.service.dto.DataObjectKey;
 import vn.com.fecredit.app.service.dto.FetchStatus;
 import vn.com.fecredit.app.service.dto.FieldType;
 import vn.com.fecredit.app.service.dto.FilterRequest;
@@ -66,8 +69,6 @@ public class TableDataServiceImpl implements TableDataService {
 
     private final RelatedTablesFactory relatedTablesFactory;
 
-    private final TableActionService tableActionService;
-
     @Override
     public TableFetchResponse fetchData(TableFetchRequest request) {
         if (request == null) {
@@ -97,19 +98,6 @@ public class TableDataServiceImpl implements TableDataService {
             log.error("Error fetching table data", e);
             return createErrorResponse("Error fetching data: " + e.getMessage());
         }
-    }
-
-    @Override
-    public TableActionResponse executeAction(TableActionRequest request) {
-        if (request == null) {
-            return TableActionResponse.error(null, "Request cannot be null");
-        }
-        
-        log.info("Executing table action: {} for entity type: {}", 
-                request.getAction(), request.getObjectType());
-        
-        // Delegate to the dedicated action service
-        return tableActionService.processAction(request);
     }
 
     /**
@@ -153,7 +141,7 @@ public class TableDataServiceImpl implements TableDataService {
 
     /**
      * Determine if a field should be editable
-     * 
+     *
      * @param fieldName the name of the field
      * @return true if the field should be editable, false otherwise
      */
@@ -392,16 +380,113 @@ public class TableDataServiceImpl implements TableDataService {
         response.setTableName(tableName);
         response.setOriginalRequest(request);
         response.setRows(rows);
-        response.setOriginalRequest(request);
-
-        // Get related linked objects based on search criteria in the request
-        Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
-        response.setRelatedLinkedObjects(relatedLinkedObjects);
+        // // Get related linked objects based on search criteria in the request
+        // Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
+        // response.setRelatedLinkedObjects(relatedLinkedObjects);
+        response.setKey(getDataObjectKey(request));
 
         // Add column metadata
         response.setFieldNameMap(columnInfoProvider.get());
 
         return response;
+    }
+
+    private DataObjectKey getDataObjectKey(TableFetchRequest request) {
+        DataObjectKey key = new DataObjectKey();
+        List<String> primaryKeyValues = new ArrayList<>();
+
+        try {
+            if (request.getObjectType() != null) {
+                Class<?> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
+                List<String> primaryKeyFields = findPrimaryKeyFields(entityClass);
+                log.debug("Found primary key fields for entity {}: {}", request.getObjectType(), primaryKeyFields);
+
+                // For each primary key field, add its name as a key
+                // In a real database operation, we would get actual values
+                primaryKeyValues.addAll(primaryKeyFields);
+            }
+        } catch (Exception e) {
+            log.warn("Error finding primary key fields: {}", e.getMessage());
+            log.debug("Exception details:", e);
+            // Default to 'id' if there's an error
+            primaryKeyValues.add("id");
+        }
+
+        key.setKeys(primaryKeyValues);
+        return key;
+    }
+
+    /**
+     * Find primary key fields of an entity class using reflection
+     *
+     * @param entityClass the entity class to analyze
+     * @return list of primary key field names
+     */
+    private List<String> findPrimaryKeyFields(Class<?> entityClass) {
+        List<String> pkFields = new ArrayList<>();
+
+        if (entityClass == null) {
+            return List.of("id"); // Default fallback
+        }
+
+        try {
+            // Check if class has @IdClass annotation (composite key)
+            if (entityClass.isAnnotationPresent(jakarta.persistence.IdClass.class)) {
+                Class<?> idClass = entityClass.getAnnotation(jakarta.persistence.IdClass.class).value();
+                for (Field field : idClass.getDeclaredFields()) {
+                    pkFields.add(field.getName());
+                }
+                log.debug("Found composite key fields from @IdClass: {}", pkFields);
+            }
+
+            // Look for fields with @Id annotation
+            for (Field field : getAllFields(entityClass)) {
+                if (field.isAnnotationPresent(jakarta.persistence.Id.class)) {
+                    pkFields.add(field.getName());
+                    log.debug("Found @Id annotated field: {}", field.getName());
+                }
+            }
+
+            // Check for @EmbeddedId
+            for (Field field : getAllFields(entityClass)) {
+                if (field.isAnnotationPresent(jakarta.persistence.EmbeddedId.class)) {
+                    // Get fields from the embedded ID class
+                    Class<?> embeddedIdClass = field.getType();
+                    for (Field embField : embeddedIdClass.getDeclaredFields()) {
+                        pkFields.add(field.getName() + "." + embField.getName());
+                        log.debug("Found embedded ID field: {}.{}", field.getName(), embField.getName());
+                    }
+                    break;
+                }
+            }
+
+            // If no PK fields were found, default to 'id'
+            if (pkFields.isEmpty()) {
+                pkFields.add("id");
+                log.debug("No primary key fields found, defaulting to 'id'");
+            }
+        } catch (Exception e) {
+            log.warn("Error finding primary key fields for class {}: {}",
+                    entityClass.getName(), e.getMessage());
+            pkFields.add("id"); // Default to 'id' on error
+        }
+
+        return pkFields;
+    }
+
+    /**
+     * Get all fields from class and all its superclasses
+     */
+    private List<Field> getAllFields(Class<?> clazz) {
+        List<Field> fields = new ArrayList<>();
+        Class<?> currentClass = clazz;
+
+        while (currentClass != null && currentClass != Object.class) {
+            fields.addAll(Arrays.asList(currentClass.getDeclaredFields()));
+            currentClass = currentClass.getSuperclass();
+        }
+
+        return fields;
     }
 
     /**
@@ -418,7 +503,38 @@ public class TableDataServiceImpl implements TableDataService {
                 DataObject searchData = entry.getValue();
 
                 if (objectType != null && searchData != null) {
-                    // Add to related linked objects - for proper test case passing
+                    // Ensure the DataObject has a properly initialized key
+                    if (searchData.getKey() == null) {
+                        DataObjectKey key = new DataObjectKey();
+                        List<String> keyValues = new ArrayList<>();
+
+                        // Extract primary key values from the data if available
+                        if (searchData.getData() != null && searchData.getData().getData() != null) {
+                            Map<String, Object> data = searchData.getData().getData();
+                            if (data.containsKey("id")) {
+                                keyValues.add("id");
+                            }
+                        }
+
+                        key.setKeys(keyValues);
+                        searchData.setKey(key);
+                    }
+                    // If key exists but keys array is null or empty, initialize it
+                    else if (searchData.getKey().getKeys() == null || searchData.getKey().getKeys().isEmpty()) {
+                        List<String> keyValues = new ArrayList<>();
+
+                        // Extract primary key values from the data if available
+                        if (searchData.getData() != null && searchData.getData().getData() != null) {
+                            Map<String, Object> data = searchData.getData().getData();
+                            if (data.containsKey("id")) {
+                                keyValues.add("id");
+                            }
+                        }
+
+                        searchData.getKey().setKeys(keyValues);
+                    }
+
+                    // Add to related linked objects
                     relatedLinkedObjects.put(objectType, searchData);
                     log.debug("Added related linked object for type: {}", objectType);
                 }
@@ -988,7 +1104,7 @@ public class TableDataServiceImpl implements TableDataService {
 
     /**
      * Check if a method is a getter for an entity type
-     * 
+     *
      * @param method The method to check
      * @return true if the method is a getter returning an entity type
      */

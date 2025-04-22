@@ -16,13 +16,13 @@ export default function RewardsPage() {
         { label: 'Depleted Rewards', value: 2, color: 'yellow' },
         { label: 'Total Claims', value: 285, color: 'blue' }
       ]}
-      tabs={[
-        { id: 'all', label: 'All Rewards' },
-        { id: 'available', label: 'Available' },
-        { id: 'depleted', label: 'Depleted' }
-      ]}
-      addButtonLabel="Add Reward"
-      onAddButtonClick={() => console.log('Add reward clicked')}
+      // tabs={[
+      //   { id: 'all', label: 'All Rewards' },
+      //   { id: 'available', label: 'Available' },
+      //   { id: 'depleted', label: 'Depleted' }
+      // ]}
+      // addButtonLabel="Add Reward"
+      // onAddButtonClick={() => console.log('Add reward clicked')}
     />
   );
 }

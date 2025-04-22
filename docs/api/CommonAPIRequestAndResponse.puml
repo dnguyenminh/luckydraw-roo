@@ -59,7 +59,6 @@ namespace vn.com.fecredit.app.service.dto {
 
     class TableRow {
         Map<String, Object> data
-        TableInfo tableInfo
     }
 
     class TabTableRow {

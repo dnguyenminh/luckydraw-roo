@@ -16,14 +16,14 @@ export default function GoldenHoursPage() {
         { label: 'Scheduled Hours', value: 12, color: 'yellow' },
         { label: 'Avg. Multiplier', value: '2.5x', color: 'blue' }
       ]}
-      tabs={[
-        { id: 'all', label: 'All Hours' },
-        { id: 'active', label: 'Active' },
-        { id: 'scheduled', label: 'Scheduled' },
-        { id: 'completed', label: 'Completed' }
-      ]}
-      addButtonLabel="Add Golden Hour"
-      onAddButtonClick={() => console.log('Add golden hour clicked')}
+      // tabs={[
+      //   { id: 'all', label: 'All Hours' },
+      //   { id: 'active', label: 'Active' },
+      //   { id: 'scheduled', label: 'Scheduled' },
+      //   { id: 'completed', label: 'Completed' }
+      // ]}
+      // addButtonLabel="Add Golden Hour"
+      // onAddButtonClick={() => console.log('Add golden hour clicked')}
     />
   );
 }

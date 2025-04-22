@@ -18,6 +18,7 @@ import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.GoldenHour;
 import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.entity.ParticipantEvent;
+import vn.com.fecredit.app.entity.RewardEvent;
 import vn.com.fecredit.app.entity.Permission;
 import vn.com.fecredit.app.entity.Province;
 import vn.com.fecredit.app.entity.Region;

@@ -1,32 +1,27 @@
 package vn.com.fecredit.app.repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-
+import vn.com.fecredit.app.entity.EventLocationKey;
+import vn.com.fecredit.app.entity.ParticipantEventKey;
 import vn.com.fecredit.app.entity.SpinHistory;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Repository
 public interface SpinHistoryRepository extends SimpleObjectRepository<SpinHistory> {
 
-       List<SpinHistory> findByParticipantEventId(Long participantEventId);
-
-       List<SpinHistory> findByParticipantEventIdAndStatus(Long participantEventId, CommonStatus status);
-
-       List<SpinHistory> findByRewardId(Long rewardId);
-
-       List<SpinHistory> findByGoldenHourId(Long goldenHourId);
+       List<SpinHistory> findByParticipantEventId(ParticipantEventKey participantEventId);
 
        List<SpinHistory> findByStatus(CommonStatus status);
 
        @Query("SELECT sh FROM SpinHistory sh WHERE sh.participantEvent.id = :participantEventId " +
                      "AND sh.spinTime BETWEEN :startTime AND :endTime")
        List<SpinHistory> findSpinsInTimeRange(
-                     @Param("participantEventId") Long participantEventId,
+                     @Param("participantEventId") ParticipantEventKey participantEventId,
                      @Param("startTime") LocalDateTime startTime,
                      @Param("endTime") LocalDateTime endTime);
 
@@ -35,12 +30,12 @@ public interface SpinHistoryRepository extends SimpleObjectRepository<SpinHistor
                      "AND sh.spinTime BETWEEN :startTime AND :endTime " +
                      "AND sh.win = true AND sh.status = 'ACTIVE'")
        Long countWinningSpinsAtLocation(
-                     @Param("locationId") Long locationId,
+                     @Param("locationId") EventLocationKey locationId,
                      @Param("startTime") LocalDateTime startTime,
                      @Param("endTime") LocalDateTime endTime);
 
        @Query("SELECT sh FROM SpinHistory sh " +
-                     "WHERE sh.participantEvent.event.id = :eventId " +
+                     "WHERE sh.participantEvent.eventLocation.event.id = :eventId " +
                      "AND sh.win = true AND sh.status = 'ACTIVE'")
        List<SpinHistory> findWinningSpinsForEvent(@Param("eventId") Long eventId);
 

@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.entity.enums.PermissionName;
 import vn.com.fecredit.app.entity.enums.RoleType;
 
 /**
@@ -29,7 +30,7 @@ class RoleTest {
 
         // Create a test permission
         permission = Permission.builder()
-                .name("TEST_PERMISSION")
+                .name(PermissionName.CREATE_USER)
                 .description("Test permission")
                 .status(CommonStatus.ACTIVE)
                 .build();
@@ -39,8 +40,6 @@ class RoleTest {
                 .username("testuser")
                 .password("password")
                 .email("test@example.com")
-                .role(RoleType.ROLE_USER)
-                .enabled(true)
                 .status(CommonStatus.ACTIVE)
                 .build();
     }
@@ -49,7 +48,7 @@ class RoleTest {
     void testAddPermission_ShouldEstablishBidirectionalRelationship() {
         // When
         role.addPermission(permission);
-        
+
         // Then
         assertTrue(role.getPermissions().contains(permission));
         assertTrue(permission.getRoles().contains(role));
@@ -61,10 +60,10 @@ class RoleTest {
         role.addPermission(permission);
         assertTrue(role.getPermissions().contains(permission));
         assertTrue(permission.getRoles().contains(role));
-        
+
         // When
         role.removePermission(permission);
-        
+
         // Then
         assertFalse(role.getPermissions().contains(permission));
         assertFalse(permission.getRoles().contains(role));
@@ -74,47 +73,45 @@ class RoleTest {
     void testAddUser_ShouldEstablishBidirectionalRelationship() {
         // When
         role.addUser(user);
-        
+
         // Then
         assertTrue(role.getUsers().contains(user));
-        assertTrue(user.getRoles().contains(role));
+        assertTrue(user.getRole().equals(role));
     }
 
     @Test
     void testRemoveUser_ShouldRemoveBidirectionalRelationship() {
         // Given
         role.addUser(user);
-        
+
         // When
         role.removeUser(user);
-        
+
         // Then
         assertFalse(role.getUsers().contains(user));
-        assertFalse(user.getRoles().contains(role));
+        assertNull(user.getRole());
     }
 
     @Test
     void testHasPermission() {
         // Given
-        permission.setName("READ_DATA");
+        permission.setName(PermissionName.CREATE_CONFIGURATION);
         role.addPermission(permission);
-        
+
         // When & Then
-        assertTrue(role.hasPermission("READ_DATA"));
-        assertFalse(role.hasPermission("WRITE_DATA"));
-        
-        // Test case insensitive matching
-        assertTrue(role.hasPermission("read_data"));
-        
+        assertTrue(role.hasPermission(PermissionName.CREATE_CONFIGURATION));
+        assertFalse(role.hasPermission(PermissionName.CREATE_EVENT));
+
+
         // Test with inactive permission
         permission.setStatus(CommonStatus.INACTIVE);
-        assertFalse(role.hasPermission("READ_DATA"));
+        assertFalse(role.hasPermission(PermissionName.CREATE_CONFIGURATION));
     }
 
     @Test
     void testHasPermission_WithNonexistentPermission_ShouldReturnFalse() {
         // When & Then
-        assertFalse(role.hasPermission("NONEXISTENT_PERMISSION"));
+        assertFalse(role.hasPermission(null));
     }
 
     @Test
@@ -127,7 +124,7 @@ class RoleTest {
     void testValidateState_WithNullRoleType() {
         // Given
         role.setRoleType(null);
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> role.validateState());
     }
@@ -136,7 +133,7 @@ class RoleTest {
     void testValidateState_WithNegativeDisplayOrder() {
         // Given
         role.setDisplayOrder(-1);
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> role.validateState());
     }
@@ -148,10 +145,10 @@ class RoleTest {
         role.setUsers(null);
         role.setPermissions(null);
         role.setDisplayOrder(null);
-        
+
         // When
         role.initializeRole();
-        
+
         // Then
         assertNotNull(role.getUsers());
         assertNotNull(role.getPermissions());

@@ -366,19 +366,16 @@ const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
     }
 
     const excludedFields = ['relatedTables'];
-    // Always exclude currentServerTime field
+    // Only exclude currentServerTime field by default
     excludedFields.push('currentServerTime');
     
-    // When we're in new entity mode, ensure ALL audit-related fields are excluded
-    if (isNewRow) {
-      const auditFieldPatterns = [
-        'createdBy', 'updatedBy', 'lastUpdatedBy', 'modifiedBy',
-        'createdDate', 'lastModifiedDate', 'updatedDate', 'created', 'updated', 'modified',
-        'createTime', 'updateTime', 'createdAt', 'updatedAt'
-      ];
-      
-      // Add all potential audit fields to excluded list
-      excludedFields.push(...auditFieldPatterns);
+    // When adding a new entity, also exclude all audit fields as they don't exist yet
+    if (isEditing && isNewRow) {
+      excludedFields.push(
+        'createdBy', 'updatedBy', 'lastUpdatedBy', 
+        'createdDate', 'lastModifiedDate', 'updatedDate',
+        'createdAt', 'updatedAt', 'created', 'updated' // Add additional date field variations
+      );
     }
     
     const idField = data.id !== undefined ? { id: data.id } : {};
@@ -408,6 +405,7 @@ const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
       if (!isNewRow && (
           key === 'createdBy' || key === 'updatedBy' || key === 'lastUpdatedBy' ||
           key === 'createdDate' || key === 'lastModifiedDate' || key === 'updatedDate' ||
+          key === 'createdAt' || key === 'updatedAt' || // Add explicit checks for these fields
           key.toLowerCase().includes('created') || key.toLowerCase().includes('updated') ||
           key.toLowerCase().includes('modified'))) {
         
@@ -520,6 +518,15 @@ const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
                 .filter(([key]) => {
                   // Only filter out currentServerTime in edit mode, not audit fields
                   if (isEditing && key === 'currentServerTime') {
+                    return false;
+                  }
+                  
+                  // Filter out created/updated fields in new mode
+                  if (isNewRow && (
+                      key === 'createdAt' || key === 'updatedAt' ||
+                      key.toLowerCase().includes('created') || 
+                      key.toLowerCase().includes('updated')
+                  )) {
                     return false;
                   }
                   

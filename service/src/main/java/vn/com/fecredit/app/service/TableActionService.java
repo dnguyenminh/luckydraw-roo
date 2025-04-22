@@ -15,5 +15,6 @@ public interface TableActionService {
      * @param request The action request containing operation details
      * @return Response containing the result of the operation
      */
-    TableActionResponse processAction(TableActionRequest request);
+    TableActionResponse executeAction(TableActionRequest request);
+
 }

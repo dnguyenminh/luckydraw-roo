@@ -16,13 +16,13 @@ export default function RegionsPage() {
         { label: 'Total Provinces', value: 48, color: 'yellow' },
         { label: 'Total Participants', value: '25.6k', color: 'blue' }
       ]}
-      tabs={[
-        { id: 'all', label: 'All Regions' },
-        { id: 'active', label: 'Active' },
-        { id: 'inactive', label: 'Inactive' }
-      ]}
-      addButtonLabel="Add Region"
-      onAddButtonClick={() => console.log('Add Region clicked')}
+      // tabs={[
+      //   { id: 'all', label: 'All Regions' },
+      //   { id: 'active', label: 'Active' },
+      //   { id: 'inactive', label: 'Inactive' }
+      // ]}
+      // addButtonLabel="Add Region"
+      // onAddButtonClick={() => console.log('Add Region clicked')}
     />
   );
 }

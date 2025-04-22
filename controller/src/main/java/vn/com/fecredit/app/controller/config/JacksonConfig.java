@@ -41,7 +41,7 @@ public class JacksonConfig {
         objectMapper.addMixIn(EventLocation.class, EntityMixIn.class);
         objectMapper.addMixIn(Reward.class, EntityMixIn.class);
         objectMapper.addMixIn(Participant.class, EntityMixIn.class);
-        objectMapper.addMixIn(ParticipantEvent.class, EntityMixIn.class);
+        objectMapper.addMixIn(RewardEvent.class, EntityMixIn.class);
         objectMapper.addMixIn(SpinHistory.class, EntityMixIn.class);
         objectMapper.addMixIn(Province.class, EntityMixIn.class);
         objectMapper.addMixIn(Region.class, EntityMixIn.class);

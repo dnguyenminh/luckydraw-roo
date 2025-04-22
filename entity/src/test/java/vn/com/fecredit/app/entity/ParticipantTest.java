@@ -16,7 +16,7 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * Test class for the Participant entity.
  */
 class ParticipantTest {
-    
+
     private Participant participant;
     private Event event;
     private EventLocation eventLocation;
@@ -45,8 +45,6 @@ class ParticipantTest {
             .build();
 
         eventLocation = EventLocation.builder()
-            .name("Test Location")
-            .code("TEST_LOC")
             .region(region)
             .maxSpin(1000)
             .status(CommonStatus.ACTIVE)
@@ -68,9 +66,8 @@ class ParticipantTest {
     @Test
     void testEventParticipation() {
         assertTrue(participant.getParticipantEvents().isEmpty());
-        
+
         ParticipantEvent pe = ParticipantEvent.builder()
-            .event(event)
             .eventLocation(eventLocation)
             .participant(participant)
             .spinsRemaining(10) // Default spins
@@ -85,7 +82,7 @@ class ParticipantTest {
     @Test
     void testProvinceAssociation() {
         assertEquals(province, participant.getProvince());
-        
+
         Province newProvince = Province.builder()
             .name("New Province")
             .code("NEW_PROV")

@@ -16,13 +16,13 @@ export default function UsersPage() {
         { label: 'Inactive Users', value: 3, color: 'yellow' },
         { label: 'Roles', value: 5, color: 'blue' }
       ]}
-      tabs={[
-        { id: 'all', label: 'All Users' },
-        { id: 'active', label: 'Active' },
-        { id: 'inactive', label: 'Inactive' }
-      ]}
-      addButtonLabel="Add User"
-      onAddButtonClick={() => console.log('Add user clicked')}
+      // tabs={[
+      //   { id: 'all', label: 'All Users' },
+      //   { id: 'active', label: 'Active' },
+      //   { id: 'inactive', label: 'Inactive' }
+      // ]}
+      // addButtonLabel="Add User"
+      // onAddButtonClick={() => console.log('Add user clicked')}
     />
   );
 }

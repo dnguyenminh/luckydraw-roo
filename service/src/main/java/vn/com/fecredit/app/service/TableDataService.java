@@ -1,8 +1,6 @@
 package vn.com.fecredit.app.service;
 
 
-import vn.com.fecredit.app.service.dto.TableActionRequest;
-import vn.com.fecredit.app.service.dto.TableActionResponse;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 
@@ -18,6 +16,5 @@ public interface TableDataService {
      */
     TableFetchResponse fetchData(TableFetchRequest request);
 
-    TableActionResponse executeAction(TableActionRequest request);
 
 }

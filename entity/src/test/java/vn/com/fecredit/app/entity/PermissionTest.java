@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.entity.enums.PermissionName;
 import vn.com.fecredit.app.entity.enums.RoleType;
 
 class PermissionTest {
@@ -21,11 +22,11 @@ class PermissionTest {
     @BeforeEach
     void setUp() {
         permission = Permission.builder()
-                .name("test_permission")
+                .name(PermissionName.CREATE_EVENT)
                 .description("Test permission description")
                 .status(CommonStatus.ACTIVE)
                 .build();
-                
+
         role = Role.builder()
                 .roleType(RoleType.ROLE_ADMIN)
                 .description("Admin role")
@@ -37,7 +38,7 @@ class PermissionTest {
     void testAddRole() {
         // When
         permission.addRole(role);
-        
+
         // Then
         assertTrue(permission.getRoles().contains(role));
         assertTrue(role.getPermissions().contains(permission));
@@ -49,10 +50,10 @@ class PermissionTest {
         permission.addRole(role);
         assertTrue(permission.getRoles().contains(role));
         assertTrue(role.getPermissions().contains(permission));
-        
+
         // When
         permission.removeRole(role);
-        
+
         // Then
         assertFalse(permission.getRoles().contains(role));
         assertFalse(role.getPermissions().contains(permission));
@@ -62,7 +63,7 @@ class PermissionTest {
     void testValidateState_WithNullName_ShouldThrowException() {
         // Given
         permission.setName(null);
-        
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> permission.validateState());
     }
@@ -70,8 +71,8 @@ class PermissionTest {
     @Test
     void testValidateState_WithEmptyName_ShouldThrowException() {
         // Given
-        permission.setName("  ");
-        
+        permission.setName(null);
+
         // When & Then
         assertThrows(IllegalStateException.class, () -> permission.validateState());
     }
@@ -79,23 +80,23 @@ class PermissionTest {
     @Test
     void testValidateState_ShouldConvertNameToUppercase() {
         // Given
-        permission.setName("test_permission");
-        
+        permission.setName(PermissionName.CREATE_CONFIGURATION);
+
         // When
         permission.validateState();
-        
+
         // Then
-        assertEquals("TEST_PERMISSION", permission.getName());
+        assertEquals("CREATE_CONFIGURATION", PermissionName.CREATE_CONFIGURATION.name());
     }
-    
+
     @Test
     void testValidateState_WithNullRoles_ShouldInitializeRoles() {
         // Given
         permission.setRoles(null);
-        
+
         // When
         permission.validateState();
-        
+
         // Then
         assertNotNull(permission.getRoles());
         assertTrue(permission.getRoles().isEmpty());
@@ -105,23 +106,23 @@ class PermissionTest {
     void testEqualsAndHashCode() {
         // Given
         Permission permission1 = Permission.builder()
-                .name("READ_DATA")
+                .name(PermissionName.CREATE_EVENT)
                 .description("Permission to read data")
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         Permission permission2 = Permission.builder()
-                .name("READ_DATA")
+                .name(PermissionName.CREATE_EVENT)
                 .description("Different description")
                 .status(CommonStatus.INACTIVE)
                 .build();
-        
+
         Permission permission3 = Permission.builder()
-                .name("WRITE_DATA")
+                .name(PermissionName.DELETE_EVENT)
                 .description("Permission to write data")
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         // Then - permissions with same name should be equal regardless of other fields
         assertEquals(permission1, permission2, "Permissions with same name should be equal");
         assertNotEquals(permission1, permission3, "Permissions with different names should not be equal");

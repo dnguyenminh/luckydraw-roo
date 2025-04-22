@@ -4,10 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -15,20 +18,20 @@ import vn.com.fecredit.app.entity.Province;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
-public class ProvinceRepositoryTest extends AbstractRepositoryTest {
+class ProvinceRepositoryTest extends AbstractRepositoryTest {
 
     @Autowired
     private ProvinceRepository provinceRepository;
 
+    @Autowired
+    private RegionRepository regionRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
-    private Region northRegion;
-    private Region southRegion;
-    private Province hanoi;
-    private Province bacNinh;
-    private Province hcmc;
-    private Province inactiveProvince;
+    private final LocalDateTime now = LocalDateTime.now();
+    private Region region1, region2;
+    private Province province1, province2, province3;
 
     @BeforeEach
     void setUp() {
@@ -43,138 +46,191 @@ public class ProvinceRepositoryTest extends AbstractRepositoryTest {
     }
 
     private void createTestData() {
-        // Create regions first
-        northRegion = createRegion("NORTH", "Northern Region");
-        southRegion = createRegion("SOUTH", "Southern Region");
+        // Create Regions with builder pattern
+        region1 = Region.builder()
+                .code("NR")
+                .name("North Region")
+                .status(CommonStatus.ACTIVE)
+                .provinces(new HashSet<>())
+                .eventLocations(new HashSet<>())
+                .build();
+        region1.setVersion(0L);
+        region1.setCreatedBy("test-user");
+        region1.setUpdatedBy("test-user");
+        region1.setCreatedAt(now);
+        region1.setUpdatedAt(now);
+        region1 = regionRepository.save(region1);
 
-        entityManager.persist(northRegion);
-        entityManager.persist(southRegion);
-        entityManager.flush();
+        region2 = Region.builder()
+                .code("SR")
+                .name("South Region")
+                .status(CommonStatus.ACTIVE)
+                .provinces(new HashSet<>())
+                .eventLocations(new HashSet<>())
+                .build();
+        region2.setVersion(0L);
+        region2.setCreatedBy("test-user");
+        region2.setUpdatedBy("test-user");
+        region2.setCreatedAt(now);
+        region2.setUpdatedAt(now);
+        region2 = regionRepository.save(region2);
 
-        // Create provinces
-        hanoi = createProvince("HN", "Ha Noi", northRegion, CommonStatus.ACTIVE);
-        bacNinh = createProvince("BN", "Bac Ninh", northRegion, CommonStatus.ACTIVE);
-        hcmc = createProvince("HCM", "Ho Chi Minh City", southRegion, CommonStatus.ACTIVE);
-        inactiveProvince = createProvince("IP", "Inactive Province", northRegion, CommonStatus.INACTIVE);
+        // Create Provinces with builder pattern
+        province1 = Province.builder()
+                .code("P1")
+                .name("Province 1")
+                .description("Northern Province")
+                .region(region1)
+                .status(CommonStatus.ACTIVE)
+                .participants(new HashSet<>())
+                .build();
+        province1.setVersion(0L);
+        province1.setCreatedBy("test-user");
+        province1.setUpdatedBy("test-user");
+        province1.setCreatedAt(now);
+        province1.setUpdatedAt(now);
+        province1 = provinceRepository.save(province1);
 
-        // Persist provinces
-        entityManager.persist(hanoi);
-        entityManager.persist(bacNinh);
-        entityManager.persist(hcmc);
-        entityManager.persist(inactiveProvince);
+        province2 = Province.builder()
+                .code("P2")
+                .name("Province 2")
+                .description("Southern Province")
+                .region(region2)
+                .status(CommonStatus.ACTIVE)
+                .participants(new HashSet<>())
+                .build();
+        province2.setVersion(0L);
+        province2.setCreatedBy("test-user");
+        province2.setUpdatedBy("test-user");
+        province2.setCreatedAt(now);
+        province2.setUpdatedAt(now);
+        province2 = provinceRepository.save(province2);
 
-        // Update bidirectional relationships
-        northRegion.getProvinces().add(hanoi);
-        northRegion.getProvinces().add(bacNinh);
-        northRegion.getProvinces().add(inactiveProvince);
-        southRegion.getProvinces().add(hcmc);
+        province3 = Province.builder()
+                .code("P3")
+                .name("Province 3")
+                .description("Northern Inactive Province")
+                .region(region1)
+                .status(CommonStatus.INACTIVE)
+                .participants(new HashSet<>())
+                .build();
+        province3.setVersion(0L);
+        province3.setCreatedBy("test-user");
+        province3.setUpdatedBy("test-user");
+        province3.setCreatedAt(now);
+        province3.setUpdatedAt(now);
+        province3 = provinceRepository.save(province3);
 
         entityManager.flush();
         entityManager.clear();
     }
 
-    private Region createRegion(String code, String name) {
-        LocalDateTime now = LocalDateTime.now();
-        return Region.builder()
-                .code(code)
-                .name(name)
-                .status(CommonStatus.ACTIVE)
-                .provinces(new HashSet<>())
-                .eventLocations(new HashSet<>())
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .build();
-    }
-
-    private Province createProvince(String code, String name, Region region, CommonStatus status) {
-        LocalDateTime now = LocalDateTime.now();
-        return Province.builder()
-                .code(code)
-                .name(name)
-                .region(region)
-                .status(status)
-                .version(0L)
-                .createdAt(now)
-                .updatedAt(now)
-                .createdBy("test-user")
-                .updatedBy("test-user")
-                .build();
-    }
-
     @Test
     void findByCode_ShouldReturnProvince_WhenExists() {
-        var result = provinceRepository.findByCode("HN");
+        Optional<Province> result = provinceRepository.findByCode("P1");
 
-        assertThat(result)
-                .isPresent()
-                .hasValueSatisfying(province -> {
-                    assertThat(province.getName()).isEqualTo("Ha Noi");
-                    assertThat(province.getStatus()).isEqualTo(CommonStatus.ACTIVE);
-                    assertThat(province.getRegion().getCode()).isEqualTo("NORTH");
-                });
+        assertThat(result).isPresent();
+        assertThat(result.get().getName()).isEqualTo("Province 1");
     }
 
     @Test
-    void findByCode_ShouldReturnEmpty_WhenNotExists() {
-        var result = provinceRepository.findByCode("NONEXISTENT");
-        assertThat(result).isEmpty();
+    void findByRegion_ShouldReturnProvincesInRegion() {
+        List<Province> northProvinces = provinceRepository.findByRegion(region1);
+
+        assertThat(northProvinces).hasSize(2);
+        assertThat(northProvinces).extracting("code").containsExactlyInAnyOrder("P1", "P3");
     }
 
     @Test
-    void findByRegion_ShouldReturnAllProvincesInRegion() {
-        var northProvinces = provinceRepository.findByRegion(northRegion);
-        assertThat(northProvinces)
-                .hasSize(3)
-                .extracting("code")
-                .containsExactlyInAnyOrder("HN", "BN", "IP");
+    void findByRegionAndStatus_ShouldFilterByBoth() {
+        List<Province> activeNorthProvinces = provinceRepository.findByRegionAndStatus(region1, CommonStatus.ACTIVE);
 
-        var southProvinces = provinceRepository.findByRegion(southRegion);
-        assertThat(southProvinces)
-                .hasSize(1)
-                .extracting("code")
-                .containsExactly("HCM");
+        assertThat(activeNorthProvinces).hasSize(1);
+        assertThat(activeNorthProvinces.get(0).getCode()).isEqualTo("P1");
     }
 
     @Test
-    void findByRegionAndStatus_ShouldReturnFilteredProvinces() {
-        var activeNorthProvinces = provinceRepository.findByRegionAndStatus(
-                northRegion, CommonStatus.ACTIVE);
-        assertThat(activeNorthProvinces)
-                .hasSize(2)
-                .extracting("code")
-                .containsExactlyInAnyOrder("HN", "BN");
+    void findByNameContainingAndStatus_ShouldFilterByBoth() {
+        List<Province> activeProvincesWithName =
+                provinceRepository.findByNameContainingIgnoreCaseAndStatus("Province", CommonStatus.ACTIVE);
 
-        var inactiveNorthProvinces = provinceRepository.findByRegionAndStatus(
-                northRegion, CommonStatus.INACTIVE);
-        assertThat(inactiveNorthProvinces)
-                .hasSize(1)
-                .extracting("code")
-                .containsExactly("IP");
+        assertThat(activeProvincesWithName).hasSize(2);
+        assertThat(activeProvincesWithName).extracting("code").containsExactlyInAnyOrder("P1", "P2");
     }
 
     @Test
-    void findActiveProvincesByRegion_ShouldReturnOnlyActiveProvinces() {
-        var activeNorthProvinces = provinceRepository.findActiveProvincesByRegion(northRegion.getId());
-        assertThat(activeNorthProvinces)
-                .hasSize(2)
-                .extracting("code")
-                .containsExactlyInAnyOrder("HN", "BN");
-
-        var activeSouthProvinces = provinceRepository.findActiveProvincesByRegion(southRegion.getId());
-        assertThat(activeSouthProvinces)
-                .hasSize(1)
-                .extracting("code")
-                .containsExactly("HCM");
+    void countByRegionId_ShouldReturnCorrectCount() {
+        long count = provinceRepository.countByRegion(region1);
+        assertThat(count).isEqualTo(2);
     }
 
     @Test
-    void existsByCodeAndRegion_ShouldCheckProvinceExistence() {
-        assertThat(provinceRepository.existsByCodeAndRegion("HN", northRegion)).isTrue();
-        assertThat(provinceRepository.existsByCodeAndRegion("HN", southRegion)).isFalse();
-        assertThat(provinceRepository.existsByCodeAndRegion("HCM", southRegion)).isTrue();
-        assertThat(provinceRepository.existsByCodeAndRegion("NONEXISTENT", northRegion)).isFalse();
+    void findWithPagination_ShouldReturnPagedResults() {
+        var page = provinceRepository.findAll(PageRequest.of(0, 2));
+
+        assertThat(page.getContent()).hasSize(2);
+        assertThat(page.getTotalElements()).isEqualTo(3);
+        assertThat(page.getTotalPages()).isEqualTo(2);
+    }
+
+    @Test
+    void save_ShouldPersistNewProvince() {
+        // Create a region to associate with the province
+        Region region = createTestRegion();
+        entityManager.persist(region);
+        entityManager.flush();
+
+        // Create a new province with all required fields
+        Province province = Province.builder()
+            .name("Test Province")
+            .code("TEST-PROV")
+            .description("Test Province Description")
+            .region(region)
+            .status(CommonStatus.ACTIVE)
+            .build();
+            
+        // Set the required audit fields
+        LocalDateTime now = LocalDateTime.now();
+        province.setCreatedAt(now);
+        province.setUpdatedAt(now);
+        province.setCreatedBy("test-user");
+        province.setUpdatedBy("test-user");
+        province.setVersion(0L);
+        
+        // Save and verify
+        Province savedProvince = provinceRepository.save(province);
+        
+        assertThat(savedProvince.getId()).isNotNull();
+        assertThat(savedProvince.getName()).isEqualTo("Test Province");
+        assertThat(savedProvince.getRegion()).isEqualTo(region);
+    }
+
+    private Region createTestRegion() {
+        Region region = Region.builder()
+            .name("Test Region")
+            .code("TEST-REG")
+            .status(CommonStatus.ACTIVE)
+            .build();
+            
+        // Set audit fields for region too
+        LocalDateTime now = LocalDateTime.now();
+        region.setCreatedAt(now);
+        region.setUpdatedAt(now);
+        region.setCreatedBy("test-user");
+        region.setUpdatedBy("test-user");
+        region.setVersion(0L);
+        
+        return region;
+    }
+
+    @Test
+    void update_ShouldUpdateExistingProvince() {
+        province1.setName("Updated Province Name");
+        provinceRepository.save(province1);
+        entityManager.flush();
+        entityManager.clear();
+
+        Province updated = provinceRepository.findById(province1.getId()).orElseThrow();
+        assertThat(updated.getName()).isEqualTo("Updated Province Name");
     }
 }

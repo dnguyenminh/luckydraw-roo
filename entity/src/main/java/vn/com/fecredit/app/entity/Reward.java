@@ -1,5 +1,6 @@
 package vn.com.fecredit.app.entity;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -9,6 +10,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
@@ -23,14 +25,19 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.base.StatusAware; // Changed from interfaces to base package
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
+/**
+ * Represents a reward that can be won in the lucky draw system.
+ * Rewards are associated with specific event locations and have attributes
+ * like probability, quantity, and status.
+ */
 @Entity
 @Table(name = "rewards", indexes = {
         @Index(name = "idx_reward_code", columnList = "code", unique = true),
-        @Index(name = "idx_reward_location", columnList = "event_location_id"),
         @Index(name = "idx_reward_status", columnList = "status")
 })
 @Getter
@@ -38,85 +45,81 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = { "spinHistories", "eventLocation" })
+@ToString(callSuper = true, exclude = {  "rewardEvents" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
-public class Reward extends AbstractStatusAwareEntity {
+public class Reward extends AbstractSimplePersistableEntity<Long> {
 
     @NotBlank(message = "Reward name is required")
     @Column(name = "name", nullable = false)
     private String name;
 
     @NotBlank(message = "Reward code is required")
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "code", nullable = false)
     @EqualsAndHashCode.Include
     private String code;
+
+    // @NotBlank(message = "Reward today quantity remaining is required")
+    // @Column(name = "todayRemaining", nullable = false)
+    // @EqualsAndHashCode.Include
+    // @Builder.Default
+    // private Integer todayRemaining = 0;
 
     @Column(name = "description")
     private String description;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_location_id", nullable = false)
-    @NotNull(message = "Event location is required")
-    private EventLocation eventLocation;
+    /**
+     * Monetary value of the reward.
+     * Column name is quoted because 'value' is a reserved keyword in H2.
+     */
+    @Column(name = "prize_value")
+    private BigDecimal prizeValue;
 
-    @OneToMany(mappedBy = "reward", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "reward", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     @Builder.Default
-    private Set<SpinHistory> spinHistories = new HashSet<>();
+    private Set<RewardEvent> rewardEvents = new HashSet<>();
 
-    @Transient
-    public int getRemainingQuantity() {
-        if (eventLocation == null || eventLocation.getQuantity() == null)
-            return 0;
+    // @Transient
+    // public boolean isAvailable() {
+    // return getStatus().isActive() &&
+    // eventLocation != null &&
+    // eventLocation.getStatus().isActive() &&
+    // todayRemaining > 0;
+    // }
 
-        long usedQuantity = spinHistories.stream()
-                .filter(sh -> sh.getStatus().isActive() && sh.isWin())
-                .count();
+    // /**
+    // * Sets the event location for this reward with proper bidirectional
+    // relationship management.
+    // * Removes the reward from the old location's collection and adds it to the
+    // new location's.
+    // *
+    // * @param newLocation The new event location to associate this reward with
+    // */
+    // public void setEventLocation(RewardEvent rewardEvent) {
+    // EventLocation oldLocation = this.eventLocation;
 
-        return (int) Math.max(0, eventLocation.getQuantity() - usedQuantity);
-    }
+    // if (oldLocation != null && oldLocation.getRewards() != null) {
+    // oldLocation.getRewards().remove(this);
+    // }
 
-    @Transient
-    public Double getWinProbability() {
-        return eventLocation != null ? eventLocation.getWinProbability() : 0.0;
-    }
-    
-    @Transient
-    public Integer getQuantity() {
-        return eventLocation != null ? eventLocation.getQuantity() : 0;
-    }
+    // this.eventLocation = newLocation;
 
-    @Transient
-    public boolean isAvailable() {
-        return getStatus().isActive() &&
-                eventLocation != null &&
-                eventLocation.getStatus().isActive() &&
-                getRemainingQuantity() > 0;
-    }
-
-    public void setEventLocation(EventLocation newLocation) {
-        EventLocation oldLocation = this.eventLocation;
-
-        if (oldLocation != null && oldLocation.getRewards() != null) {
-            oldLocation.getRewards().remove(this);
-        }
-
-        this.eventLocation = newLocation;
-
-        if (newLocation != null && newLocation.getRewards() != null) {
-            newLocation.getRewards().add(this);
-        }
-    }
+    // if (newLocation != null && newLocation.getRewards() != null) {
+    // newLocation.getRewards().add(this);
+    // }
+    // }
 
     @Override
     public StatusAware setStatus(CommonStatus newStatus) {
-        validateStatusChange(newStatus);
         return super.setStatus(newStatus);
     }
 
+    /**
+     * Marks this reward as active.
+     * Will throw an exception if the event location is inactive.
+     *
+     * @throws IllegalStateException if the event location is inactive or null
+     */
     public void markAsActive() {
-        if (eventLocation == null || !eventLocation.getStatus().isActive()) {
-            throw new IllegalStateException("Cannot activate reward when event location is inactive");
-        }
         super.setStatus(CommonStatus.ACTIVE);
     }
 
@@ -132,6 +135,12 @@ public class Reward extends AbstractStatusAwareEntity {
         this.validateState();
     }
 
+    /**
+     * Validates the state of this reward.
+     * Ensures that required fields are populated and consistent.
+     *
+     * @throws IllegalStateException if validation fails
+     */
     public void validateState() {
         if (code != null) {
             code = code.toUpperCase();
@@ -145,20 +154,6 @@ public class Reward extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Reward code is required");
         }
 
-        if (eventLocation == null) {
-            throw new IllegalStateException("Event location is required");
-        }
-
-        if (getStatus() != null && getStatus().isActive() && !eventLocation.getStatus().isActive()) {
-            throw new IllegalStateException("Cannot be active when event location is inactive");
-        }
     }
 
-    private void validateStatusChange(CommonStatus newStatus) {
-        if (newStatus != null && newStatus.isActive() &&
-                (eventLocation == null || !eventLocation.getStatus().isActive())) {
-            throw new IllegalStateException("Cannot activate reward when event location is inactive. Reward: " +
-                    code + ", Location: " + (eventLocation == null ? "null" : eventLocation.getCode()));
-        }
-    }
 }

@@ -1,64 +1,96 @@
 package vn.com.fecredit.app.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull; // Add this import for NotNull
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinColumns;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
+import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+
 /**
- * SpinHistory entity that records each spin attempt in a lucky draw.
- * Tracks when a spin was made, by which participant, at which event location,
- * whether it resulted in a win, and any associated rewards or bonus
- * multipliers.
- *
- * This entity forms the core activity record for the lucky draw system.
+ * Entity representing a single spin attempt in the lucky draw.
+ * <p>
+ * SpinHistory records each individual attempt by a participant to win a reward
+ * through the lucky draw mechanism. It captures the time of the spin, whether
+ * it resulted in a win, and the reward won (if any).
+ * </p>
+ * <p>
+ * This entity provides a complete audit trail of all spins and serves as the
+ * foundation for analytics, fraud prevention, and participant engagement tracking.
+ * </p>
  */
 @Entity
 @Table(name = "spin_histories", indexes = {
-        @Index(name = "idx_spin_participant", columnList = "participant_event_id"),
-        @Index(name = "idx_spin_reward", columnList = "reward_id"),
-        @Index(name = "idx_spin_golden_hour", columnList = "golden_hour_id"),
-        @Index(name = "idx_spin_time", columnList = "spin_time"),
-        @Index(name = "idx_spin_status", columnList = "status")
+    @Index(name = "idx_spin_participant_event", columnList = "participant_id, participant_region_id, participant_event_id"),
+    @Index(name = "idx_spin_reward_event", columnList = "reward_id, reward_region_id, reward_event_id"),
+    @Index(name = "idx_spin_reward", columnList = "reward_id"),
+    @Index(name = "idx_spin_golden_hour", columnList = "golden_hour_id"),
+    @Index(name = "idx_spin_time", columnList = "spin_time"),
+    @Index(name = "idx_spin_status", columnList = "status")
 })
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = { "participantEvent", "reward", "goldenHour" })
-public class SpinHistory extends AbstractStatusAwareEntity {
+@ToString(callSuper = true, exclude = {"participantEvent", "rewardEvent", "goldenHour"})
+public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
 
     /**
-     * The exact time when the spin was performed
+     * The participant event record associated with this spin
+     * Links the spin to a specific participant at a specific event location
      */
     @Column(name = "spin_time", nullable = false)
     @NotNull
     private LocalDateTime spinTime;
 
+
     /**
      * The participant-event record that performed this spin
+     * Links the spin to the specific participant at a specific event location
+     * Required relationship ensuring every spin is associated with a participant
      */
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "participant_event_id", nullable = false)
+    @JoinColumns({
+        @JoinColumn(name = "participant_region_id"),
+        @JoinColumn(name = "participant_event_id"),
+        @JoinColumn(name = "participant_id")
+    })
     private ParticipantEvent participantEvent;
-
     /**
      * The reward that was won (if any)
+     * Optional relationship - populated only for winning spins
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "reward_id")
-    private Reward reward;
+    @JoinColumns({
+            @JoinColumn(name = "reward_id"),
+            @JoinColumn(name = "reward_event_id"),
+            @JoinColumn(name = "reward_region_id")
+    })
+    private RewardEvent rewardEvent;
 
     /**
      * The golden hour in effect during this spin (if any)
+     * Optional relationship - populated only when a spin occurs during a golden
+     * hour
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "golden_hour_id")
@@ -67,11 +99,11 @@ public class SpinHistory extends AbstractStatusAwareEntity {
     /**
      * Whether this spin resulted in winning a reward
      * Note: Column name is 'win' in the database
+     * Provides quick access to win status without checking reward relationship
      */
     @Column(name = "win")
     @Builder.Default
-    private boolean win = false; // Change field name to match database column
-
+    private boolean win = false; // Column name is 'win' in database
 
     /**
      * Temporary unique identifier for new spins that haven't been persisted
@@ -110,41 +142,55 @@ public class SpinHistory extends AbstractStatusAwareEntity {
     }
 
     /**
-     * Creates a new spin history for a participant event
+     * Creates a new spin history for a participant event.
+     *
+     * @param participantEvent The participant event performing the spin
+     * @return A new SpinHistory instance with default values and current timestamp
      */
     public static SpinHistory createNewSpin(ParticipantEvent participantEvent) {
         return SpinHistory.builder()
-                .participantEvent(participantEvent)
-                .spinTime(LocalDateTime.now())
-                .win(false)
-                .build();
+            .participantEvent(participantEvent)
+            .spinTime(LocalDateTime.now())
+            .win(false)
+            .build();
     }
 
     /**
-     * Creates a winning spin history with a reward
+     * Creates a winning spin history with a reward.
+     *
+     * @param participantEvent The participant event performing the spin
+     * @param rewardEvent      The reward won by this spin
+     * @return A new SpinHistory instance marked as winning with the specified
+     * reward
      */
-    public static SpinHistory createWinningSpin(ParticipantEvent participantEvent, Reward reward) {
+    public static SpinHistory createWinningSpin(ParticipantEvent participantEvent, RewardEvent rewardEvent) {
         return SpinHistory.builder()
-                .participantEvent(participantEvent)
-                .reward(reward)
-                .spinTime(LocalDateTime.now())
-                .win(true)
-                .build();
+            .participantEvent(participantEvent)
+            .rewardEvent(rewardEvent)
+            .spinTime(LocalDateTime.now())
+            .win(true)
+            .build();
     }
 
     /**
-     * Creates a losing spin history
+     * Creates a losing spin history.
+     *
+     * @param participantEvent The participant event performing the spin
+     * @return A new SpinHistory instance marked as losing with no reward
      */
     public static SpinHistory createLosingSpin(ParticipantEvent participantEvent) {
         return SpinHistory.builder()
-                .participantEvent(participantEvent)
-                .spinTime(LocalDateTime.now())
-                .win(false)
-                .build();
+            .participantEvent(participantEvent)
+            .spinTime(LocalDateTime.now())
+            .win(false)
+            .build();
     }
 
     /**
-     * Get the event location of this spin through the participant event
+     * Get the event location of this spin through the participant event.
+     *
+     * @return The event location where this spin occurred, or null if participant
+     * event is missing
      */
     public EventLocation getEventLocation() {
         if (participantEvent == null) {
@@ -179,7 +225,7 @@ public class SpinHistory extends AbstractStatusAwareEntity {
             throw new IllegalStateException("Participant event must be specified");
         }
 
-        if (isWin() && reward == null) {
+        if (isWin() && rewardEvent == null) {
             throw new IllegalStateException("Winning spin must have a reward");
         }
 

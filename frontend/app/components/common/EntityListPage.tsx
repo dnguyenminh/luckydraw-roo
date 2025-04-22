@@ -211,11 +211,6 @@ export default function EntityListPage({
               <h2 className="font-semibold">
                 {tabs.find(tab => tab.id === activeTab)?.label || title} List
               </h2>
-              <button className="text-gray-400 hover:text-white flex items-center">
-                <Filter className="h-4 w-4 mr-1" />
-                Filter
-                <ChevronDown className="h-4 w-4 ml-1" />
-              </button>
             </div>
           </div>
 

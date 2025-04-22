@@ -1,23 +1,20 @@
 -- Create schema for test database with quoted table names to preserve case
 
--- Users table
+-- Users table (corrected to match entity model with direct role_id foreign key)
 CREATE TABLE IF NOT EXISTS "users" (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL,
-    email VARCHAR(255),
-    password VARCHAR(255),
-    full_name VARCHAR(255),
-    enabled BOOLEAN DEFAULT TRUE,
-    account_expired BOOLEAN DEFAULT FALSE,
-    account_locked BOOLEAN DEFAULT FALSE,
-    credentials_expired BOOLEAN DEFAULT FALSE,
-    status VARCHAR(50),
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    username VARCHAR(100) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL,
+    role_id BIGINT,
     version BIGINT DEFAULT 0,
-    role VARCHAR(50)
+    FOREIGN KEY (role_id) REFERENCES "roles"(id)
 );
 
 -- Roles table
@@ -45,15 +42,6 @@ CREATE TABLE IF NOT EXISTS "permissions" (
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     version BIGINT DEFAULT 0
-);
-
--- User roles join table
-CREATE TABLE IF NOT EXISTS "user_roles" (
-    user_id BIGINT,
-    role_id BIGINT,
-    PRIMARY KEY (user_id, role_id),
-    FOREIGN KEY (user_id) REFERENCES "users"(id),
-    FOREIGN KEY (role_id) REFERENCES "roles"(id)
 );
 
 -- Role permissions join table
@@ -109,57 +97,56 @@ CREATE TABLE IF NOT EXISTS "events" (
     version BIGINT DEFAULT 0
 );
 
--- Event Location table
-CREATE TABLE IF NOT EXISTS "event_locations" (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+-- Event Location table with composite primary key
+CREATE TABLE IF NOT EXISTS event_locations (
     event_id BIGINT NOT NULL,
-    region_id BIGINT,
-    name VARCHAR(255) NOT NULL,
-    code VARCHAR(100),
-    address VARCHAR(255),
-    max_spin INTEGER DEFAULT 0,
-    status VARCHAR(50),
+    region_id BIGINT NOT NULL,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    description TEXT,
+    max_spin INT DEFAULT 100,
+    today_spin INT DEFAULT 100,
+    daily_spin_distributing_rate DOUBLE DEFAULT 0,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id) REFERENCES "events"(id),
-    FOREIGN KEY (region_id) REFERENCES "regions"(id)
+    PRIMARY KEY (event_id, region_id),
+    FOREIGN KEY (event_id) REFERENCES events(id),
+    FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
 -- Golden Hour table
-CREATE TABLE IF NOT EXISTS "golden_hours" (
+CREATE TABLE IF NOT EXISTS golden_hours (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    event_id BIGINT NOT NULL,
-    start_time TIMESTAMP,
-    end_time TIMESTAMP,
-    multiplier DECIMAL(5,2),
-    status VARCHAR(50),
-    created_by VARCHAR(255),
-    created_at TIMESTAMP,
-    updated_by VARCHAR(255),
-    updated_at TIMESTAMP,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_by VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    status VARCHAR(50) NOT NULL,
+    event_location_id BIGINT NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    multiplier DECIMAL(5,2) NOT NULL,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id) REFERENCES "events"(id)
+    CONSTRAINT fk_golden_hours_event_location FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
 );
 
 -- Reward table
-CREATE TABLE IF NOT EXISTS "rewards" (
+CREATE TABLE IF NOT EXISTS rewards (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    event_id BIGINT NOT NULL,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    updated_by VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    status VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
-    quantity INTEGER DEFAULT 0,
-    remaining INTEGER DEFAULT 0,
-    probability DECIMAL(5,2),
-    status VARCHAR(50),
-    created_by VARCHAR(255),
-    created_at TIMESTAMP,
-    updated_by VARCHAR(255),
-    updated_at TIMESTAMP,
+    event_location_id BIGINT NOT NULL,
+    prize_value DECIMAL(10,2),
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id) REFERENCES "events"(id)
+    CONSTRAINT fk_rewards_event_location FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
 );
 
 -- Participant table
@@ -176,37 +163,48 @@ CREATE TABLE IF NOT EXISTS "participants" (
     version BIGINT DEFAULT 0
 );
 
--- Participant Event table
-CREATE TABLE IF NOT EXISTS "participant_events" (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+-- Participant Event table with composite primary key
+CREATE TABLE IF NOT EXISTS participant_events (
     participant_id BIGINT NOT NULL,
     event_id BIGINT NOT NULL,
-    registration_date TIMESTAMP,
-    attendance_date TIMESTAMP,
-    status VARCHAR(50),
+    region_id BIGINT NOT NULL,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
+    spins_remaining INT NOT NULL DEFAULT 0,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (participant_id) REFERENCES "participants"(id),
-    FOREIGN KEY (event_id) REFERENCES "events"(id)
+    PRIMARY KEY (participant_id, event_id, region_id),
+    FOREIGN KEY (participant_id) REFERENCES participants(id),
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
 );
 
 -- Spin History table
 CREATE TABLE IF NOT EXISTS "spin_histories" (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    participant_event_id BIGINT NOT NULL,
-    reward_id BIGINT,
-    spin_time TIMESTAMP,
-    status VARCHAR(50),
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    participant_id BIGINT NOT NULL,
+    participant_event_id BIGINT NOT NULL,
+    participant_region_id BIGINT NOT NULL,
+    spin_time TIMESTAMP NOT NULL,
+    reward_id BIGINT,
+    reward_event_id BIGINT,
+    reward_region_id BIGINT,
+    golden_hour_id BIGINT,
+    win BOOLEAN DEFAULT FALSE,
+    wheel_position DOUBLE,
+    multiplier DECIMAL(5,2) DEFAULT 1.0,
+    server_seed VARCHAR(100),
+    client_seed VARCHAR(100),
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (participant_event_id) REFERENCES "participant_events"(id),
-    FOREIGN KEY (reward_id) REFERENCES "rewards"(id)
+    FOREIGN KEY (participant_id, participant_event_id, participant_region_id) REFERENCES "participant_events"(participant_id, event_id, region_id),
+    FOREIGN KEY (reward_id, reward_event_id, reward_region_id) REFERENCES "reward_events"(reward_id, event_id, region_id),
+    FOREIGN KEY (golden_hour_id) REFERENCES "golden_hours"(id)
 );
 
 -- Audit Log table

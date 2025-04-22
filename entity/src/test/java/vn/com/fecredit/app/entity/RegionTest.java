@@ -42,13 +42,11 @@ class RegionTest {
             .build();
 
         location = EventLocation.builder()
-            .name("Test Location")
-            .code("TEST_LOC")
             .status(CommonStatus.ACTIVE)
             .maxSpin(1000)
             .event(event)
             .region(region)
-            .rewards(new HashSet<>())
+            .rewardEvents(new HashSet<>())
             .goldenHours(new HashSet<>())
             .participantEvents(new HashSet<>())
             .build();
@@ -58,7 +56,7 @@ class RegionTest {
     void testProvinceAssociation() {
         assertTrue(region.getProvinces().isEmpty());
         region.addProvince(province);
-        
+
         assertEquals(1, region.getProvinces().size());
         assertTrue(region.getProvinces().contains(province));
         assertEquals(region, province.getRegion());
@@ -72,7 +70,7 @@ class RegionTest {
     void testEventLocationAssociation() {
         assertTrue(region.getEventLocations().isEmpty());
         region.addEventLocation(location);
-        
+
         assertEquals(1, region.getEventLocations().size());
         assertTrue(region.getEventLocations().contains(location));
         assertEquals(region, location.getRegion());
@@ -86,13 +84,13 @@ class RegionTest {
     void testActiveCounters() {
         region.addProvince(province);
         region.addEventLocation(location);
-        
+
         assertEquals(1, region.getActiveProvinceCount());
         assertEquals(1, region.getActiveEventLocationCount());
 
         province.setStatus(CommonStatus.INACTIVE);
         location.setStatus(CommonStatus.INACTIVE);
-        
+
         assertEquals(0, region.getActiveProvinceCount());
         assertEquals(0, region.getActiveEventLocationCount());
     }
@@ -101,7 +99,7 @@ class RegionTest {
     void testStatusManagement() {
         region.addProvince(province);
         region.addEventLocation(location);
-        
+
         // Test region deactivation - should cascade to locations
         assertDoesNotThrow(() -> region.setStatus(CommonStatus.INACTIVE),
             "Should allow deactivation regardless of children status");
@@ -199,34 +197,34 @@ class RegionTest {
                 .code("TEST_REG")
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         Province province1 = Province.builder()
                 .name("Province 1")
                 .code("PROV_1")
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         Province province2 = Province.builder()
                 .name("Province 2")
                 .code("PROV_2")
                 .status(CommonStatus.ACTIVE)
                 .build();
-        
+
         // Manually set up bidirectional relationships
         region.addProvince(province1);
         region.addProvince(province2);
-        
+
         // Region and both provinces start as active
         assertTrue(region.isActive(), "Region should be active initially");
         assertTrue(province1.isActive(), "Province 1 should be active initially");
         assertTrue(province2.isActive(), "Province 2 should be active initially");
-        
+
         // Deactivate one province - region should remain active
         province1.setStatus(CommonStatus.INACTIVE);
         assertFalse(province1.isActive(), "Province 1 should be inactive after deactivation");
         assertTrue(province2.isActive(), "Province 2 should remain active");
         assertTrue(region.isActive(), "Region should remain active when at least one province is active");
-        
+
         // Deactivate the other province - now region should be inactive
         province2.setStatus(CommonStatus.INACTIVE);
         assertFalse(province2.isActive(), "Province 2 should be inactive after deactivation");

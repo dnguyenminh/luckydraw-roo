@@ -16,14 +16,14 @@ export default function SpinHistoryPage() {
         { label: 'Win Rate', value: '27.0%', color: 'yellow' },
         { label: 'Claim Rate', value: '84.2%', color: 'blue' }
       ]}
-      tabs={[
-        { id: 'all', label: 'All Spins' },
-        { id: 'winners', label: 'Winners' },
-        { id: 'claimed', label: 'Claimed' },
-        { id: 'unclaimed', label: 'Unclaimed' }
-      ]}
-      addButtonLabel="Export History"
-      onAddButtonClick={() => console.log('Exporting spin history...')}
+      // tabs={[
+      //   { id: 'all', label: 'All Spins' },
+      //   { id: 'winners', label: 'Winners' },
+      //   { id: 'claimed', label: 'Claimed' },
+      //   { id: 'unclaimed', label: 'Unclaimed' }
+      // ]}
+      // addButtonLabel="Export History"
+      // onAddButtonClick={() => console.log('Exporting spin history...')}
     />
   );
 }

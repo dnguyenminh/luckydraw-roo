@@ -60,7 +60,7 @@ class AbstractAuditEntityTest extends BaseEntityTest {
             ComplexTestEntity copy = original.toBuilder()
                     .tags(new ArrayList<>(original.getTags()))
                     .metadata(new HashMap<>(original.getMetadata()))
-                    .createdAt(original.getCreatedAt())  // Explicitly copy audit fields
+                    .createdAt(original.getCreatedAt()) // Explicitly copy audit fields
                     .createdBy(original.getCreatedBy())
                     .updatedAt(original.getUpdatedAt())
                     .updatedBy(original.getUpdatedBy())
@@ -153,11 +153,9 @@ class AbstractAuditEntityTest extends BaseEntityTest {
     @SuperBuilder(toBuilder = true)
     @NoArgsConstructor
     @EqualsAndHashCode(callSuper = true)
-    private static class TestAuditEntity extends AbstractAuditEntity {
+    private static class TestAuditEntity extends AbstractSimplePersistableEntity<Long> {
         @SuppressWarnings("unused")
         private static final long serialVersionUID = 1L;
-        private Long id;
-        
     }
 
     @Data
