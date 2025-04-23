@@ -37,6 +37,7 @@ import vn.com.fecredit.app.repository.ParticipantRepository;
 import vn.com.fecredit.app.repository.PermissionRepository;
 import vn.com.fecredit.app.repository.ProvinceRepository;
 import vn.com.fecredit.app.repository.RegionRepository;
+import vn.com.fecredit.app.repository.RewardEventRepository;
 import vn.com.fecredit.app.repository.RewardRepository;
 import vn.com.fecredit.app.repository.RoleRepository;
 import vn.com.fecredit.app.repository.SpinHistoryRepository;
@@ -61,16 +62,16 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     @Autowired
     public RepositoryFactoryImpl(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
-        
+
         // Initialize entity class mappings
         this.entityClassMap = new HashMap<>();
         this.repositoryClassMap = new HashMap<>();
         this.tableNameMap = new HashMap<>();
         this.entityNameToObjectTypeMap = new HashMap<>();
-        
+
         initializeMappings();
     }
-    
+
     @PostConstruct
     public void logAvailableBeans() {
         log.info("Available beans in application context:");
@@ -79,16 +80,16 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
                 log.info("Repository bean found: {}", beanName);
             }
         }
-        
+
         // Verify repository beans existence
         for (Class<?> entityClass : repositoryClassMap.keySet()) {
             Class<? extends JpaRepository<?, ?>> repositoryClass = repositoryClassMap.get(entityClass);
             try {
                 Object bean = applicationContext.getBean(repositoryClass);
-                log.info("Successfully looked up repository bean for entity: {} -> {}", 
+                log.info("Successfully looked up repository bean for entity: {} -> {}",
                         entityClass.getSimpleName(), bean.getClass().getName());
             } catch (Exception e) {
-                log.warn("Failed to lookup repository bean for entity: {} -> {}. Error: {}", 
+                log.warn("Failed to lookup repository bean for entity: {} -> {}. Error: {}",
                         entityClass.getSimpleName(), repositoryClass.getName(), e.getMessage());
             }
         }
@@ -105,13 +106,14 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         mapEntity(ObjectType.Region, Region.class, RegionRepository.class, "regions");
         mapEntity(ObjectType.Province, Province.class, ProvinceRepository.class, "provinces");
         mapEntity(ObjectType.Reward, Reward.class, RewardRepository.class, "rewards");
+        mapEntity(ObjectType.RewardEvent, RewardEvent.class, RewardEventRepository.class, "rewards");
         mapEntity(ObjectType.Participant, Participant.class, ParticipantRepository.class, "participants");
         mapEntity(ObjectType.ParticipantEvent, ParticipantEvent.class, ParticipantEventRepository.class, "participant_events");
         mapEntity(ObjectType.SpinHistory, SpinHistory.class, SpinHistoryRepository.class, "spin_histories");
         mapEntity(ObjectType.AuditLog, AuditLog.class, AuditLogRepository.class, "audit_logs");
         mapEntity(ObjectType.BlacklistedToken, BlacklistedToken.class, BlacklistedTokenRepository.class, "blacklisted_tokens");
         mapEntity(ObjectType.Configuration, Configuration.class, ConfigurationRepository.class, "configurations");
-        
+
         // Also map by simple name for backward compatibility
         for (ObjectType type : ObjectType.values()) {
             if (entityClassMap.containsKey(type)) {
@@ -120,9 +122,9 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
             }
         }
     }
-    
+
     private <T, R extends JpaRepository<T, ?>> void mapEntity(
-            ObjectType objectType, 
+            ObjectType objectType,
             Class<T> entityClass,
             Class<R> repositoryClass,
             String tableName) {
@@ -141,10 +143,10 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         log.error("Unsupported object type: {}", objectType);
         throw new IllegalArgumentException("Unsupported object type: " + objectType);
     }
-    
+
     /**
      * Gets the ObjectType for a given entity name.
-     * 
+     *
      * @param entityName the simple name of the entity class
      * @return the corresponding ObjectType
      * @throws IllegalArgumentException if no mapping exists for the entity name

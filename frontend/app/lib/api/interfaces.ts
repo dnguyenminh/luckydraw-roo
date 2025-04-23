@@ -24,6 +24,7 @@ export enum ObjectType {
     Region = 'Region',
     Province = 'Province',
     Reward = 'Reward',
+    RewardEvent = 'RewardEvent',
     GoldenHour = 'GoldenHour',
     SpinHistory = 'SpinHistory',
     AuditLog = 'AuditLog',

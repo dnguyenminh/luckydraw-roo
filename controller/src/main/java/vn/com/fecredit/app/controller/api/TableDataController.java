@@ -55,6 +55,7 @@ public class TableDataController {
         ENTITY_NAME_MAP.put("events", ObjectType.Event);
         ENTITY_NAME_MAP.put("participants", ObjectType.Participant);
         ENTITY_NAME_MAP.put("rewards", ObjectType.Reward);
+        ENTITY_NAME_MAP.put("rewardEvents", ObjectType.RewardEvent);
         ENTITY_NAME_MAP.put("regions", ObjectType.Region);
         ENTITY_NAME_MAP.put("provinces", ObjectType.Province);
         ENTITY_NAME_MAP.put("goldenHours", ObjectType.GoldenHour);
