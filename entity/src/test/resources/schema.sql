@@ -113,6 +113,8 @@ CREATE TABLE event_locations (
     win_probability DECIMAL(5,2) DEFAULT 0,
     event_id BIGINT,
     region_id BIGINT,
+    daily_spin_dist_rate DOUBLE DEFAULT 0,  -- Original field from entity
+    remaining_today_spin DOUBLE DEFAULT 0,  -- Add the missing column that Hibernate expects
     version BIGINT DEFAULT 0,
     FOREIGN KEY (event_id) REFERENCES events(id),
     FOREIGN KEY (region_id) REFERENCES regions(id)

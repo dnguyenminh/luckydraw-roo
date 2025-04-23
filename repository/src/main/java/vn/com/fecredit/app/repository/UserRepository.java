@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * Repository for User entity operations.
  */
-public interface UserRepository extends SimpleObjectRepository<User> {
+public interface UserRepository extends SimpleObjectRepository<User, Long> {
     /**
      * Checks if a user with the given username exists
      *

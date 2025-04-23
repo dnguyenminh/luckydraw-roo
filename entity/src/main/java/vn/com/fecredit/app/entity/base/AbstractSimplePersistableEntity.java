@@ -10,9 +10,31 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
+/**
+ * Base abstract entity for entities with simple (single-column) primary keys.
+ * <p>
+ * This class extends AbstractPersistableEntity to provide a standard implementation
+ * for entities that use simple primary keys with auto-generation strategies. It uses
+ * the {@link GenerationType#IDENTITY} strategy which relies on auto-increment columns
+ * in the database.
+ * </p>
+ * <p>
+ * Entity classes with simple primary keys (like Long, Integer, or UUID) should extend
+ * this class rather than implementing their own ID management.
+ * </p>
+ * 
+ * <p>
+ * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
+ * annotation and is required by JPA for entity instantiation. It creates an entity
+ * with null ID, which gets populated during persistence with an auto-generated value.
+ * </p>
+ *
+ * @param <T> The type of the identifier used by entities extending this class,
+ *           must implement {@link Serializable}
+ */
 @MappedSuperclass
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor // Creates a default no-args constructor for JPA
+@NoArgsConstructor // Creates a default no-args constructor required by JPA
 @AllArgsConstructor
 @ToString
 public abstract class AbstractSimplePersistableEntity<T extends Serializable> extends AbstractPersistableEntity<T> {

@@ -16,7 +16,7 @@ import vn.com.fecredit.app.entity.enums.PermissionType;
  * Repository interface for Permission entity.
  */
 @Repository
-public interface PermissionRepository extends SimpleObjectRepository<Permission> {
+public interface PermissionRepository extends SimpleObjectRepository<Permission, Long> {
 
     /**
      * Find permission by name

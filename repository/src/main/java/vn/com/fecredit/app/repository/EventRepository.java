@@ -14,7 +14,7 @@ import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
-public interface EventRepository extends SimpleObjectRepository<Event> {
+public interface EventRepository extends SimpleObjectRepository<Event, Long> {
 
     Optional<Event> findByCode(String code);
 

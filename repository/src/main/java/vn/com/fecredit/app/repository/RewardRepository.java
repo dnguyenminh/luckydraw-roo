@@ -15,7 +15,7 @@ import vn.com.fecredit.app.entity.Reward;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
-public interface RewardRepository extends SimpleObjectRepository<Reward> {
+public interface RewardRepository extends SimpleObjectRepository<Reward, Long> {
     Optional<Reward> findByCode(String code);
 
     boolean existsByCode(String code);

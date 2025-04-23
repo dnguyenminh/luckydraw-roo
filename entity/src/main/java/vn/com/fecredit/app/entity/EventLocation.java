@@ -34,17 +34,14 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * Entity representing a physical location where events take place.
  * <p>
  * EventLocation links events to specific geographical locations and manages
- * capacity
- * tracking, reward distribution, and participant management for a given
- * location.
- * It maintains relationships with regions, events, rewards, golden hours, and
+ * capacity tracking, reward distribution, and participant management for a given
+ * location. It maintains relationships with regions, events, rewards, golden hours, and
  * participant events.
  * </p>
  *
  * <p>
  * The default no-argument constructor is provided by Lombok's
- * {@code @NoArgsConstructor}
- * annotation and is required for JPA entity instantiation.
+ * {@code @NoArgsConstructor} annotation and is required for JPA entity instantiation.
  * </p>
  */
 @Entity
@@ -94,15 +91,19 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
      * Rate at which daily spins are distributed
      * Controls the distribution of spins throughout the day
      * Must be a non-negative value
+     * 
+     * This rate determines how quickly the daily spin allocation is consumed
+     * A higher rate means spins are distributed faster throughout the day
      */
     @Min(value = 0, message = "Remaining spins must be not negative number")
-    @Column(name = "remaining_today_spin", nullable = false)
+    @Column(name = "daily_spin_dist_rate", nullable = false)
     @Builder.Default
     private double dailySpinDistributingRate = 0;
 
     /**
      * Parent event to which this location belongs
      * Establishes a many-to-one relationship with Event entity
+     * Forms part of the composite primary key (EventLocationKey)
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("eventId")
@@ -112,6 +113,7 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     /**
      * Geographical region where this location is situated
      * Required field establishing a many-to-one relationship with Region entity
+     * Forms part of the composite primary key (EventLocationKey)
      */
     @NotNull(message = "Region is required")
     @ManyToOne(fetch = FetchType.LAZY)
@@ -144,9 +146,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     private Set<GoldenHour> goldenHours = new HashSet<>();
 
     /**
-     * Add a reward to this location
+     * Add a reward to this location with proper bidirectional relationship
+     * This method ensures the reward event references this location as its owner
      *
-     * @param rewardEvent the rewardEvent to add
+     * @param rewardEvent the rewardEvent to add to this location
      */
     public void addRewardEvent(RewardEvent rewardEvent) {
         if (rewardEvent != null) {
@@ -158,9 +161,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     }
 
     /**
-     * Add a golden hour to this location
+     * Add a golden hour to this location with proper bidirectional relationship
+     * This method ensures the golden hour references this location as its owner
      *
-     * @param goldenHour the golden hour to add
+     * @param goldenHour the golden hour to add to this location
      */
     public void addGoldenHour(GoldenHour goldenHour) {
         if (goldenHour != null) {
@@ -172,9 +176,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     }
 
     /**
-     * Remove a golden hour from this location
+     * Remove a golden hour from this location with proper relationship cleanup
+     * This ensures bidirectional relationship consistency is maintained
      *
-     * @param goldenHour the golden hour to remove
+     * @param goldenHour the golden hour to remove from this location
      */
     public void removeGoldenHour(GoldenHour goldenHour) {
         if (goldenHour != null && goldenHours.remove(goldenHour)) {
@@ -185,9 +190,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     }
 
     /**
-     * Add a participant event to this location
+     * Add a participant event to this location with proper bidirectional relationship
+     * This method ensures the participant event references this location as its owner
      *
-     * @param participantEvent the participant event to add
+     * @param participantEvent the participant event to add to this location
      */
     public void addParticipantEvent(ParticipantEvent participantEvent) {
         if (participantEvent != null) {
@@ -199,9 +205,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     }
 
     /**
-     * Remove a participant event from this location
+     * Remove a participant event from this location with proper relationship cleanup
+     * This ensures bidirectional relationship consistency is maintained
      *
-     * @param participantEvent the participant event to remove
+     * @param participantEvent the participant event to remove from this location
      */
     public void removeParticipantEvent(RewardEvent participantEvent) {
         if (participantEvent != null && participantEvents.remove(participantEvent)) {
@@ -213,8 +220,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
 
     /**
      * Set region with proper bidirectional relationship management
+     * Updates both sides of the relationship and handles the previous relationship cleanup
+     * Also updates status based on region status and initializes the composite key
      *
-     * @param newRegion the new region
+     * @param newRegion the new region to associate with this location
      */
     public void setRegion(Region newRegion) {
         Region oldRegion = this.region;
@@ -235,8 +244,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
 
     /**
      * Set event with proper bidirectional relationship management
+     * Updates both sides of the relationship and handles the previous relationship cleanup
+     * Also initializes the composite key with the new event ID
      *
-     * @param newEvent the new event
+     * @param newEvent the new event to associate with this location
      */
     public void setEvent(Event newEvent) {
         Event oldEvent = this.event;
@@ -254,6 +265,8 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
 
     /**
      * Initialize or update the composite ID based on event and region
+     * This private helper method ensures the ID is always consistent with the relationship entities
+     * Called whenever event or region is set to maintain ID integrity
      */
     private void initializeOrUpdateId() {
         // Only try to create the ID when both event and region are present
@@ -273,8 +286,10 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
 
     /**
      * Check if location has available capacity based on active participant events
+     * Calculates whether more participants can be added to this location
+     * based on the maximum spin limit and current participant count
      *
-     * @return true if capacity available
+     * @return true if there is available capacity for more participants
      */
     @Transient
     public boolean hasAvailableCapacity() {

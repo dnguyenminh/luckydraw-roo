@@ -1,16 +1,15 @@
 package vn.com.fecredit.app.service.impl;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.reflect.TypeUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,17 +20,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.repository.SimpleObjectRepository;
-import vn.com.fecredit.app.service.TableActionService;
+import vn.com.fecredit.app.repository.AbstractRepository;
 import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.DataObject;
@@ -44,13 +34,25 @@ import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.SortRequest;
 import vn.com.fecredit.app.service.dto.SortType;
 import vn.com.fecredit.app.service.dto.TabTableRow;
-import vn.com.fecredit.app.service.dto.TableActionRequest;
-import vn.com.fecredit.app.service.dto.TableActionResponse;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
 import vn.com.fecredit.app.service.factory.RelatedTablesFactory;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
+
+import java.io.Serializable;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the TableDataService for fetching paginated table data.
@@ -62,12 +64,17 @@ import vn.com.fecredit.app.service.factory.RepositoryFactory;
 @Transactional(readOnly = true)
 public class TableDataServiceImpl implements TableDataService {
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @PersistenceContext
     private EntityManager entityManager;
 
     private final RepositoryFactory repositoryFactory;
 
     private final RelatedTablesFactory relatedTablesFactory;
+
+    private static final String ENTITY_PACKAGE = "vn.com.fecredit.app.entity";
 
     @Override
     public TableFetchResponse fetchData(TableFetchRequest request) {
@@ -103,7 +110,7 @@ public class TableDataServiceImpl implements TableDataService {
     /**
      * Fetch data based on ObjectType
      */
-    private <T extends AbstractStatusAwareEntity> TableFetchResponse fetchByObjectType(TableFetchRequest request) {
+    private <T extends AbstractStatusAwareEntity, ID extends Serializable> TableFetchResponse fetchByObjectType(TableFetchRequest request) {
         ObjectType objectType = request.getObjectType();
         Pageable pageable = createPageable(request);
 
@@ -113,7 +120,7 @@ public class TableDataServiceImpl implements TableDataService {
 
             try {
                 // Get the repository for this entity class
-                SimpleObjectRepository<T> repository = repositoryFactory.getRepositoryForClass(entityClass);
+                AbstractRepository<T, ID> repository = repositoryFactory.getRepositoryForClass(entityClass);
 
                 // Get the table name for this object type
                 String tableName = repositoryFactory.getTableNameForObjectType(objectType);
@@ -308,10 +315,10 @@ public class TableDataServiceImpl implements TableDataService {
     /**
      * Generic method to fetch entities and create a response
      */
-    private <T extends AbstractStatusAwareEntity> TableFetchResponse fetchEntities(
+    private <T extends AbstractStatusAwareEntity, ID extends Serializable> TableFetchResponse fetchEntities(
         TableFetchRequest request,
         Pageable pageable,
-        SimpleObjectRepository<T> repository,
+        AbstractRepository<T, ID> repository,
         String tableName,
         Function<TableFetchRequest, Specification<T>> specificationBuilder,
         Function<T, TableRow> rowConverter,
@@ -379,7 +386,7 @@ public class TableDataServiceImpl implements TableDataService {
         response.setTotalElements(page.getTotalElements());
         response.setTableName(tableName);
         response.setOriginalRequest(request);
-        response.setRows(rows);
+            response.setRows(rows);
         // // Get related linked objects based on search criteria in the request
         Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
         response.setRelatedLinkedObjects(relatedLinkedObjects);
@@ -654,7 +661,7 @@ public class TableDataServiceImpl implements TableDataService {
 
                     // Apply search criteria to this join
                     List<Predicate> joinPredicates = new ArrayList<>();
-                    applySearchCriteriaToJoin(join, cb, joinPredicates, matchingDataObject.getData());
+                    applySearchCriteriaToJoin(matchingObjectType, join, cb, joinPredicates, matchingDataObject.getData());
 
                     if (!joinPredicates.isEmpty()) {
                         predicates.add(cb.and(joinPredicates.toArray(new Predicate[0])));
@@ -775,6 +782,7 @@ public class TableDataServiceImpl implements TableDataService {
      * @param searchRow  The search criteria data
      */
     private void applySearchCriteriaToJoin(
+        ObjectType matchingObjectType,
         jakarta.persistence.criteria.Join<?, ?> join,
         CriteriaBuilder cb,
         List<Predicate> predicates,
@@ -820,7 +828,10 @@ public class TableDataServiceImpl implements TableDataService {
                     }
                 } else if ("id".equals(fieldName)) {
                     // Special handling for ID fields
-                    predicates.add(cb.equal(join.get(fieldName), fieldValue));
+                    Class<?> entityClass = Class.forName(ENTITY_PACKAGE + "." + matchingObjectType.name());
+                    Class<?> idType = (Class<?>) getIdType(entityClass);
+                    Object idValue = objectMapper.convertValue(fieldValue, idType);
+                    predicates.add(cb.equal(join.get(fieldName), idValue));
                 } else if (fieldValue instanceof String) {
                     // Case-insensitive search for strings
                     predicates.add(cb.like(
@@ -834,6 +845,22 @@ public class TableDataServiceImpl implements TableDataService {
                 log.warn("Error processing criterion {}: {}", fieldName, e.getMessage());
             }
         }
+    }
+
+    private Type getIdType(Class<?> currentEntityClass) {
+        try {
+            Map<TypeVariable<?>, Type> typeVarToActualType =
+                TypeUtils.getTypeArguments(currentEntityClass, currentEntityClass.getSuperclass());
+            Type returnType = currentEntityClass.getMethod("getId").getGenericReturnType();
+            if (returnType instanceof TypeVariable) {
+                return typeVarToActualType.get(returnType);
+            } else {
+                return returnType;
+            }
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     /**
@@ -1001,6 +1028,7 @@ public class TableDataServiceImpl implements TableDataService {
             log.debug("Processing entity of type: {}", entity.getClass().getName());
             // Get all methods from the entity class
             Method[] methods = entity.getClass().getMethods();
+            Object entityId = null;
 
             for (Method method : methods) {
                 String methodName = method.getName();
@@ -1039,6 +1067,11 @@ public class TableDataServiceImpl implements TableDataService {
                         Object value = method.invoke(entity);
                         log.debug("Extracted property: {} with value: {}", propertyName, value);
 
+                        // Save the ID for generating viewId
+                        if (propertyName.equals("id")) {
+                            entityId = value;
+                        }
+
                         // Add property and its value to the data map
                         data.put(propertyName, value);
                     } catch (Exception e) {
@@ -1065,6 +1098,13 @@ public class TableDataServiceImpl implements TableDataService {
                         log.warn("Failed to extract boolean property via method {}: {}", methodName, e.getMessage());
                     }
                 }
+            }
+
+            // Add viewId based on entity's ID
+            if (entityId != null) {
+                int viewId = entityId.hashCode();
+                data.put("viewId", viewId);
+                log.debug("Added viewId: {} based on entity ID: {}", viewId, entityId);
             }
 
             // As a safety net, remove any entity objects that might have slipped through

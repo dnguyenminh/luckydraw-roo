@@ -21,7 +21,7 @@ import vn.com.fecredit.app.entity.enums.RoleType;
  */
 @Repository
 @Transactional(readOnly = true)
-public interface RoleRepository extends SimpleObjectRepository<Role> {
+public interface RoleRepository extends SimpleObjectRepository<Role, Long> {
 
     /**
      * Find a role by its role type
@@ -74,16 +74,16 @@ public interface RoleRepository extends SimpleObjectRepository<Role> {
      */
     @Query("SELECT DISTINCT r FROM Role r JOIN r.permissions p WHERE p IN :permissions")
     List<Role> findByPermissionsIn(@Param("permissions") Set<Permission> permissions);
-    
-    /**
-     * Find roles that contain all of the specified permissions
-     * @param permissions Set of permissions that must all be present
-     * @return List of roles containing all specified permissions
-     */
-    @Query("SELECT r FROM Role r WHERE SIZE(r.permissions) >= SIZE(:permissions) AND " +
-           "SIZE((SELECT p FROM r.permissions p WHERE p IN :permissions)) = SIZE(:permissions)")
-    List<Role> findByPermissionsContainingAll(@Param("permissions") Set<Permission> permissions);
-    
+
+//    /**
+//     * Find roles that contain all of the specified permissions
+//     * @param permissions Set of permissions that must all be present
+//     * @return List of roles containing all specified permissions
+//     */
+//    @Query("SELECT r FROM Role r WHERE SIZE(r.permissions) >= SIZE(:permissions) AND " +
+//           "SIZE((SELECT p FROM r.permissions p WHERE p IN :permissions)) = SIZE(:permissions)")
+//    List<Role> findByPermissionsContainingAll(@Param("permissions") Set<Permission> permissions);
+
     /**
      * Find roles that contain the specified permission
      * @param permission The permission to search for

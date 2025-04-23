@@ -31,9 +31,12 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * 
  * <p>
  * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
- * annotation and is required for JPA entity instantiation. It initializes a new instance
- * with default values including the default status.
+ * annotation and is required by JPA for entity instantiation. This constructor
+ * initializes a new entity with the default status (typically ACTIVE).
  * </p>
+ * 
+ * @param <T> The type of the identifier used by entities extending this class,
+ *           must implement {@link Serializable}
  */
 @MappedSuperclass
 @Getter

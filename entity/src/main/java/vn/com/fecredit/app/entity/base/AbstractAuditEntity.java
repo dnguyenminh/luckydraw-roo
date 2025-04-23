@@ -28,13 +28,17 @@ import lombok.experimental.SuperBuilder;
  * 
  * <p>
  * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
- * annotation and is required for JPA entity instantiation.
+ * annotation and is required for JPA entity instantiation during the persistence
+ * lifecycle.
  * </p>
+ *
+ * @param <T> The type of the identifier used by entities extending this class,
+ *           must implement {@link Serializable}
  */
 @MappedSuperclass
 @Getter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor // Creates a default no-args constructor for JPA
+@NoArgsConstructor // Creates a default no-args constructor required by JPA
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 public abstract class AbstractAuditEntity<T extends Serializable> {
@@ -90,7 +94,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
         this.createdAt = createdAt;
         return this;
     }
-    
+
     /**
      * Set created by user
      * @param createdBy the user who created this entity
@@ -100,7 +104,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
         this.createdBy = createdBy;
         return this;
     }
-    
+
     /**
      * Set updated at timestamp
      * @param updatedAt the update timestamp
@@ -110,7 +114,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
         this.updatedAt = updatedAt;
         return this;
     }
-    
+
     /**
      * Set updated by user
      * @param updatedBy the user who updated this entity

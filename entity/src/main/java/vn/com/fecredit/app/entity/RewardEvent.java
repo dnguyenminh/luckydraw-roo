@@ -98,7 +98,7 @@ public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey
      * Limits how many of this reward can be won per day
      */
     @NotBlank(message = "Reward quantity remaining is required")
-    @Column(name = "todayQantity", nullable = false)
+    @Column(name = "today_quantity", nullable = false)
     @EqualsAndHashCode.Include
     @Builder.Default
     private int todayQuantity = 0;

@@ -19,13 +19,17 @@ import lombok.experimental.SuperBuilder;
  *
  * <p>
  * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
- * annotation and is required for JPA entity instantiation.
+ * annotation and is required by JPA for entity instantiation. This constructor creates
+ * an entity with default values and null ID, which gets populated during persistence.
  * </p>
+ * 
+ * @param <T> The type of the identifier used by entities extending this class,
+ *           must implement {@link Serializable}
  */
 @MappedSuperclass
 @Getter
 @SuperBuilder(toBuilder = true)
-@NoArgsConstructor // Creates a default no-args constructor for JPA
+@NoArgsConstructor // Creates a default no-args constructor required by JPA
 @AllArgsConstructor
 @ToString
 public abstract class AbstractPersistableEntity<T extends Serializable> extends AbstractStatusAwareEntity<T> implements PersistableEntity<T> {

@@ -22,10 +22,11 @@ import java.util.Set;
  * The User entity stores authentication credentials, personal information, and account status
  * flags that determine the user's ability to access the system. Each user can be associated with
  * a role that defines their permissions within the application.
+ * </p>
  * <p>
  * The entity also maintains a collection of blacklisted authentication tokens for security
  * purposes, enabling token revocation during logout or when security is compromised.
- * <p>
+ * </p>
  * Key features:
  * <ul>
  *   <li>Username and password-based authentication</li>
@@ -36,6 +37,7 @@ import java.util.Set;
  * </ul>
  * <p>
  * This entity forms the foundation of the application's security model and user management system.
+ * </p>
  *
  * @see Role
  * @see BlacklistedToken
@@ -137,6 +139,12 @@ public class User extends AbstractSimplePersistableEntity<Long> {
         return role != null;
     }
 
+    /**
+     * Checks if the user has a specific role.
+     *
+     * @param adminRole the role to check against
+     * @return true if the user has the specified role and the role is active
+     */
     public boolean hasRole(Role adminRole) {
         return this.role != null && adminRole != null && adminRole.isActive() && this.role.getRoleType() == adminRole.getRoleType();
     }

@@ -54,8 +54,9 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
 
     /**
-     * The participant event record associated with this spin
-     * Links the spin to a specific participant at a specific event location
+     * The timestamp when this spin was performed
+     * Required for tracking spin timing and analytics
+     * Also used for golden hour and daily limit calculations
      */
     @Column(name = "spin_time", nullable = false)
     @NotNull
@@ -66,31 +67,35 @@ public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
      * The participant-event record that performed this spin
      * Links the spin to the specific participant at a specific event location
      * Required relationship ensuring every spin is associated with a participant
+     * Uses composite join columns to match the participant event composite key
      */
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-        @JoinColumn(name = "participant_region_id"),
-        @JoinColumn(name = "participant_event_id"),
-        @JoinColumn(name = "participant_id")
+        @JoinColumn(name = "participant_id", referencedColumnName = "participant_id"),
+        @JoinColumn(name = "participant_event_id", referencedColumnName = "event_id"),
+        @JoinColumn(name = "participant_region_id", referencedColumnName = "region_id")
     })
     private ParticipantEvent participantEvent;
+    
     /**
      * The reward that was won (if any)
      * Optional relationship - populated only for winning spins
+     * Uses composite join columns to match the reward event composite key
+     * Null for non-winning spins
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumns({
-            @JoinColumn(name = "reward_id"),
-            @JoinColumn(name = "reward_event_id"),
-            @JoinColumn(name = "reward_region_id")
+            @JoinColumn(name = "reward_id", referencedColumnName = "reward_id"),
+            @JoinColumn(name = "reward_event_id", referencedColumnName = "event_id"),
+            @JoinColumn(name = "reward_region_id", referencedColumnName = "region_id")
     })
     private RewardEvent rewardEvent;
 
     /**
      * The golden hour in effect during this spin (if any)
-     * Optional relationship - populated only when a spin occurs during a golden
-     * hour
+     * Optional relationship - populated only when a spin occurs during a golden hour
+     * Used for applying multipliers and special conditions to the spin result
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "golden_hour_id")
@@ -100,6 +105,7 @@ public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
      * Whether this spin resulted in winning a reward
      * Note: Column name is 'win' in the database
      * Provides quick access to win status without checking reward relationship
+     * Should be true if and only if rewardEvent is not null
      */
     @Column(name = "win")
     @Builder.Default
@@ -108,12 +114,14 @@ public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
     /**
      * Temporary unique identifier for new spins that haven't been persisted
      * Used for equality checks in collections before database persistence
+     * Generated once when the object is created and never changed
      */
     @Transient
     private final String tempId = UUID.randomUUID().toString();
 
     /**
      * Set whether this spin is a winning spin (builder-style method)
+     * Returns the instance for method chaining
      *
      * @param win true if this spin won a reward
      * @return this spin history for chaining
@@ -125,6 +133,7 @@ public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Setter that exactly matches the database column name
+     * Standard setter for the win property
      *
      * @param win true if this spin won a reward
      */
@@ -134,6 +143,7 @@ public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Standard Java boolean getter - matches JPA conventions
+     * Returns whether this spin resulted in a win
      *
      * @return true if this spin is a win
      */
@@ -143,6 +153,7 @@ public class SpinHistory extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Creates a new spin history for a participant event.
+     * Factory method for creating a default spin with current timestamp
      *
      * @param participantEvent The participant event performing the spin
      * @return A new SpinHistory instance with default values and current timestamp

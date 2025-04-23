@@ -440,31 +440,40 @@ const generateColumnsFromFieldMap = (fieldNameMap: Record<string, ColumnInfo>): 
       );
     }
 
+    // Check if this is the id column - we'll hide it
+    const isIdField = key === 'id';
+    
+    // Check if this is the viewId column (hashcode of id) - we'll make it visible and sortable
+    const isViewIdField = key === 'viewId';
+
     // Check if the column is explicitly marked as unsortable
-    const isUnsortable = columnInfo.sortType === SortType.UNSORTABLE;
+    const isUnsortable = columnInfo.sortType === SortType.UNSORTABLE && !isViewIdField;
 
     // Check for audit fields - these should always be sortable unless explicitly marked as unsortable
     const isAuditField = ['createdBy', 'updatedBy', 'createdDate', 'lastModifiedDate'].includes(key);
 
     // Determine which fields should be hidden from detail view
-    const shouldHide = key === 'currentServerTime'; // Hide Current Server Time field
+    // Hide id field from the table view, but keep it in the detail view
+    // Also hide Current Server Time field
+    const shouldHide = isIdField || key === 'currentServerTime';
 
     // Determine if field should be editable in the detail view
-    const isEditable = !['id', 'version', 'createdBy', 'updatedBy', 'createdDate', 'lastModifiedDate'].includes(key);
+    const isEditable = !['id', 'viewId', 'version', 'createdBy', 'updatedBy', 'createdDate', 'lastModifiedDate'].includes(key);
 
     return {
       key,
-      header: headerText,
+      header: key === 'viewId' ? 'ID' : headerText, // Label viewId as 'ID' in the table
       fieldType: columnInfo.fieldType,
-      sortable: !isUnsortable,
+      sortable: isViewIdField ? true : !isUnsortable, // Make viewId sortable
       filterable: true,
       render: renderer,
       editable: isEditable && (columnInfo.editable !== false),
       hidden: shouldHide
     };
   }).sort((a, b) => {
-    if (a.key === 'id') return -1;
-    if (b.key === 'id') return 1;
+    // Sort columns to show viewId first (instead of id)
+    if (a.key === 'viewId') return -1;
+    if (b.key === 'viewId') return 1;
     if (a.key === 'status') return -1;
     if (b.key === 'status') return 1;
     return a.key.localeCompare(b.key);
@@ -819,8 +828,11 @@ export default function DataTable({
   }, [activeFilters]);
 
   const effectiveColumns = useMemo(() => {
-    return columns || (data?.fieldNameMap ?
+    const cols = columns || (data?.fieldNameMap ?
       generateColumnsFromFieldMap(data.fieldNameMap) : []);
+      
+    // Filter out columns marked as hidden
+    return cols.filter(col => !col.hidden);
   }, [columns, data?.fieldNameMap]);
 
   const loadData = useCallback(async (options: {
@@ -1183,15 +1195,15 @@ export default function DataTable({
   };
 
   const handleEdit = useCallback((row: any) => {
-    console.log(`Edit row with ID: ${row.id}`);
+    console.log(`Edit row with ID: ${row.viewId}`);
     
     // Expand the row if not already expanded
-    if (expandedRowId !== row.id) {
-      setExpandedRowId(row.id);
+    if (expandedRowId !== row.viewId) {
+      setExpandedRowId(row.viewId);
     }
     
     // Set the row as being edited - this triggers the blocking overlay
-    setEditingRowId(row.id);
+    setEditingRowId(row.viewId);
     
     // If custom edit handler provided, call it
     if (onEdit) {
@@ -1335,7 +1347,7 @@ export default function DataTable({
   const renderRowDetail = (rowData: TabTableRow) => {
     if (!showDetailView) return null;
 
-    const isEditing = editingRowId === rowData.data?.id;
+    const isEditing = editingRowId === rowData.data?.viewId;
 
     if (detailViewMode === 'custom' && detailView) {
       return detailView(rowData);
@@ -1363,9 +1375,9 @@ export default function DataTable({
     return null;
   };
 
-  const handleRowClick = (rowId: number, isActionClick: boolean = false) => {
+  const handleRowClick = (rowViewId: number, isActionClick: boolean = false) => {
     // If this row is currently being edited, prevent any click action
-    if (editingRowId === rowId || isAddingNewRow) {
+    if (editingRowId === rowViewId || isAddingNewRow) {
       return;
     }
     
@@ -1375,11 +1387,11 @@ export default function DataTable({
 
     // Regular click handling for non-edit mode
     if (isActionClick) {
-      setExpandedRowId(expandedRowId === rowId ? null : rowId);
+      setExpandedRowId(expandedRowId === rowViewId ? null : rowViewId);
       return;
     }
 
-    setExpandedRowId(expandedRowId === rowId ? null : rowId);
+    setExpandedRowId(expandedRowId === rowViewId ? null : rowViewId);
   };
 
   const hasData = data?.rows && data.rows.length > 0;
@@ -1402,7 +1414,7 @@ export default function DataTable({
     // Add delete action with default handler
     actions.push({
       label: "Delete",
-      onClick: onDelete || ((row) => console.log(`Delete row with ID: ${row.id}`)),
+      onClick: onDelete || ((row) => console.log(`Delete row with ID: ${row.viewId}`)),
       color: "red",
       iconLeft: <Trash2 size={14} />,
     });
@@ -1427,8 +1439,8 @@ export default function DataTable({
   }, [customActions, defaultActions]);
 
   return (
-    <div className="w-full relative">
-      <div className="mb-4 flex flex-wrap justify-between items-center gap-3">
+    <div className="w-full relative flex flex-col">
+      <div className="mb-4 flex flex-wrap justify-between items-center gap-3 w-full">
         <div className="flex flex-wrap gap-2">
           {/* Conditionally render search box only if showSearchBox is true */}
           {showSearchBox && (
@@ -1514,7 +1526,7 @@ export default function DataTable({
         )}
       </div>
 
-      <div className="bg-[#1e1e1e] border border-[#3c3c3c] rounded-md overflow-hidden relative">
+      <div className="bg-[#1e1e1e] border border-[#3c3c3c] rounded-md overflow-hidden relative w-full flex-grow flex flex-col">
         {/* Add a relative position context for z-index stacking */}
         
         {/* Improved table overlay that covers all inactive elements */}
@@ -1526,21 +1538,23 @@ export default function DataTable({
           />
         )}
         
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full flex-1">
           <table 
-            className="w-full table-fixed min-w-full relative"
+            className="w-full relative table-auto"
             aria-busy={isLoading}
+            style={{ width: "100%" }}
           >
             {effectiveColumns && effectiveColumns.length > 0 && (
-              <thead className="bg-[#2d2d2d] text-white font-medium sticky top-0 z-10">
-                <tr>
+              <thead className="bg-[#2d2d2d] text-white font-medium sticky top-0 z-10 w-full">
+                <tr className="w-full">
                   {showDetailView && (
-                    <th className="w-10 p-3"></th>
+                    <th className="w-10 p-3 whitespace-nowrap"></th>
                   )}
                   {effectiveColumns.map((column) => (
                     <th
                       key={column.key}
                       className="text-left p-3 relative"
+                      style={{ width: column.key === 'viewId' ? '80px' : 'auto' }}
                     >
                       <div className="flex items-start">
                         <button
@@ -1606,7 +1620,7 @@ export default function DataTable({
                 </tr>
               </thead>
             )}
-            <tbody className="divide-y divide-[#3c3c3c]">
+            <tbody className="w-full divide-y divide-[#3c3c3c]">
               {/* New row being added - keep at higher z-index */}
               {isAddingNewRow && newRowData && (
                 <tr className="bg-[#2a2d2e] relative z-[60]">
@@ -1686,17 +1700,17 @@ export default function DataTable({
                 </tr>
               ) : hasData ? (
                 data.rows.map((row, idx) => (
-                  <Fragment key={row.data?.id || Math.random()}>
+                  <Fragment key={row.data?.viewId || `row_${idx}`}>
                     {/* Parent row with modified interaction handling */}
                     <tr
                       className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} 
                         ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} 
-                        ${expandedRowId === row.data?.id ? 'bg-[#2a2d2e]' : ''}
-                        ${editingRowId === row.data?.id ? 'relative z-[60]' : ''}`}
-                      onClick={() => row.data?.id && handleRowClick(row.data.id)}
+                        ${expandedRowId === row.data?.viewId ? 'bg-[#2a2d2e]' : ''}
+                        ${editingRowId === row.data?.viewId ? 'relative z-[60]' : ''}`}
+                      onClick={() => row.data?.viewId && handleRowClick(row.data.viewId)}
                     >
                       {/* Individual row overlay to prevent interactions when editing */}
-                      {editingRowId === row.data?.id && (
+                      {editingRowId === row.data?.viewId && (
                         <td 
                           className="absolute inset-0 bg-transparent z-[55]" 
                           colSpan={1}
@@ -1708,10 +1722,10 @@ export default function DataTable({
                         />
                       )}
                       
-                      {/* Row content - unchanged */}
+                      {/* Row content - unchanged except for the arrow icons condition */}
                       {showDetailView && (
                         <td className="w-10 p-3">
-                          {expandedRowId === row.data?.id ? (
+                          {expandedRowId === row.data?.viewId ? (
                             <CollapseIcon className="h-4 w-4 text-[#007acc]" />
                           ) : (
                             <ExpandIcon className="h-4 w-4 text-gray-400" />
@@ -1749,8 +1763,8 @@ export default function DataTable({
                                   
                                   action.onClick(row.data);
                                   
-                                  if (row.data?.id && action.showDetail) {
-                                    handleRowClick(row.data.id, true);
+                                  if (row.data?.viewId && action.showDetail) {
+                                    handleRowClick(row.data.viewId, true);
                                   }
                                 }}
                                 // Disable the button if any row is in edit mode
@@ -1766,16 +1780,16 @@ export default function DataTable({
                       )}
                     </tr>
                     
-                    {/* Detail row for expanded items */}
-                    {row.data?.id && expandedRowId === row.data.id && (
-                      <tr className={editingRowId === row.data?.id ? 'relative z-[60]' : ''}>
+                    {/* Detail row for expanded items - use viewId instead of id */}
+                    {row.data?.viewId && expandedRowId === row.data.viewId && (
+                      <tr className={editingRowId === row.data?.viewId ? 'relative z-[60]' : ''}>
                         <td
                           colSpan={effectiveColumns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)}
                           className="p-0 bg-[#252525] border-t border-[#3c3c3c]"
                         >
                           <div 
                             className="p-4 relative" 
-                            ref={editingRowId === row.data?.id ? detailContainerRef : null}
+                            ref={editingRowId === row.data?.viewId ? detailContainerRef : null}
                           >
                             {renderRowDetail(row as TabTableRow)}
                           </div>
@@ -1797,7 +1811,7 @@ export default function DataTable({
             </tbody>
           </table>
           {hasData && (
-            <div className="border-t border-[#3c3c3c]">
+            <div className="border-t border-[#3c3c3c] w-full">
               <Pagination
                 pagination={pagination}
                 onPageChange={handlePageChange}

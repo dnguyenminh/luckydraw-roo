@@ -76,7 +76,8 @@ CREATE TABLE event_locations (
     description TEXT,
     max_spin INT DEFAULT 100,
     today_spin INT DEFAULT 100,
-    daily_spin_distributing_rate DOUBLE DEFAULT 0,
+    daily_spin_dist_rate DOUBLE DEFAULT 0,  -- Original field from entity
+    remaining_today_spin DOUBLE DEFAULT 0,  -- Add the missing column that Hibernate expects
     version BIGINT DEFAULT 0,
     PRIMARY KEY (event_id, region_id),
     FOREIGN KEY (event_id) REFERENCES events(id),
@@ -144,7 +145,7 @@ CREATE TABLE reward_events (
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 0,
-    todayQantity INTEGER NOT NULL DEFAULT 0,
+    today_quantity  INTEGER NOT NULL DEFAULT 0,
     version BIGINT DEFAULT 0,
     PRIMARY KEY(event_id, region_id, reward_id),
     FOREIGN KEY (event_id) REFERENCES events(id),

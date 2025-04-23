@@ -79,6 +79,8 @@ CREATE TABLE IF NOT EXISTS event_locations (
     win_probability DECIMAL(5,4),
     event_id BIGINT NOT NULL,
     region_id BIGINT NOT NULL,
+    daily_spin_dist_rate DOUBLE DEFAULT 0,  -- Original field from entity
+    remaining_today_spin DOUBLE DEFAULT 0,  -- Add the missing column that Hibernate expects
     version BIGINT DEFAULT 0,
     CONSTRAINT fk_event_locations_event FOREIGN KEY (event_id) REFERENCES events(id),
     CONSTRAINT fk_event_locations_region FOREIGN KEY (region_id) REFERENCES regions(id)

@@ -40,6 +40,10 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * The audit system provides essential functionality for compliance, debugging,
  * and forensic analysis of system activities.
  * </p>
+ * <p>
+ * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
+ * annotation and is required by JPA for entity instantiation.
+ * </p>
  */
 @Entity
 @Table(
@@ -287,6 +291,13 @@ public class AuditLog extends AbstractSimplePersistableEntity<Long> {
         }
     }
 
+    /**
+     * Deserializes an object ID string into the appropriate type for an entity class.
+     *
+     * @param objectId    The serialized object ID as a string
+     * @param entityClass The entity class to determine the ID type from
+     * @return The deserialized object ID as a Serializable
+     */
     public static Serializable deserializeObjectId(String objectId, Class<?> entityClass) {
         if (objectId == null || objectId.trim().isEmpty()) {
             throw new IllegalArgumentException("objectId cannot be null or empty");

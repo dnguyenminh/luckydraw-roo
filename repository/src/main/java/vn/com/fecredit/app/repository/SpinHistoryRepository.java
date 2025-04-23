@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface SpinHistoryRepository extends SimpleObjectRepository<SpinHistory> {
+public interface SpinHistoryRepository extends SimpleObjectRepository<SpinHistory, Long> {
 
        List<SpinHistory> findByParticipantEventId(ParticipantEventKey participantEventId);
 

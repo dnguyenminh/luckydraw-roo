@@ -110,6 +110,8 @@ CREATE TABLE IF NOT EXISTS "event_locations" (
     max_spin INT DEFAULT 100,
     today_spin INT DEFAULT 100,
     daily_spin_distributing_rate DOUBLE DEFAULT 0,
+    daily_spin_dist_rate DOUBLE DEFAULT 0,  -- Original field from entity
+    remaining_today_spin DOUBLE DEFAULT 0,  -- Add the missing column that Hibernate expects
     version BIGINT DEFAULT 0,
     PRIMARY KEY (event_id, region_id),
     FOREIGN KEY (event_id) REFERENCES "events"(id),

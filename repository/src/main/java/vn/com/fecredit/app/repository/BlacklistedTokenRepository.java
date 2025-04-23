@@ -17,7 +17,7 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * Repository interface for BlacklistedToken entities
  */
 @Repository
-public interface BlacklistedTokenRepository extends SimpleObjectRepository<BlacklistedToken> {
+public interface BlacklistedTokenRepository extends SimpleObjectRepository<BlacklistedToken, Long> {
 
     /**
      * Find blacklisted token by token value
@@ -25,7 +25,7 @@ public interface BlacklistedTokenRepository extends SimpleObjectRepository<Black
      * @return optional containing the token if found
      */
     Optional<BlacklistedToken> findByToken(String token);
-    
+
     /**
      * Check if a token exists and is active
      * @param token the token string
@@ -33,14 +33,14 @@ public interface BlacklistedTokenRepository extends SimpleObjectRepository<Black
      * @return true if token is blacklisted with the given status
      */
     boolean existsByTokenAndStatus(String token, CommonStatus status);
-    
+
     /**
      * Find tokens by status
      * @param status the status
      * @return list of tokens
      */
     List<BlacklistedToken> findByStatus(CommonStatus status);
-    
+
     /**
      * Delete expired tokens
      * @param currentTime current time
@@ -50,14 +50,14 @@ public interface BlacklistedTokenRepository extends SimpleObjectRepository<Black
     @Transactional
     @Query("DELETE FROM BlacklistedToken bt WHERE bt.expirationTime < :currentTime")
     int deleteExpiredTokens(@Param("currentTime") LocalDateTime currentTime);
-    
+
     /**
      * Find tokens by user ID
      * @param userId the user ID
      * @return list of tokens
      */
     List<BlacklistedToken> findByUserId(Long userId);
-    
+
     /**
      * Find active tokens that are not expired
      * @param currentTime current time
@@ -65,14 +65,14 @@ public interface BlacklistedTokenRepository extends SimpleObjectRepository<Black
      */
     @Query("SELECT bt FROM BlacklistedToken bt WHERE bt.status = 'ACTIVE' AND bt.expirationTime > :currentTime")
     List<BlacklistedToken> findValidTokens(@Param("currentTime") LocalDateTime currentTime);
-    
+
     /**
      * Find tokens by token type
      * @param tokenType the token type
      * @return list of tokens
      */
     List<BlacklistedToken> findByTokenType(String tokenType);
-    
+
     /**
      * Find valid token by token value and type
      * @param token the token value
@@ -82,7 +82,7 @@ public interface BlacklistedTokenRepository extends SimpleObjectRepository<Black
      */
     @Query("SELECT bt FROM BlacklistedToken bt WHERE bt.token = :token AND bt.tokenType = :tokenType AND bt.expirationTime > :currentTime")
     Optional<BlacklistedToken> findValidToken(@Param("token") String token, @Param("tokenType") String tokenType, @Param("currentTime") LocalDateTime currentTime);
-    
+
     /**
      * Find all valid tokens
      * @param currentTime the current time
@@ -90,7 +90,7 @@ public interface BlacklistedTokenRepository extends SimpleObjectRepository<Black
      */
     @Query("SELECT bt FROM BlacklistedToken bt WHERE bt.expirationTime > :currentTime")
     List<BlacklistedToken> findAllValidTokens(@Param("currentTime") LocalDateTime currentTime);
-    
+
     /**
      * Check if token is blacklisted
      * @param token the token value

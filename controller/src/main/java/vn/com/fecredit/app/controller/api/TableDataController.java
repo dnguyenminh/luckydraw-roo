@@ -1,5 +1,9 @@
 package vn.com.fecredit.app.controller.api;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,10 +27,6 @@ import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
 import vn.com.fecredit.app.service.dto.UploadFile;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 
 /**
  * REST controller for handling table data operations.
@@ -84,35 +84,15 @@ public class TableDataController {
     @PostMapping("/fetch/{entityName}")
     public ResponseEntity<TableFetchResponse> fetchEntityData(@RequestBody TableFetchRequest request) {
 
-//        String entityName = request.getEntityName() != null ? request.getEntityName() : entityNamePath;
-
         log.debug("REST request to fetch {} data: {}", request.getObjectType(), request);
 
         // Convert the entity name to the appropriate ObjectType
         ObjectType objectType = request.getObjectType();
 
-//        try {
-//            objectType = ObjectType.valueOf(entityName);
-//        } catch (IllegalArgumentException e) {
-//            // Try to resolve from our mapping
-//            objectType = ENTITY_NAME_MAP.get(entityName.toLowerCase());
-//
-//            if (objectType == null) {
-//                // Try enum format
-//                objectType = ENUM_NAME_MAP.get(entityName.toUpperCase());
-//            }
-//        }
-
         if (objectType == null) {
             log.error("Unknown entity type from path: {}", objectType);
             return ResponseEntity.badRequest().build();
         }
-
-        // Set the entity name in the request too
-//        request.setEntityName(objectType.toString());
-
-        // Override the objectType in the request with the one from the URL
-//        request.setObjectType(objectType);
 
         TableFetchResponse response = tableDataService.fetchData(request);
         return ResponseEntity.ok(response);
@@ -195,4 +175,35 @@ public class TableDataController {
             .contentLength(file.getFileContent().length)
             .body(resource);
     }
+
+//    /**
+//     * Fetch entity data with filters and pagination
+//     */
+//    @GetMapping("/fetch")
+//    public ResponseEntity<Map<String, Object>> fetchEntityData(
+//            @RequestParam("entityName") String entityName,
+//            @PageableDefault(size = 10) Pageable pageable,
+//            @RequestParam(required = false) Map<String, String> filterParams) {
+//
+//        // Extract dedicated parameters that shouldn't be treated as filters
+//        Map<String, String> dedicatedParams = new HashMap<>();
+//        Map<String, String> actualFilters = new HashMap<>();
+//
+//        // Separate the filter parameters from dedicated parameters
+//        for (Map.Entry<String, String> entry : filterParams.entrySet()) {
+//            if (entry.getKey().startsWith("_")) {
+//                dedicatedParams.put(entry.getKey().substring(1), entry.getValue());
+//            } else if (!entry.getKey().equals("entityName") &&
+//                      !entry.getKey().equals("page") &&
+//                      !entry.getKey().equals("size") &&
+//                      !entry.getKey().equals("sort")) {
+//                actualFilters.put(entry.getKey(), entry.getValue());
+//            }
+//        }
+//
+//        Map<String, Object> result = tableDataService.fetchData(
+//                entityName, pageable, actualFilters, dedicatedParams);
+//
+//        return ResponseEntity.ok(result);
+//    }
 }

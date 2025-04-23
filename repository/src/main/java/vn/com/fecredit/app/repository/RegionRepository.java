@@ -12,7 +12,7 @@ import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
-public interface RegionRepository extends SimpleObjectRepository<Region> {
+public interface RegionRepository extends SimpleObjectRepository<Region, Long> {
 
     Optional<Region> findByCode(String code);
 

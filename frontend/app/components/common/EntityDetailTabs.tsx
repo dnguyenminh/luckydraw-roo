@@ -366,8 +366,8 @@ const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
     }
 
     const excludedFields = ['relatedTables'];
-    // Only exclude currentServerTime field by default
-    excludedFields.push('currentServerTime');
+    // Exclude id field from details view and currentServerTime field by default
+    excludedFields.push('currentServerTime', 'id');
     
     // When adding a new entity, also exclude all audit fields as they don't exist yet
     if (isEditing && isNewRow) {
@@ -378,7 +378,8 @@ const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
       );
     }
     
-    const idField = data.id !== undefined ? { id: data.id } : {};
+    // Replace idField with viewIdField
+    const viewIdField = data.viewId !== undefined ? { viewId: data.viewId } : {};
     const statusField = data.status !== undefined ? { status: data.status } : {};
     const dateFields: Record<string, any> = {};
     const simpleFields: Record<string, any> = {};
@@ -440,12 +441,12 @@ const EntityDetailTabs: React.FC<EntityDetailTabsProps> = ({
           {title} {isEditing && <span className="text-[#007acc] ml-2">(Edit Mode)</span>}
         </h2>
 
-        {(idField.id || statusField.status) && (
+        {(viewIdField.viewId || statusField.status) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {idField.id && (
+            {viewIdField.viewId && (
               <div className="bg-[#252525] p-3 rounded">
                 <div className="text-sm text-gray-400 mb-1">ID</div>
-                <div className="font-medium">{idField.id}</div>
+                <div className="font-medium">{viewIdField.viewId}</div>
               </div>
             )}
 

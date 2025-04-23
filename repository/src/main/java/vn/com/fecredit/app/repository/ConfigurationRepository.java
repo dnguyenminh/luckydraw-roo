@@ -9,7 +9,7 @@ import vn.com.fecredit.app.entity.Configuration;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
-public interface ConfigurationRepository extends SimpleObjectRepository<Configuration> {
+public interface ConfigurationRepository extends SimpleObjectRepository<Configuration, Long> {
     Optional<Configuration> findByKey(String key);
     List<Configuration> findByStatus(CommonStatus status);
     List<Configuration> findByKeyContainingIgnoreCase(String searchTerm);

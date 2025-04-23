@@ -18,7 +18,7 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * Provides CRUD operations and custom query methods.
  */
 @Repository
-public interface AuditLogRepository extends SimpleObjectRepository<AuditLog> {
+public interface AuditLogRepository extends AbstractRepository<AuditLog, Long> {
 
 
     /**

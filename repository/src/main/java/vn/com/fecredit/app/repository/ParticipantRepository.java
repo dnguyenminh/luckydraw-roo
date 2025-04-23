@@ -11,7 +11,7 @@ import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
-public interface ParticipantRepository extends SimpleObjectRepository<Participant> {
+public interface ParticipantRepository extends SimpleObjectRepository<Participant, Long> {
 
     Optional<Participant> findByCode(String code);
 

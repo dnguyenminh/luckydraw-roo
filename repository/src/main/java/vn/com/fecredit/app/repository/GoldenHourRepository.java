@@ -13,7 +13,7 @@ import vn.com.fecredit.app.entity.GoldenHour;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 @Repository
-public interface GoldenHourRepository extends SimpleObjectRepository<GoldenHour> {
+public interface GoldenHourRepository extends SimpleObjectRepository<GoldenHour, Long> {
 
        List<GoldenHour> findByEventLocationId(EventLocationKey locationId);
 
@@ -112,8 +112,8 @@ public interface GoldenHourRepository extends SimpleObjectRepository<GoldenHour>
               "AND gh.startTime < :endTime AND gh.endTime > :startTime " +
               "ORDER BY gh.startTime")
        List<GoldenHour> findActiveGoldenHoursInPeriod(
-              @Param("eventLocation") EventLocation eventLocation, 
-              @Param("startTime") LocalDateTime startTime, 
+              @Param("eventLocation") EventLocation eventLocation,
+              @Param("startTime") LocalDateTime startTime,
               @Param("endTime") LocalDateTime endTime);
 
        @Query("SELECT COUNT(gh) FROM GoldenHour gh WHERE gh.status = 'ACTIVE' " +
@@ -121,8 +121,8 @@ public interface GoldenHourRepository extends SimpleObjectRepository<GoldenHour>
               "AND gh.startTime < :endTime AND gh.endTime > :startTime " +
               "AND (gh.id != :excludeId OR :excludeId IS NULL)")
        long countOverlappingActiveHoursExcluding(
-              @Param("eventLocation") EventLocation eventLocation, 
-              @Param("startTime") LocalDateTime startTime, 
-              @Param("endTime") LocalDateTime endTime, 
+              @Param("eventLocation") EventLocation eventLocation,
+              @Param("startTime") LocalDateTime startTime,
+              @Param("endTime") LocalDateTime endTime,
               @Param("excludeId") Long excludeId);
 }

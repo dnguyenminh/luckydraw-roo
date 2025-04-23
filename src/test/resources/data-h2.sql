@@ -1,107 +1,128 @@
--- Basic data initialization for H2 embedded database
+-- Test data for H2 database
 
--- Insert admin user with password 'admin'
-INSERT INTO users (id, username, email, password, full_name, enabled, status, created_at, created_by)
-VALUES (1, 'admin', 'admin@example.com', '$2a$10$rTm9rUKtnYOsgXPFnQ9IcuM4sBYNHT3IOlMBUvRM5eJ9kPmKtJ3L2', 
-        'System Administrator', true, 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Clear all existing data
+DELETE FROM spin_histories;
+DELETE FROM golden_hours;
+DELETE FROM reward_events;
+DELETE FROM rewards;
+DELETE FROM participant_events;
+DELETE FROM participants;
+DELETE FROM event_locations;
+DELETE FROM provinces;
+DELETE FROM events;
+DELETE FROM regions;
+DELETE FROM role_permissions;
+DELETE FROM blacklisted_tokens;
+DELETE FROM users;
+DELETE FROM permissions;
+DELETE FROM roles;
+DELETE FROM configurations;
+DELETE FROM audit_logs;
 
--- Insert test user with password 'password'
-INSERT INTO users (id, username, email, password, full_name, enabled, status, created_at, created_by)
-VALUES (2, 'user', 'user@example.com', '$2a$10$rTm9rUKtnYOsgXPFnQ9IcuM4sBYNHT3IOlMBUvRM5eJ9kPmKtJ3L2', 
-        'Test User', true, 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Insert Roles based on RoleType enum
+INSERT INTO roles (id, created_by, created_at, updated_by, updated_at, status, role_type, description, display_order, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'ROLE_ADMIN', 'System Administrator', 1, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'ROLE_USER', 'Regular User', 2, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'ROLE_MANAGER', 'Manager', 3, 0),
+(4, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'ROLE_PARTICIPANT', 'Participant', 4, 0);
 
--- Insert basic roles
-INSERT INTO roles (id, name, code, role_type, status, created_at, created_by)
-VALUES 
-(1, 'Administrator', 'ADMIN', 'ROLE_ADMIN', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(2, 'User', 'USER', 'ROLE_USER', 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Insert Permissions based on PermissionName enum
+INSERT INTO permissions (id, created_by, created_at, updated_by, updated_at, status, name, type, description, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'CREATE_USER', 'WRITE', 'Create user accounts', 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'READ_USER', 'READ', 'View user accounts', 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'UPDATE_USER', 'WRITE', 'Modify user accounts', 0),
+(4, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'DELETE_USER', 'WRITE', 'Delete user accounts', 0),
+(5, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'CREATE_EVENT', 'WRITE', 'Create events', 0),
+(6, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'READ_EVENT', 'READ', 'View events', 0);
 
--- Assign roles to users
-INSERT INTO user_roles (user_id, role_id) 
-VALUES (1, 1), (2, 2);
+-- Insert Users with direct role reference
+INSERT INTO users (id, created_by, created_at, updated_by, updated_at, status, username, password, email, full_name, role_id, version) 
+VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'admin', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'admin@example.com', 'Admin User', 1, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'user', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'user@example.com', 'Regular User', 2, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'manager', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'manager@example.com', 'Event Manager', 3, 0);
 
--- Insert base permissions
-INSERT INTO permissions (id, name, code, status, created_at, created_by)
-VALUES 
-(1, 'View Dashboard', 'VIEW_DASHBOARD', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(2, 'Manage Users', 'MANAGE_USERS', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(3, 'Manage Events', 'MANAGE_EVENTS', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(4, 'View Events', 'VIEW_EVENTS', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(5, 'Participate in Events', 'PARTICIPATE_EVENTS', 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Insert Role Permissions
+INSERT INTO role_permissions (role_id, permission_id) VALUES
+(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), -- Admin has all permissions
+(2, 2), (2, 6),                                  -- User has only read permissions
+(3, 2), (3, 5), (3, 6);                          -- Manager has event management and viewing permissions
 
--- Assign permissions to roles
-INSERT INTO role_permissions (role_id, permission_id)
-VALUES 
-(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), -- Admin has all permissions
-(2, 1), (2, 4), (2, 5);                  -- User has basic permissions
+-- Insert Regions
+INSERT INTO regions (id, created_by, created_at, updated_by, updated_at, status, name, code, description, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'North Region', 'NORTH', 'Northern provinces', 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Central Region', 'CENTRAL', 'Central provinces', 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'South Region', 'SOUTH', 'Southern provinces', 0);
 
--- Insert regions
-INSERT INTO regions (id, name, code, status, created_at, created_by)
-VALUES 
-(1, 'North', 'NORTH', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(2, 'South', 'SOUTH', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(3, 'Central', 'CENTRAL', 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Insert Provinces
+INSERT INTO provinces (id, created_by, created_at, updated_by, updated_at, status, name, code, description, region_id, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Hanoi', 'HN', 'Capital city', 1, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Ho Chi Minh', 'HCM', 'Southern metropolitan city', 3, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Da Nang', 'DN', 'Central coast city', 2, 0);
 
--- Insert provinces
-INSERT INTO provinces (id, name, code, region_id, status, created_at, created_by)
-VALUES 
-(1, 'Hanoi', 'HAN', 1, 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(2, 'Ho Chi Minh City', 'HCM', 2, 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(3, 'Da Nang', 'DNG', 3, 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Insert Events
+INSERT INTO events (id, created_by, created_at, updated_by, updated_at, status, name, code, description, start_time, end_time, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Summer Festival', 'SUMMER_FEST', 'Summer lucky draw event', DATEADD('DAY', -10, CURRENT_TIMESTAMP), DATEADD('DAY', 20, CURRENT_TIMESTAMP), 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Winter Festival', 'WINTER_FEST', 'Winter lucky draw event', DATEADD('DAY', 30, CURRENT_TIMESTAMP), DATEADD('DAY', 60, CURRENT_TIMESTAMP), 0);
 
--- Insert events (past, current, and future)
-INSERT INTO events (id, name, code, description, start_time, end_time, status, created_at, created_by)
-VALUES 
--- Past event
-(1, 'Spring Festival 2022', 'SPRING-2022', 'Spring celebration festival', 
-   '2022-03-01 00:00:00', '2022-03-15 23:59:59', 'COMPLETED', '2022-01-15 10:00:00', 'admin'),
--- Current event
-(2, 'Summer Promotion 2023', 'SUMMER-2023', 'Summer promotional event', 
-   DATEADD('DAY', -5, CURRENT_TIMESTAMP), DATEADD('DAY', 25, CURRENT_TIMESTAMP), 'ACTIVE', 
-   DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin'),
--- Future event
-(3, 'Winter Celebration 2023', 'WINTER-2023', 'End of year celebration', 
-   DATEADD('MONTH', 2, CURRENT_TIMESTAMP), DATEADD('MONTH', 3, CURRENT_TIMESTAMP), 'PENDING', 
-   DATEADD('DAY', -10, CURRENT_TIMESTAMP), 'admin');
+-- Insert Event Locations with composite key (event_id, region_id)
+INSERT INTO event_locations (event_id, region_id, created_by, created_at, updated_by, updated_at, status, description, max_spin, today_spin, daily_spin_dist_rate, version) VALUES
+(1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'North summer event', 100, 50, 0.1, 0),
+(1, 3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'South summer event', 150, 75, 0.1, 0),
+(2, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'North winter event', 200, 100, 0.2, 0),
+(2, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Central winter event', 80, 40, 0.1, 0);
 
--- Insert event locations
-INSERT INTO event_locations (id, name, address, province_id, event_id, status, created_at, created_by)
-VALUES 
-(1, 'Central Park', '123 Central St', 1, 1, 'ACTIVE', '2022-01-15 10:30:00', 'admin'),
-(2, 'City Square Mall', '456 Commerce Rd', 2, 2, 'ACTIVE', DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin'),
-(3, 'Beach Resort', '789 Coastal Way', 3, 2, 'ACTIVE', DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin'),
-(4, 'Mountain Retreat', '101 Highland Ave', 1, 3, 'ACTIVE', DATEADD('DAY', -10, CURRENT_TIMESTAMP), 'admin');
+-- Insert Participants
+INSERT INTO participants (id, created_by, created_at, updated_by, updated_at, status, name, code, phone, address, last_adding_spin, province_id, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'John Doe', 'JOHN001', '1234567890', '123 Main St', 0, 1, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Jane Smith', 'JANE001', '2345678901', '456 Oak Ave', 0, 2, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Robert Johnson', 'ROBERT001', '3456789012', '789 Pine Rd', 0, 3, 0);
 
--- Insert golden hours
-INSERT INTO golden_hours (id, event_id, start_time, end_time, multiplier, status, created_at, created_by)
-VALUES 
-(1, 2, DATEADD('HOUR', 1, CURRENT_TIMESTAMP), DATEADD('HOUR', 3, CURRENT_TIMESTAMP), 2.0, 'ACTIVE', 
-   DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin'),
-(2, 2, DATEADD('DAY', 1, CURRENT_TIMESTAMP), DATEADD('DAY', 1, DATEADD('HOUR', 2, CURRENT_TIMESTAMP)), 1.5, 
-   'ACTIVE', DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin');
+-- Insert Participant Events with composite key (participant_id, event_id, region_id)
+INSERT INTO participant_events (participant_id, event_id, region_id, created_by, created_at, updated_by, updated_at, status, spins_remaining, version) VALUES
+(1, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 5, 0),
+(2, 1, 3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 3, 0),
+(3, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 4, 0),
+(1, 2, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 2, 0);
 
--- Insert rewards
-INSERT INTO rewards (id, event_id, name, description, quantity, remaining, probability, status, created_at, created_by)
-VALUES 
-(1, 2, 'First Prize', 'Grand prize reward', 5, 5, 0.05, 'ACTIVE', DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin'),
-(2, 2, 'Second Prize', 'Runner-up reward', 10, 10, 0.10, 'ACTIVE', DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin'),
-(3, 2, 'Consolation Prize', 'Consolation reward', 100, 100, 0.50, 'ACTIVE', DATEADD('DAY', -30, CURRENT_TIMESTAMP), 'admin');
+-- Insert Rewards
+INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, prize_value, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Gold Prize', 'GOLD', 'Gold prize description', 1000.00, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Silver Prize', 'SILVER', 'Silver prize description', 500.00, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 0);
 
--- Insert basic system configurations
-INSERT INTO configurations (id, name, config_value, description, status, created_at, created_by)
-VALUES 
-(1, 'MAX_DAILY_SPINS', '3', 'Maximum number of spins allowed per day per participant', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(2, 'SYSTEM_MAINTENANCE_MODE', 'false', 'System maintenance mode flag', 'ACTIVE', CURRENT_TIMESTAMP, 'system'),
-(3, 'DEFAULT_GOLDEN_HOUR_MULTIPLIER', '2', 'Default multiplier for golden hours', 'ACTIVE', CURRENT_TIMESTAMP, 'system');
+-- Insert Reward Events with composite key (event_id, region_id, reward_id)
+INSERT INTO reward_events (event_id, region_id, reward_id, created_by, created_at, updated_by, updated_at, status, quantity, today_quantity, version) VALUES
+(1, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 5, 2, 0),
+(1, 1, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 10, 4, 0),
+(1, 3, 3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 15, 6, 0),
+(2, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 5, 2, 0),
+(2, 2, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 8, 3, 0);
 
--- Set sequences to continue after our inserts
-ALTER SEQUENCE users_id_seq RESTART WITH 3;
-ALTER SEQUENCE role_id_seq RESTART WITH 3;
-ALTER SEQUENCE permission_id_seq RESTART WITH 6;
-ALTER SEQUENCE region_id_seq RESTART WITH 4;
-ALTER SEQUENCE province_id_seq RESTART WITH 4;
-ALTER SEQUENCE event_id_seq RESTART WITH 4;
-ALTER SEQUENCE event_location_id_seq RESTART WITH 5;
-ALTER SEQUENCE golden_hour_id_seq RESTART WITH 3;
-ALTER SEQUENCE reward_id_seq RESTART WITH 4;
-ALTER SEQUENCE configuration_id_seq RESTART WITH 4;
+-- Insert Golden Hours
+INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, status, event_id, region_id, start_time, end_time, multiplier, max_rewards, claimed_rewards, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, DATEADD('HOUR', 1, CURRENT_TIMESTAMP), DATEADD('HOUR', 3, CURRENT_TIMESTAMP), 2.0, 20, 0, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 3, DATEADD('HOUR', 2, CURRENT_TIMESTAMP), DATEADD('HOUR', 4, CURRENT_TIMESTAMP), 1.5, 15, 0, 0);
+
+-- Insert Spin Histories with composite key references
+INSERT INTO spin_histories (id, created_by, created_at, updated_by, updated_at, status, participant_id, event_id, region_id, spin_time, reward_id, reward_event_id, reward_region_id, win, wheel_position, multiplier, server_seed, client_seed, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, 1, DATEADD('HOUR', -1, CURRENT_TIMESTAMP), 1, 1, 1, true, 120.5, 2.0, 'server-seed-1', 'client-seed-1', 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, 1, 1, DATEADD('HOUR', -2, CURRENT_TIMESTAMP), NULL, NULL, NULL, false, 45.2, 1.0, 'server-seed-2', 'client-seed-2', 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 2, 1, 3, DATEADD('HOUR', -3, CURRENT_TIMESTAMP), 3, 1, 3, true, 230.7, 1.0, 'server-seed-3', 'client-seed-3', 0);
+
+-- Insert Blacklisted Tokens
+INSERT INTO blacklisted_tokens (id, created_by, created_at, updated_by, updated_at, status, token, token_type, expiration_time, user_id, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'eyJhbGciOiJIUzI1NiJ9.expiredToken1', 'ACCESS', DATEADD('DAY', -1, CURRENT_TIMESTAMP), 1, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'eyJhbGciOiJIUzI1NiJ9.expiredToken2', 'REFRESH', DATEADD('DAY', -2, CURRENT_TIMESTAMP), 2, 0);
+
+-- Insert Configurations
+INSERT INTO configurations (id, created_by, created_at, updated_by, updated_at, status, config_key, config_value, description, data_type, validation_regex, modifiable, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'TOKEN_EXPIRY_MINUTES', '60', 'Authentication token expiry in minutes', 'INTEGER', '^[0-9]+$', true, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'MAX_DAILY_SPINS', '5', 'Maximum spins per day per participant', 'INTEGER', '^[0-9]+$', true, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'PRIZE_DISPLAY_DURATION', '5', 'Duration to display prize info (seconds)', 'INTEGER', '^[0-9]+$', true, 0);
+
+-- Insert Audit Logs
+INSERT INTO audit_logs (id, created_by, created_at, updated_by, updated_at, status, object_type, object_id, property_path, old_value, new_value, value_type, update_time, context, action_type, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Event', '1', 'name', NULL, 'Summer Festival', 'String', DATEADD('DAY', -1, CURRENT_TIMESTAMP), 'Event creation', 'CREATE', 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Reward', '1', 'prize_value', NULL, '1000.00', 'BigDecimal', DATEADD('HOUR', -12, CURRENT_TIMESTAMP), 'Reward creation', 'CREATE', 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Participant', '1', 'status', 'INACTIVE', 'ACTIVE', 'CommonStatus', DATEADD('HOUR', -6, CURRENT_TIMESTAMP), 'Participant activation', 'UPDATE', 0);

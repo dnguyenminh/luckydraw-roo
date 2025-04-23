@@ -48,7 +48,7 @@ import vn.com.fecredit.app.service.dto.TableRow;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import({MockJwtTokenProvider.class})
-@Sql(scripts = {"/schema-test.sql", "/data-test.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+//@Sql(scripts = {"/schema-test.sql", "/data-test.sql"}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @TestPropertySource(properties = {
     "spring.jpa.hibernate.ddl-auto=none",
     "spring.sql.init.mode=always",
@@ -91,7 +91,8 @@ public class TableDataControllerIntegrationTest {
     void testFetchEntityData() throws Exception {
         // Create a request without objectType
         TableFetchRequest pathBasedRequest = TableFetchRequest.builder()
-            .entityName("users")
+            .entityName(ObjectType.User.name())
+            .objectType(ObjectType.User)
             .page(0)
             .size(10)
             .build();
@@ -119,6 +120,7 @@ public class TableDataControllerIntegrationTest {
         // Build request with filter
         TableFetchRequest requestWithFilter = TableFetchRequest.builder()
             .entityName("users")
+            .objectType(ObjectType.User)
             .page(0)
             .size(10)
             .filters(Collections.singletonList(statusFilter))
@@ -154,6 +156,7 @@ public class TableDataControllerIntegrationTest {
         // Build request with sort
         TableFetchRequest requestWithSort = TableFetchRequest.builder()
             .entityName("users")
+            .objectType(ObjectType.User)
             .page(0)
             .size(10)
             .sorts(Collections.singletonList(sortRequest))
@@ -202,6 +205,7 @@ public class TableDataControllerIntegrationTest {
         // Build request with search
         TableFetchRequest requestWithSearch = TableFetchRequest.builder()
             .entityName("users")
+            .objectType(ObjectType.User)
             .page(0)
             .size(10)
             .search(searchCriteria)
@@ -221,6 +225,7 @@ public class TableDataControllerIntegrationTest {
         // entity
         TableFetchRequest usersRequest = TableFetchRequest.builder()
             .entityName("users")
+            .objectType(ObjectType.User)
             .page(0)
             .size(10)
             .build();
@@ -240,6 +245,7 @@ public class TableDataControllerIntegrationTest {
             // Try another entity type that might exist
             TableFetchRequest roleRequest = TableFetchRequest.builder()
                 .entityName("roles") // Try with roles which might be available
+                .objectType(ObjectType.Role)
                 .page(0)
                 .size(10)
                 .build();
@@ -288,6 +294,7 @@ public class TableDataControllerIntegrationTest {
         // Build request with multiple filters and sorts
         TableFetchRequest complexRequest = TableFetchRequest.builder()
             .entityName("users")
+            .objectType(ObjectType.User)
             .page(0)
             .size(10)
             .filters(Arrays.asList(statusFilter, usernameFilter))
@@ -308,6 +315,7 @@ public class TableDataControllerIntegrationTest {
         // Test with directly constructed JSON with only validated entity fields
         String rawJsonRequest = "{"
             + "\"entityName\": \"users\","
+            + "\"objectType\": \"User\","
             + "\"page\": 0,"
             + "\"size\": 15,"
             + "\"filters\": [{"
@@ -337,6 +345,7 @@ public class TableDataControllerIntegrationTest {
         // Create a request for users entity
         TableFetchRequest request = TableFetchRequest.builder()
             .entityName("users")
+            .objectType(ObjectType.User)
             .page(0)
             .size(100) // Large enough to get all test users
             .build();
@@ -415,7 +424,7 @@ public class TableDataControllerIntegrationTest {
         Map<ObjectType, Object> entities = new HashMap<>();
         entities.put(ObjectType.Event, event);
         entities.put(ObjectType.EventLocation, eventLocation);
-        entities.put(ObjectType.ParticipantEvent, participant);
+        entities.put(ObjectType.ParticipantEvent, participantEvent);
 
         // Use the utility method to convert entities to search criteria
         Map<ObjectType, DataObject> searchCriteria = EntityUtils.entitiesToSearchCriteria(entities);

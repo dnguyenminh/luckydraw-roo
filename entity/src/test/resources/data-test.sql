@@ -1,21 +1,21 @@
--- Test data for H2 database (minimal set for entity tests)
+-- Entity test data
 
--- Clear existing data to avoid conflicts
+-- Clear all existing data
 DELETE FROM spin_histories;
 DELETE FROM golden_hours;
+DELETE FROM reward_events;
 DELETE FROM rewards;
 DELETE FROM participant_events;
 DELETE FROM participants;
 DELETE FROM event_locations;
 DELETE FROM provinces;
-DELETE FROM regions;
 DELETE FROM events;
+DELETE FROM regions;
 DELETE FROM role_permissions;
-DELETE FROM user_roles;
 DELETE FROM blacklisted_tokens;
 DELETE FROM users;
-DELETE FROM roles;
 DELETE FROM permissions;
+DELETE FROM roles;
 DELETE FROM configurations;
 DELETE FROM audit_logs;
 
@@ -63,15 +63,32 @@ INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, st
 INSERT INTO spin_histories (id, created_by, created_at, updated_by, updated_at, status, participant_event_id, spin_time, reward_id, win, version) VALUES
 (1, 'system', '2023-06-15 12:30:00', 'system', '2023-06-15 12:30:00', 'ACTIVE', 1, '2023-06-15 12:30:00', 1, true, 0);
 
--- Insert Roles with RoleType enum (minimal required for tests)
-INSERT INTO roles (id, created_by, created_at, updated_by, updated_at, status, role_type, description, display_order, version) VALUES
-(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'ROLE_ADMIN', 'System Administrator', 1, 0),
-(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'ROLE_USER', 'Regular User', 2, 0);
+-- Insert roles
+INSERT INTO roles (id, role_type, description, display_order, status, created_by, created_at, updated_by, updated_at, version)
+VALUES 
+(1, 'ROLE_ADMIN', 'Administrator role', 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'ROLE_USER', 'User role', 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
--- Insert Users with roleType (minimal required for tests)
-INSERT INTO users (id, created_by, created_at, updated_by, updated_at, status, username, password, email, full_name, role_type, enabled, version) VALUES
-(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'admin', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'admin@example.com', 'Admin User', 'ROLE_ADMIN', true, 0);
+-- Insert permissions using correct enum values
+INSERT INTO permissions (id, name, type, description, status, created_by, created_at, updated_by, updated_at, version)
+VALUES 
+(1, 'CREATE_USER', 'WRITE', 'Create user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'READ_USER', 'READ', 'View user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(3, 'UPDATE_EVENT', 'WRITE', 'Update events', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+
+-- Role-Permission associations
+INSERT INTO role_permissions (role_id, permission_id)
+VALUES
+(1, 1), (1, 2), (1, 3), -- Admin has all permissions
+(2, 2);                  -- User has read user permission
+
+-- Insert users
+INSERT INTO users (id, username, password, email, full_name, role_id, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
+(1, 'admin', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'admin@example.com', 'Admin User', 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'user', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'user@example.com', 'Regular User', 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Insert User Roles (minimal required for tests)
 INSERT INTO user_roles (user_id, role_id) VALUES
-(1, 1);
+(1, 1),
+(2, 2);
