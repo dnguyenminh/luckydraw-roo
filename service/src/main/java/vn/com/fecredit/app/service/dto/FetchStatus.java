@@ -28,5 +28,11 @@ public enum FetchStatus {
     /**
      * Indicates that the user doesn't have sufficient permissions for the requested data
      */
-    ACCESS_DENIED
+    ACCESS_DENIED,
+    
+    /**
+     * Indicates that the fetch operation is still processing
+     * Used for asynchronous operations like exports
+     */
+    PROCESSING
 }

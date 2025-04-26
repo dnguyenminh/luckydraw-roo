@@ -65,10 +65,10 @@ const TextFilter: React.FC<{
   onClose: () => void;
 }> = ({ column, filterState, onChange, onClose }) => {
   return (
-    <div className="p-2 bg-[#2d2d2d] border border-[#3c3c3c] rounded shadow-lg absolute z-10 w-64 mt-1">
+    <div className="p-2 bg-[#2d2d2d] border border-[#3c3c3d] rounded shadow-lg absolute z-[200] w-64 mt-1">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-medium">Filter {column.header}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-white">
+        <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Close filter">
           <X size={16} />
         </button>
       </div>
@@ -125,10 +125,10 @@ const NumericFilter: React.FC<{
   const inputType = isDateField ? (column.fieldType === 'TIME' ? 'time' : 'datetime-local') : 'number';
 
   return (
-    <div className="p-2 bg-[#2d2d2d] border border-[#3c3c3c] rounded shadow-lg absolute z-10 w-64 mt-1">
+    <div className="p-2 bg-[#2d2d2d] border border-[#3c3c3c] rounded shadow-lg absolute z-[200] w-64 mt-1">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-medium">Filter {column.header}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-white">
+        <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Close filter">
           <X size={16} />
         </button>
       </div>
@@ -204,10 +204,10 @@ const BooleanFilter: React.FC<{
   onClose: () => void;
 }> = ({ column, filterState, onChange, onClose }) => {
   return (
-    <div className="p-2 bg-[#2d2d2d] border border-[#3c3c3c] rounded shadow-lg absolute z-10 w-64 mt-1">
+    <div className="p-2 bg-[#2d2d2d] border border-[#3c3c3c] rounded shadow-lg absolute z-[200] w-64 mt-1">
       <div className="flex justify-between items-center mb-2">
         <h3 className="text-sm font-medium">Filter {column.header}</h3>
-        <button onClick={onClose} className="text-gray-400 hover:text-white">
+        <button onClick={onClose} className="text-gray-400 hover:text-white" aria-label="Close filter">
           <X size={16} />
         </button>
       </div>
@@ -309,6 +309,7 @@ const Pagination: React.FC<{
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
           className="bg-[#3c3c3c] text-white text-sm px-2 py-1 rounded"
+          aria-label="Items per page"
         >
           {PAGE_SIZE_OPTIONS.map(size => (
             <option key={size} value={size}>
@@ -323,6 +324,7 @@ const Pagination: React.FC<{
           onClick={() => onPageChange(0)}
           disabled={pageIndex === 0}
           className={`p-1 rounded ${pageIndex === 0 ? 'text-gray-600' : 'text-gray-400 hover:bg-[#3c3c3c]'}`}
+          aria-label="Go to first page"
         >
           <ChevronsLeft size={18} />
         </button>
@@ -331,6 +333,7 @@ const Pagination: React.FC<{
           onClick={() => onPageChange(pageIndex - 1)}
           disabled={pageIndex === 0}
           className={`p-1 rounded ${pageIndex === 0 ? 'text-gray-600' : 'text-gray-400 hover:bg-[#3c3c3c]'}`}
+          aria-label="Go to previous page"
         >
           <ChevronLeft size={18} />
         </button>
@@ -348,6 +351,7 @@ const Pagination: React.FC<{
               }
             }}
             className="w-12 bg-[#3c3c3c] text-white text-center py-1 rounded"
+            aria-label="Current page"
           />
           <span className="mx-1 text-sm text-gray-400">of {totalPages}</span>
         </div>
@@ -356,6 +360,7 @@ const Pagination: React.FC<{
           onClick={() => onPageChange(pageIndex + 1)}
           disabled={pageIndex >= totalPages - 1}
           className={`p-1 rounded ${pageIndex >= totalPages - 1 ? 'text-gray-600' : 'text-gray-400 hover:bg-[#3c3c3c]'}`}
+          aria-label="Go to next page"
         >
           <ChevronRight size={18} />
         </button>
@@ -364,6 +369,7 @@ const Pagination: React.FC<{
           onClick={() => onPageChange(totalPages - 1)}
           disabled={pageIndex >= totalPages - 1}
           className={`p-1 rounded ${pageIndex >= totalPages - 1 ? 'text-gray-600' : 'text-gray-400 hover:bg-[#3c3c3c]'}`}
+          aria-label="Go to last page"
         >
           <ChevronsRight size={18} />
         </button>
@@ -372,43 +378,41 @@ const Pagination: React.FC<{
   );
 };
 
-// Enhanced column definitions
+// Enhanced column definitions - update to use full TableRow instead of just its data property
 export interface ColumnDef {
   key: string;
   header: string;
   fieldType: string;
   sortable: boolean;
   filterable: boolean;
-  render?: (value: any, row: any) => ReactNode;
-  editable?: boolean; // New property to control editability
-  hidden?: boolean;   // New property to hide fields from detail view
+  render?: (value: any, row: TableRow) => ReactNode;
+  editable?: boolean;
+  hidden?: boolean;
 }
 
-// Action definition interface
+// Action definition interface - update to use full TableRow
 export interface ActionDef {
   label: string;
-  onClick: (row: any) => void;
+  onClick: (row: TableRow) => void;
   color?: 'blue' | 'red' | 'green' | 'yellow' | 'gray';
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
-  showCondition?: (row: any) => boolean;
-  showDetail?: boolean; // Add this property to control detail view behavior
+  showCondition?: (row: TableRow) => boolean;
+  showDetail?: boolean;
+  isTableAction?: boolean;
 }
 
-// Updated helper function to generate column definitions with more metadata
+// Helper function to generate column definitions
 const generateColumnsFromFieldMap = (fieldNameMap: Record<string, ColumnInfo>): ColumnDef[] => {
-  // Add a check to handle null or undefined fieldNameMap
   if (!fieldNameMap) return [];
 
   return Object.entries(fieldNameMap).map(([key, columnInfo]) => {
-    let renderer: ((value: any, row: any) => ReactNode) | undefined;
+    let renderer: ((value: any, row: TableRow) => ReactNode) | undefined;
 
-    // Format header text with spaces before uppercase letters (except the first letter)
     const headerText = columnInfo.fieldName
       .charAt(0).toUpperCase() +
       columnInfo.fieldName.slice(1).replace(/([A-Z])/g, ' $1');
 
-    // Special renderers for different field types
     if (columnInfo.fieldType === 'BOOLEAN') {
       renderer = (value) =>
         value === true ? '✓' :
@@ -416,7 +420,6 @@ const generateColumnsFromFieldMap = (fieldNameMap: Record<string, ColumnInfo>): 
             '-';
     }
 
-    // Date field formatting
     if (columnInfo.fieldType === 'DATETIME' || columnInfo.fieldType === 'DATE') {
       renderer = (value) => {
         if (!value) return '-';
@@ -428,7 +431,6 @@ const generateColumnsFromFieldMap = (fieldNameMap: Record<string, ColumnInfo>): 
       };
     }
 
-    // Status tag styling
     if (key === 'status') {
       renderer = (value) => (
         <span className={`px-2 py-1 rounded-full text-xs ${value === 'ACTIVE' ? 'bg-green-800 text-green-200' :
@@ -440,38 +442,24 @@ const generateColumnsFromFieldMap = (fieldNameMap: Record<string, ColumnInfo>): 
       );
     }
 
-    // Check if this is the id column - we'll hide it
     const isIdField = key === 'id';
-    
-    // Check if this is the viewId column (hashcode of id) - we'll make it visible and sortable
     const isViewIdField = key === 'viewId';
-
-    // Check if the column is explicitly marked as unsortable
     const isUnsortable = columnInfo.sortType === SortType.UNSORTABLE && !isViewIdField;
-
-    // Check for audit fields - these should always be sortable unless explicitly marked as unsortable
     const isAuditField = ['createdBy', 'updatedBy', 'createdDate', 'lastModifiedDate'].includes(key);
-
-    // Determine which fields should be hidden from detail view
-    // Hide id field from the table view, but keep it in the detail view
-    // Also hide Current Server Time field
     const shouldHide = isIdField || key === 'currentServerTime';
-
-    // Determine if field should be editable in the detail view
     const isEditable = !['id', 'viewId', 'version', 'createdBy', 'updatedBy', 'createdDate', 'lastModifiedDate'].includes(key);
 
     return {
       key,
-      header: key === 'viewId' ? 'ID' : headerText, // Label viewId as 'ID' in the table
+      header: key === 'viewId' ? 'ID' : headerText,
       fieldType: columnInfo.fieldType,
-      sortable: isViewIdField ? true : !isUnsortable, // Make viewId sortable
+      sortable: isViewIdField ? true : !isUnsortable,
       filterable: true,
       render: renderer,
       editable: isEditable && (columnInfo.editable !== false),
       hidden: shouldHide
     };
   }).sort((a, b) => {
-    // Sort columns to show viewId first (instead of id)
     if (a.key === 'viewId') return -1;
     if (b.key === 'viewId') return 1;
     if (a.key === 'status') return -1;
@@ -487,43 +475,36 @@ const safeRenderValue = (value: any): React.ReactNode => {
   }
 
   if (typeof value === 'object') {
-    // Handle Date objects
     if (value instanceof Date) {
       return value.toLocaleString();
     }
 
-    // Handle timestamps that look like ISO dates
     if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/)) {
       return new Date(value).toLocaleString();
     }
 
-    // Check if the object has an ID and name (common entity pattern)
     if (value?.id && value?.name) {
       return value.name;
     }
 
-    // For BlacklistedToken entity, show token instead
     if (value?.token && value?.tokenType) {
       return `${value.tokenType}: ${value.token.substring(0, 10)}...`;
     }
 
-    // For other objects, show a simplified representation
     return '{Object}';
   }
 
-  // Handle boolean values
   if (typeof value === 'boolean') {
     return value ? '✓' : '✗';
   }
 
-  // Return strings, numbers and other primitives as is
   return String(value);
 };
 
 // Detail view modes
 type DetailViewMode = 'custom' | 'auto' | 'tabs';
 
-// Add a mapping of entity types to their API endpoints
+// Entity API endpoints
 const entityApiEndpoints: Record<string, string> = {
   event: 'events',
   participant: 'participants',
@@ -547,7 +528,7 @@ interface DataTableProps {
   data?: TableFetchResponse | null;
   columns?: ColumnDef[];
   actions?: ActionDef[];
-  detailView?: (rowData: TabTableRow) => ReactNode; // Updated type from any to TabTableRow
+  detailView?: (rowData: TabTableRow) => ReactNode;
   detailViewMode?: DetailViewMode;
   entityType: ObjectType;
   addItemButton?: {
@@ -566,12 +547,12 @@ interface DataTableProps {
   activeTab?: string;
   statusField?: string;
   search?: Record<ObjectType, DataObject>;
-  showSearchBox?: boolean; // New prop to control search box visibility
-  onEdit?: (row: any) => void;
-  onDelete?: (row: any) => void;
+  showSearchBox?: boolean;
+  onEdit?: (row: TableRow) => void;
+  onDelete?: (row: TableRow) => void;
   showDefaultActions?: boolean;
-  onSave?: (row: any, editedData: any) => Promise<boolean>; // New prop for save handler
-  onAdd?: () => void; // Add this new prop for handling add operation
+  onSave?: (row: TableRow | null, editedData: TableRow) => Promise<boolean>;
+  onAdd?: () => void;
 }
 
 export default function DataTable({
@@ -599,7 +580,7 @@ export default function DataTable({
   onDelete,
   showDefaultActions = true,
   onSave,
-  onAdd // Add new prop here
+  onAdd
 }: DataTableProps) {
   const emptyTableData: TableFetchResponse = {
     totalPage: 0,
@@ -645,10 +626,8 @@ export default function DataTable({
 
   const safeInitialData = initialData || emptyTableData;
 
-  // Generate a stable instance ID to track component instances
-  const instanceId = useRef(`datable-${Math.random().toString(36).substring(2, 9)}`);
+  const instanceId = useRef(`datatable-${Math.random().toString(36).substring(2, 9)}`);
 
-  // Use refs for state that shouldn't trigger re-renders
   const dataRef = useRef<TableFetchResponse>(safeInitialData);
   const [data, setData] = useState<TableFetchResponse>(safeInitialData);
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
@@ -665,53 +644,39 @@ export default function DataTable({
   const [editingRowId, setEditingRowId] = useState<number | null>(null);
   const [isEditConfirmOpen, setIsEditConfirmOpen] = useState(false);
   const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
-  const [editedData, setEditedData] = useState<any>(null);
-  const [editAction, setEditAction] = useState<'save' | 'cancel' | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState<TableRow | null>(null);
+  const [editedData, setEditedData] = useState<TableRow | null>(null);
+  const [editAction, setEditAction] = useState<'save' | 'cancel' | 'delete' | null>(null);
 
-  // Add state for new row (for add functionality)
   const [isAddingNewRow, setIsAddingNewRow] = useState(false);
-  const [newRowData, setNewRowData] = useState<any>(null);
+  const [newRowData, setNewRowData] = useState<TableRow | null>(null);
 
-  // Update the showBlockingOverlay logic to reflect when we're in edit mode
   const showBlockingOverlay = editingRowId !== null || isAddingNewRow;
 
-  // Use refs for sort state to prevent multiple renders during initialization
   const sortFieldRef = useRef<string | null>(null);
   const sortDirectionRef = useRef<'asc' | 'desc'>('asc');
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(false);
 
-  // Track if component is mounted
   const isMountedRef = useRef(false);
-
-  // Track if initial data fetch has happened
   const initialFetchDoneRef = useRef(false);
-
-  // Create ref to track the detail view container for proper focus management
   const detailContainerRef = useRef<HTMLDivElement>(null);
-
-  // Create a ref to store all tabbable elements outside the editing container
   const nonEditableTabbableElementsRef = useRef<HTMLElement[]>([]);
 
-  // Enhance the useEffect for keyboard navigation
   useEffect(() => {
-    // Function to make all interactive elements outside the edit area untabbable
     const makeOutsideElementsUntabbable = () => {
-      if (editingRowId !== null || isAddingNewRow) {
+      if (showBlockingOverlay) {
         const detailContainer = detailContainerRef.current;
         if (!detailContainer) return;
 
-        // Store original tabindex values and set to -1 for elements outside our edit container
         const allTabbableElements = Array.from(
           document.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
         ) as HTMLElement[];
 
         nonEditableTabbableElementsRef.current = allTabbableElements.filter(el => {
-          // Skip elements inside our edit container
           if (detailContainer.contains(el)) return false;
-
-          // Remember and update tabindex
           el.dataset.originalTabIndex = el.getAttribute('tabindex') || '';
           el.setAttribute('tabindex', '-1');
           return true;
@@ -719,7 +684,6 @@ export default function DataTable({
       }
     };
 
-    // Function to restore original tabindex values when exiting edit mode
     const restoreTabindexValues = () => {
       nonEditableTabbableElementsRef.current.forEach(el => {
         if (el.dataset.originalTabIndex) {
@@ -731,14 +695,11 @@ export default function DataTable({
       nonEditableTabbableElementsRef.current = [];
     };
 
-    // Handle tab navigation within the form
     const handleTabNavigation = (e: KeyboardEvent) => {
-      // Only intercept tab navigation when in edit mode
-      if (editingRowId !== null || isAddingNewRow) {
+      if (showBlockingOverlay) {
         const detailContainer = detailContainerRef.current;
         if (!detailContainer) return;
 
-        // Find all focusable elements inside the detail container
         const focusableElements = Array.from(detailContainer.querySelectorAll(
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
         )) as HTMLElement[];
@@ -748,7 +709,6 @@ export default function DataTable({
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
 
-        // Handle Tab and Shift+Tab to create a focus trap
         if (e.key === 'Tab') {
           if (e.shiftKey && document.activeElement === firstElement) {
             e.preventDefault();
@@ -761,38 +721,30 @@ export default function DataTable({
       }
     };
 
-    // Apply changes when entering edit mode
-    if (editingRowId !== null || isAddingNewRow) {
+    if (showBlockingOverlay) {
       makeOutsideElementsUntabbable();
-
-      // Focus the first interactive element after making others untabbable
       setTimeout(() => {
         if (detailContainerRef.current) {
           const firstInput = detailContainerRef.current.querySelector(
             'input, select, textarea, button:not([disabled])'
           ) as HTMLElement;
-
-          if (firstInput) {
-            firstInput.focus();
-          }
+          if (firstInput) firstInput.focus();
         }
       }, 100);
     } else {
       restoreTabindexValues();
     }
 
-    // Add event listener for keyboard navigation
     document.addEventListener('keydown', handleTabNavigation);
 
     return () => {
       document.removeEventListener('keydown', handleTabNavigation);
       restoreTabindexValues();
     };
-  }, [editingRowId, isAddingNewRow]);
+  }, [showBlockingOverlay]);
 
   const defaultFetchData = async (request: TableFetchRequest): Promise<TableFetchResponse> => {
     try {
-      // Ensure objectType is always set correctly
       const effectiveObjectType = entityType &&
         (typeof entityType === 'string'
           ? ObjectType[entityType.toUpperCase() as keyof typeof ObjectType]
@@ -802,8 +754,6 @@ export default function DataTable({
         ...request,
         objectType: request.objectType || effectiveObjectType
       };
-
-      console.log(`Using default fetchTableData for ${entityType} with objectType:`, requestWithObjectType.objectType);
 
       if (!requestWithObjectType.objectType) {
         console.error("No objectType provided for request:", requestWithObjectType);
@@ -828,10 +778,8 @@ export default function DataTable({
   }, [activeFilters]);
 
   const effectiveColumns = useMemo(() => {
-    const cols = columns || (data?.fieldNameMap ?
+    const cols = columns || (data?.fieldNameMap ? 
       generateColumnsFromFieldMap(data.fieldNameMap) : []);
-      
-    // Filter out columns marked as hidden
     return cols.filter(col => !col.hidden);
   }, [columns, data?.fieldNameMap]);
 
@@ -844,9 +792,8 @@ export default function DataTable({
     searchTerm?: string;
     isInitialLoad?: boolean;
     isForceReload?: boolean;
-    isSortChange?: boolean;  // New flag for sort changes
+    isSortChange?: boolean;
   } = {}) => {
-    // Cancel any pending requests
     if (pendingRequestRef.current) {
       clearTimeout(pendingRequestRef.current);
       pendingRequestRef.current = null;
@@ -861,23 +808,17 @@ export default function DataTable({
       searchTerm: requestSearchTerm = searchTerm,
       isInitialLoad = false,
       isForceReload = false,
-      isSortChange = false  // Initialize new flag
+      isSortChange = false
     } = options;
 
-    // Modified condition: Also allow API calls for sort changes regardless of initialData
-    // Skip if we have initialData and this isn't an explicit reload or sort change
     if (initialData && !isForceReload && !isInitialLoad && !isSortChange) {
-      console.log("Using provided initialData, skipping fetch");
       return;
     }
 
-    // Skip if component is not mounted
     if (!isMountedRef.current) {
-      console.log("Component not mounted, skipping fetch");
       return;
     }
 
-    // Don't allow duplicate requests
     const requestSignature = JSON.stringify({
       pageIndex,
       pageSize,
@@ -888,22 +829,15 @@ export default function DataTable({
     });
 
     if (requestSignature === currentRequestRef.current && !isForceReload) {
-      console.log(`[${instanceId.current}] Skipping duplicate request:`, requestSignature);
       return;
     }
 
-    // Ensure we only fetch once during initial mount
     if (isInitialLoad && initialFetchDoneRef.current) {
-      console.log(`[${instanceId.current}] Initial fetch already done, skipping`);
       return;
     }
 
-    console.log(`[${instanceId.current}] Request will be executed:`, requestSignature);
-
-    // Set request state before async operation to prevent race conditions
     currentRequestRef.current = requestSignature;
 
-    // Don't show loading state for quick refreshes
     if (!isLoading) setIsLoading(true);
 
     try {
@@ -975,8 +909,8 @@ export default function DataTable({
         objectType: entityType,
         entityName: entityType
       };
+
       if (!isMountedRef.current) {
-        console.log(`[${instanceId.current}] Component unmounted during fetch, discarding results`);
         return;
       }
 
@@ -996,7 +930,7 @@ export default function DataTable({
         initialFetchDoneRef.current = true;
       }
     } catch (error) {
-      console.error(`[${instanceId.current}] Error fetching data for ${entityType}:`, error);
+      console.error(`Error fetching data for ${entityType}:`, error);
     } finally {
       setIsLoading(false);
     }
@@ -1005,14 +939,10 @@ export default function DataTable({
     initialData, effectiveFetchData, entityType, search, isLoading
   ]);
 
-  // Handle component mount and unmount
   useEffect(() => {
     isMountedRef.current = true;
 
-    // Initial data load
     if (!initialData) {
-      console.log(`[${instanceId.current}] Component mounted, scheduling initial load`);
-      // Delay initial fetch slightly to let things settle
       const timeoutId = setTimeout(() => {
         loadData({ isInitialLoad: true });
       }, 50);
@@ -1020,34 +950,21 @@ export default function DataTable({
     }
 
     return () => {
-      console.log(`[${instanceId.current}] Component unmounting`);
       isMountedRef.current = false;
-
-      // Clean up any pending requests
       if (pendingRequestRef.current) {
         clearTimeout(pendingRequestRef.current);
       }
     };
   }, [entityType, initialData, loadData]);
 
-  // Handle loading on parameter changes (with debounce)
   useEffect(() => {
-    // Skip if we're using provided data
-    if (initialData) return;
+    if (initialData || !initialFetchDoneRef.current) return;
 
-    // Skip the initial render - we handle that separately
-    if (!initialFetchDoneRef.current) return;
-
-    console.log(`[${instanceId.current}] Parameters changed, debouncing reload`);
-
-    // Clear any existing debounce timer
     if (pendingRequestRef.current) {
       clearTimeout(pendingRequestRef.current);
     }
 
-    // Set new debounce timer
     const timeoutId = setTimeout(() => {
-      // Update ref values first to ensure consistent state
       sortFieldRef.current = sortField;
       sortDirectionRef.current = sortDirection;
       loadData();
@@ -1063,110 +980,87 @@ export default function DataTable({
   }, [pagination.pageIndex, pagination.pageSize, sortField, sortDirection, activeFilters, searchTerm, loadData, initialData]);
 
   const handleFilterChange = (columnKey: string, filterState: FilterState) => {
-    console.log(`[${instanceId.current}] Filter changed for ${columnKey}:`, filterState);
-
-    // Create updated filters with the new filter state
     const updatedFilters = {
       ...activeFilters,
       [columnKey]: filterState
     };
 
-    // Update the state
     setActiveFilters(updatedFilters);
 
-    // If this is an apply or clear action, immediately reload the data
-    if (filterState.active !== activeFilters[columnKey]?.active) {
-      console.log(`[${instanceId.current}] Filter ${filterState.active ? 'applied' : 'removed'}, reloading data`);
-
-      // Cancel any pending requests
+    // Check if active state changed OR filter value changed
+    const currentFilter = activeFilters[columnKey];
+    const valueChanged = 
+      currentFilter?.value !== filterState.value || 
+      currentFilter?.secondValue !== filterState.secondValue;
+    const activeStateChanged = filterState.active !== currentFilter?.active;
+    
+    if (activeStateChanged || (filterState.active && valueChanged)) {
       if (pendingRequestRef.current) {
         clearTimeout(pendingRequestRef.current);
         pendingRequestRef.current = null;
       }
 
-      // Trigger immediate data reload and force API call for filter changes too
       loadData({
         filters: updatedFilters,
-        isSortChange: true // Use the same flag to force API call
+        isSortChange: true
       });
     }
   };
 
-  // Update page change handler to trigger immediate data reload
   const handlePageChange = (pageIndex: number) => {
-    console.log(`[${instanceId.current}] Page changed to ${pageIndex}`);
-
-    // Update pagination state
     setPagination(current => ({
       ...current,
       pageIndex
     }));
 
-    // Immediately reload data with new page and force API call
     loadData({
       pageIndex,
-      isSortChange: true  // Use the same flag to force API call for consistency
+      isSortChange: true
     });
   };
 
-  // Update page size change handler to trigger immediate data reload
   const handlePageSizeChange = (pageSize: number) => {
-    console.log(`[${instanceId.current}] Page size changed to ${pageSize}`);
-
-    // Update pagination state
     setPagination(current => ({
       ...current,
       pageSize,
       pageIndex: 0
     }));
 
-    // Immediately reload data with new page size and force API call
     loadData({
       pageSize,
       pageIndex: 0,
-      isSortChange: true  // Use the same flag to force API call
+      isSortChange: true
     });
   };
 
-  // Update search handler to debounce and trigger data reload
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
 
-    // Notify parent if callback provided
     if (onSearchChange) {
       onSearchChange(value);
     }
 
-    // Cancel any pending requests to implement debouncing
     if (pendingRequestRef.current) {
       clearTimeout(pendingRequestRef.current);
       pendingRequestRef.current = null;
     }
 
-    // Set new timer for reload with debounce
     const timeoutId = setTimeout(() => {
-      console.log(`[${instanceId.current}] Search changed to "${value}", reloading data`);
       loadData({ searchTerm: value });
-    }, 500); // Longer debounce for typing
+    }, 500);
 
     pendingRequestRef.current = timeoutId;
   };
 
-  // Update sort handler to use refs and immediately trigger data reload with isSortChange flag
   const handleSortClick = (field: string) => {
-    console.log(`[${instanceId.current}] Sort column clicked: ${field}`);
-
-    // Determine the new sort direction
     let newDirection: 'asc' | 'desc';
 
     if (sortField === field) {
-      // Toggle direction if same field
       newDirection = sortDirection === 'asc' ? 'desc' : 'asc';
       sortDirectionRef.current = newDirection;
       setSortDirection(newDirection);
     } else {
-      // Default to ascending for new field
       newDirection = 'asc';
       sortFieldRef.current = field;
       setSortField(field);
@@ -1174,38 +1068,29 @@ export default function DataTable({
       setSortDirection(newDirection);
     }
 
-    // Notify parent component if callback provided
     if (onSortChange) {
       onSortChange(field, newDirection);
     }
 
-    // Cancel any pending requests
     if (pendingRequestRef.current) {
       clearTimeout(pendingRequestRef.current);
       pendingRequestRef.current = null;
     }
 
-    // Immediately trigger data reload with new sort parameters and isSortChange flag
-    console.log(`[${instanceId.current}] Triggering immediate data reload with sort: ${field} ${newDirection}`);
     loadData({
       sortField: field,
       sortDirection: newDirection,
-      isSortChange: true  // Add this flag to force API call
+      isSortChange: true
     });
   };
 
-  const handleEdit = useCallback((row: any) => {
-    console.log(`Edit row with ID: ${row.viewId}`);
-    
-    // Expand the row if not already expanded
-    if (expandedRowId !== row.viewId) {
-      setExpandedRowId(row.viewId);
+  const handleEdit = useCallback((row: TableRow) => {
+    if (row.data?.viewId && expandedRowId !== row.data?.viewId) {
+      setExpandedRowId(row.data?.viewId);
     }
-    
-    // Set the row as being edited - this triggers the blocking overlay
-    setEditingRowId(row.viewId);
-    
-    // If custom edit handler provided, call it
+
+    setEditingRowId(row.data?.viewId || null);
+
     if (onEdit) {
       onEdit(row);
     }
@@ -1216,22 +1101,15 @@ export default function DataTable({
     setIsEditConfirmOpen(true);
   }, []);
 
-  // Update the handleSaveEdit callback with console logging for debugging
-  const handleSaveEdit = useCallback((rowData: any, data: any) => {
-    console.log('Save edit triggered', { rowData, editedData: data });
+  const handleSaveEdit = useCallback((rowData: TableRow, data: TableRow) => {
     setEditedData(data);
     setEditAction('save');
-    
-    // Force state update and ensure the dialog shows
     setTimeout(() => {
       setIsSaveConfirmOpen(true);
     }, 0);
   }, []);
 
-  // Improve the handleConfirmation function to better handle save action
   const handleConfirmation = useCallback(async (confirmed: boolean) => {
-    console.log('Confirmation action', { confirmed, action: editAction });
-    
     if (editAction === 'cancel') {
       setIsEditConfirmOpen(false);
       if (confirmed) {
@@ -1240,209 +1118,206 @@ export default function DataTable({
       }
     } else if (editAction === 'save') {
       setIsSaveConfirmOpen(false);
-      
+
       if (confirmed && editedData) {
         try {
-          console.log('Attempting to save data:', editedData);
-          
-          // Determine if this is a new record or an update
-          const isNewRecord = isAddingNewRow || (editedData.id === undefined || editedData.id < 0);
-          
+          const isNewRecord = isAddingNewRow || (editedData.data?.id === undefined || editedData.data?.id < 0);
+
           if (onSave) {
+            // const rowData = editingRowId !== null
+            //   ? data.rows.find(row => row.data?.viewId === editingRowId)?.data || null
+            //   : null;
+
             const saveResult = await onSave(
-              isNewRecord ? null : editingRowId, 
+              null,
               editedData
             );
-            
+
             if (saveResult) {
-              // Reset edit state
               setEditingRowId(null);
               setIsAddingNewRow(false);
-              
-              // Reload the data
               loadData({ isForceReload: true });
             } else {
               console.error('Save operation returned false');
             }
           } else {
-            console.log('No onSave handler provided, using built-in save handler');
-            
-            // Create a TableRow with the edited data
             const tableRowData: TableRow = { data: editedData };
-            
-            // Use the appropriate action service
-            const result = isNewRecord 
+            const result = isNewRecord
               ? await addRecord(entityType as ObjectType, tableRowData, data)
               : await updateRecord(entityType as ObjectType, tableRowData, data);
-            
+
             if (result.success) {
-              // Reset edit state
               setEditingRowId(null);
               setIsAddingNewRow(false);
-              
-              // Reload data after successful save
               loadData({ isForceReload: true });
             } else {
               console.error('Error saving record:', result.message);
-              alert(`Error: ${result.message || 'Failed to save record'}`);
             }
           }
         } catch (error) {
           console.error('Error during save operation:', error);
-          alert(`Error: ${error instanceof Error ? error.message : 'Failed to save record'}`);
+        }
+      }
+    } else if (editAction === 'delete') {
+      setIsDeleteConfirmOpen(false);
+
+      if (confirmed && rowToDelete) {
+        try {
+          if (onDelete) {
+            await onDelete(rowToDelete);
+          } else {
+            // rowToDelete is already a TableRow object
+            const result = await deleteRecord(entityType as ObjectType, rowToDelete, data);
+
+            if (result.success) {
+              loadData({ isForceReload: true });
+            } else {
+              console.error('Error deleting record:', result.message);
+            }
+          }
+        } catch (error) {
+          console.error('Error during delete operation:', error);
         }
       }
     }
-  }, [editAction, editedData, editingRowId, isAddingNewRow, loadData, onSave, entityType, data]);
+  }, [editAction, editedData, editingRowId, isAddingNewRow, loadData, onSave, entityType, data, rowToDelete, onDelete]);
 
   const handleAddNewRow = useCallback(() => {
-    // Create empty data structure based on columns
-    const emptyData = {} as Record<string, any>;
+    const emptyData = {} as TableRow['data'];
     effectiveColumns.forEach(col => {
       emptyData[col.key] = null;
     });
-    
-    // Create a temporary negative ID to identify this as a new row
-    const tempNewRowData = { id: -1, ...emptyData };
+
+    const tempNewRowData: TableRow = {'data':{ id: -1, ...emptyData }};
     setNewRowData(tempNewRowData);
     setIsAddingNewRow(true);
-    
-    // If custom add handler provided, call it
+
     if (onAdd) {
       onAdd();
     }
   }, [effectiveColumns, onAdd]);
 
-  const actualAddItemButton = typeof addItemButton === 'boolean' && addItemButton === true
-    ? {
-      label: `Add ${entityType.charAt(0).toUpperCase() + entityType.slice(1).toLowerCase()}`,
-      onClick: () => console.log(`Add ${entityType} clicked`)
-    }
-    : (typeof addItemButton === 'object' ? addItemButton : undefined);
+  const handleDeleteClick = useCallback((row: TableRow['data']) => {
+    setRowToDelete({ data: row }); // Create a TableRow object
+    setEditAction('delete');
+    setIsDeleteConfirmOpen(true);
+  }, []);
 
-  const defaultDetailView = (rowData: TabTableRow) => {
-    const inferredRelatedTables: string[] = [];
-
-    if (data && data.relatedLinkedObjects) {
-      Object.keys(data.relatedLinkedObjects).forEach(key => {
-        if (key in ObjectType) {
-          inferredRelatedTables.push(key);
-        }
-      });
-    }
-
-    // Pass tableInfo from the current data if available
-    const tableInfo = data;
-
-    return (
-      <EntityDetailTabs
-        tableRow={rowData}
-        entityType={entityType}
-        tableInfo={tableInfo}
-        search={search}
-      />
-    );
-  };
-
-  const renderRowDetail = (rowData: TabTableRow) => {
-    if (!showDetailView) return null;
-
-    const isEditing = editingRowId === rowData.data?.viewId;
-
-    if (detailViewMode === 'custom' && detailView) {
-      return detailView(rowData);
-    }
-
-    if (detailViewMode === 'tabs' || detailViewMode === 'auto') {
-      return (
-        <EntityDetailTabs
-          tableRow={rowData}
-          entityType={entityType}
-          tableInfo={data}
-          search={search}
-          isEditing={isEditing}
-          onCancelEdit={handleCancelEdit}
-          onSaveEdit={(editedData) => {
-            console.log('onSaveEdit called from EntityDetailTabs', editedData);
-            handleSaveEdit(rowData.data, editedData);
-          }}
-          columns={effectiveColumns} // Pass column definitions with edit/hide info
-          excludedStatusOptions={['DELETE']} // Exclude DELETE option from status dropdown
-        />
-      );
-    }
-
-    return null;
-  };
-
-  const handleRowClick = (rowViewId: number, isActionClick: boolean = false) => {
-    // If this row is currently being edited, prevent any click action
-    if (editingRowId === rowViewId || isAddingNewRow) {
+  const handleRowClick = useCallback((rowViewId: number | undefined, isActionClick: boolean = false) => {
+    if (!rowViewId || editingRowId === rowViewId || isAddingNewRow) {
       return;
     }
-    
+
     if (!showDetailView || (!detailView && detailViewMode === 'custom')) {
       return;
     }
 
-    // Regular click handling for non-edit mode
-    if (isActionClick) {
-      setExpandedRowId(expandedRowId === rowViewId ? null : rowViewId);
-      return;
-    }
-
     setExpandedRowId(expandedRowId === rowViewId ? null : rowViewId);
+  }, [expandedRowId, editingRowId, isAddingNewRow, showDetailView, detailView, detailViewMode]);
+
+  const isDefinedNumber = (value: number | undefined | null): value is number => {
+    return value !== undefined && value !== null;
   };
 
-  const hasData = data?.rows && data.rows.length > 0;
+  const actualAddItemButton = typeof addItemButton === 'boolean' && addItemButton === true
+    ? {
+        label: `Add ${entityType.charAt(0).toUpperCase() + entityType.slice(1).toLowerCase()}`,
+        onClick: handleAddNewRow
+      }
+    : (typeof addItemButton === 'object' ? addItemButton : undefined);
 
-  // Create default actions for edit and delete
   const defaultActions: ActionDef[] = useMemo(() => {
     if (!showDefaultActions) return [];
-    
+
     const actions: ActionDef[] = [];
-    
-    // Add edit action with default handler
+
     actions.push({
       label: "Edit",
-      onClick: handleEdit, // Use our enhanced edit handler
+      onClick: handleEdit,
       color: "blue",
       iconLeft: <Pencil size={14} />,
-      showDetail: true, // Always expand the row when editing
+      showDetail: true,
     });
-    
-    // Add delete action with default handler
+
     actions.push({
       label: "Delete",
-      onClick: onDelete || ((row) => console.log(`Delete row with ID: ${row.viewId}`)),
+      onClick: handleDeleteClick,
       color: "red",
       iconLeft: <Trash2 size={14} />,
     });
-    
-    return actions;
-  }, [handleEdit, onDelete, showDefaultActions]);
 
-  // Combine custom actions with default actions
+    return actions;
+  }, [handleEdit, handleDeleteClick, showDefaultActions]);
+
   const effectiveActions = useMemo(() => {
-    // If custom actions are provided, merge them with default actions
-    if (customActions && customActions.length > 0) {
-      return [...customActions, ...defaultActions];
-    }
-    
-    // If no custom actions but we have default actions, use those
-    if (defaultActions.length > 0) {
-      return defaultActions;
-    }
-    
-    // Return custom actions as fallback (might be undefined/empty)
-    return customActions;
+    return (customActions || []).filter(action => !action.isTableAction)
+      .concat(defaultActions);
   }, [customActions, defaultActions]);
+
+  const tableActions = useMemo(() => {
+    return (customActions || []).filter(action => action.isTableAction);
+  }, [customActions]);
+
+  const handleExportTable = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const exportData = { ...data, noReload: true };
+      await exportTableData(entityType as ObjectType, exportData);
+    } catch (error) {
+      console.error('Export error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [entityType, data]);
+
+  const executeTableAction = useCallback((action: ActionDef) => {
+    if (action.label === "Export") {
+      handleExportTable();
+    } else {
+      action.onClick(null as any); // Type safety to be improved later
+    }
+  }, [handleExportTable]);
+
+  const hasData = data.rows && data.rows.length > 0;
+
+  const renderRowDetail = useCallback((row: TabTableRow) => {
+    if (editingRowId === row.data?.viewId) {
+      return (
+        <EntityDetailTabs
+          tableRow={row}
+          entityType={entityType}
+          tableInfo={data}
+          search={search}
+          isEditing={true}
+          onCancelEdit={handleCancelEdit}
+          onSaveEdit={(editedData) => handleSaveEdit(row, editedData)}
+          columns={effectiveColumns}
+        />
+      );
+    }
+
+    if (detailView && detailViewMode === 'custom') {
+      return detailView(row);
+    }
+
+    return (
+      <EntityDetailTabs
+        tableRow={row}
+        entityType={entityType}
+        tableInfo={data}
+        search={search}
+        isEditing={false}
+        columns={effectiveColumns}
+      />
+    );
+  }, [
+    data, detailView, detailViewMode, editingRowId, effectiveColumns, entityType, handleCancelEdit, handleSaveEdit, search
+  ]);
 
   return (
     <div className="w-full relative flex flex-col">
       <div className="mb-4 flex flex-wrap justify-between items-center gap-3 w-full">
         <div className="flex flex-wrap gap-2">
-          {/* Conditionally render search box only if showSearchBox is true */}
           {showSearchBox && (
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
@@ -1452,6 +1327,7 @@ export default function DataTable({
                 className="pl-9 py-2 pr-4 bg-[#3c3c3c] rounded focus:outline-none focus:ring-1 focus:ring-[#007acc]"
                 value={searchTerm}
                 onChange={handleSearchChange}
+                aria-label="Search table"
               />
             </div>
           )}
@@ -1472,6 +1348,7 @@ export default function DataTable({
                     <button
                       onClick={() => handleFilterChange(columnKey, { ...activeFilters[columnKey], active: false })}
                       className="text-gray-400 hover:text-white"
+                      aria-label={`Remove filter for ${column.header}`}
                     >
                       <X size={12} />
                     </button>
@@ -1488,6 +1365,7 @@ export default function DataTable({
                   setActiveFilters(updatedFilters);
                 }}
                 className="text-xs text-[#007acc] hover:underline"
+                aria-label="Clear all filters"
               >
                 Clear all
               </button>
@@ -1505,6 +1383,7 @@ export default function DataTable({
                 value: e.target.value,
                 active: e.target.value !== 'all'
               })}
+              aria-label={`Filter by ${filter.label}`}
             >
               {filter.options.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -1515,45 +1394,62 @@ export default function DataTable({
           ))}
         </div>
 
-        {actualAddItemButton && (
-          <button
-            className="bg-[#007acc] text-white px-3 py-2 rounded hover:bg-[#0069ac] flex items-center"
-            onClick={actualAddItemButton.onClick}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {actualAddItemButton.label}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {tableActions.length > 0 && (
+            <div className="flex gap-2">
+              {tableActions.map((action) => (
+                <button
+                  key={action.label}
+                  className={`flex items-center text-xs px-3 py-2 rounded ${
+                    action.color === 'blue' ? 'bg-blue-700 text-blue-100' :
+                    action.color === 'red' ? 'bg-red-700 text-red-100' :
+                    action.color === 'green' ? 'bg-green-700 text-green-100' :
+                    action.color === 'yellow' ? 'bg-yellow-700 text-yellow-100' :
+                    'bg-[#3c3c3c] text-white'
+                  } hover:opacity-90`}
+                  onClick={() => executeTableAction(action)}
+                  disabled={isLoading}
+                  aria-label={action.label}
+                >
+                  {action.iconLeft}
+                  <span className="mx-1">{action.label}</span>
+                  {action.iconRight}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {actualAddItemButton && (
+            <button
+              className="bg-[#007acc] text-white px-3 py-2 rounded hover:bg-[#0069ac] flex items-center"
+              onClick={actualAddItemButton.onClick}
+              aria-label={actualAddItemButton.label}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {actualAddItemButton.label}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="bg-[#1e1e1e] border border-[#3c3c3c] rounded-md overflow-hidden relative w-full flex-grow flex flex-col">
-        {/* Add a relative position context for z-index stacking */}
-        
-        {/* Improved table overlay that covers all inactive elements */}
-        {showBlockingOverlay && (
-          <div 
-            className="absolute inset-0 bg-black bg-opacity-10 z-20"
-            aria-hidden="true" 
-            style={{ pointerEvents: "all" }}
-          />
-        )}
-        
         <div className="overflow-x-auto w-full flex-1">
-          <table 
+          <table
             className="w-full relative table-auto"
             aria-busy={isLoading}
-            style={{ width: "100%" }}
+            role="grid"
           >
             {effectiveColumns && effectiveColumns.length > 0 && (
-              <thead className="bg-[#2d2d2d] text-white font-medium sticky top-0 z-10 w-full">
-                <tr className="w-full">
+              <thead className="bg-[#2d2d2d] text-white font-medium sticky top-0 z-[10]">
+                <tr>
                   {showDetailView && (
-                    <th className="w-10 p-3 whitespace-nowrap"></th>
+                    <th className="w-10 p-3 whitespace-nowrap" scope="col"></th>
                   )}
                   {effectiveColumns.map((column) => (
                     <th
                       key={column.key}
                       className="text-left p-3 relative"
+                      scope="col"
                       style={{ width: column.key === 'viewId' ? '80px' : 'auto' }}
                     >
                       <div className="flex items-start">
@@ -1561,6 +1457,8 @@ export default function DataTable({
                           className={`flex-grow flex flex-wrap items-center mr-5 ${column.sortable ? 'cursor-pointer hover:text-[#007acc]' : ''} ${sortField === column.key ? 'text-[#007acc]' : ''}`}
                           onClick={() => column.sortable && handleSortClick(column.key)}
                           disabled={!column.sortable}
+                          aria-sort={sortField === column.key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
+                          aria-label={`Sort by ${column.header}`}
                         >
                           <span className="break-words hyphens-auto pr-1">{column.header}</span>
                           {sortField === column.key && (
@@ -1579,6 +1477,7 @@ export default function DataTable({
                               e.stopPropagation();
                               setOpenFilterColumn(openFilterColumn === column.key ? null : column.key);
                             }}
+                            aria-label={`Filter by ${column.header}`}
                           >
                             <Filter size={14} />
                           </button>
@@ -1601,16 +1500,16 @@ export default function DataTable({
                       )}
                     </th>
                   ))}
-                  {/* Action column header with add button */}
                   {showDefaultActions && (
-                    <th className="text-right p-3 whitespace-nowrap" style={{ width: '150px' }}>
+                    <th className="text-right p-3 whitespace-nowrap" scope="col" style={{ width: '150px' }}>
                       <div className="flex items-center justify-between">
                         <span>Actions</span>
-                        <button 
+                        <button
                           onClick={handleAddNewRow}
                           className="flex items-center justify-center p-1 bg-green-700 text-white rounded hover:bg-green-800"
                           title="Add new row"
                           disabled={isAddingNewRow || editingRowId !== null}
+                          aria-label="Add new row"
                         >
                           <Plus size={16} />
                         </button>
@@ -1620,10 +1519,9 @@ export default function DataTable({
                 </tr>
               </thead>
             )}
-            <tbody className="w-full divide-y divide-[#3c3c3c]">
-              {/* New row being added - keep at higher z-index */}
+            <tbody className="divide-y divide-[#3c3c3c]">
               {isAddingNewRow && newRowData && (
-                <tr className="bg-[#2a2d2e] relative z-[60]">
+                <tr className="bg-[#2a2d2e] relative z-[200]">
                   {showDetailView && (
                     <td className="w-10 p-3">
                       <CollapseIcon className="h-4 w-4 text-[#007acc]" />
@@ -1632,8 +1530,8 @@ export default function DataTable({
                   {effectiveColumns.map((column) => (
                     <td key={column.key} className="p-3 break-words">
                       {column.render
-                        ? column.render(newRowData[column.key], newRowData)
-                        : safeRenderValue(newRowData[column.key])}
+                        ? column.render(newRowData.data?.column.key, newRowData)
+                        : safeRenderValue(newRowData.data?.column.key)}
                     </td>
                   ))}
                   {showDefaultActions && (
@@ -1642,6 +1540,7 @@ export default function DataTable({
                         <button
                           className="flex items-center text-xs px-2 py-1 rounded bg-red-800 text-red-100"
                           onClick={() => setIsAddingNewRow(false)}
+                          aria-label="Cancel adding new row"
                         >
                           <X size={14} className="mr-1" />
                           <span>Cancel</span>
@@ -1651,17 +1550,16 @@ export default function DataTable({
                   )}
                 </tr>
               )}
-              
-              {/* Show detail form for new row with higher z-index */}
+
               {isAddingNewRow && newRowData && (
-                <tr className="relative z-[60]">
+                <tr className="relative z-[200]">
                   <td
                     colSpan={effectiveColumns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)}
                     className="p-0 bg-[#252525] border-t border-[#3c3c3c]"
                   >
                     <div className="p-4 relative" ref={detailContainerRef}>
                       <EntityDetailTabs
-                        tableRow={{ data: newRowData } as TabTableRow}
+                        tableRow={newRowData as TabTableRow}
                         entityType={entityType}
                         tableInfo={data}
                         search={search}
@@ -1669,7 +1567,6 @@ export default function DataTable({
                         isNewRow={true}
                         onCancelEdit={() => setIsAddingNewRow(false)}
                         onSaveEdit={(editedData) => {
-                          // Handle saving new row
                           if (onSave) {
                             onSave(null, editedData).then(result => {
                               if (result) {
@@ -1679,15 +1576,14 @@ export default function DataTable({
                             });
                           }
                         }}
-                        columns={effectiveColumns} // Pass column definitions with edit/hide info
-                        excludedStatusOptions={['DELETE']} // Exclude DELETE option from status dropdown
+                        columns={effectiveColumns}
+                        excludedStatusOptions={['DELETE']}
                       />
                     </div>
                   </td>
                 </tr>
               )}
-              
-              {/* Existing rows */}
+
               {isLoading ? (
                 <tr>
                   <td
@@ -1701,18 +1597,17 @@ export default function DataTable({
               ) : hasData ? (
                 data.rows.map((row, idx) => (
                   <Fragment key={row.data?.viewId || `row_${idx}`}>
-                    {/* Parent row with modified interaction handling */}
                     <tr
                       className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} 
                         ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} 
                         ${expandedRowId === row.data?.viewId ? 'bg-[#2a2d2e]' : ''}
-                        ${editingRowId === row.data?.viewId ? 'relative z-[60]' : ''}`}
-                      onClick={() => row.data?.viewId && handleRowClick(row.data.viewId)}
+                        ${editingRowId === row.data?.viewId ? 'relative z-[200]' : ''}`}
+                      onClick={() => handleRowClick(row.data?.viewId)}
+                      role="row"
                     >
-                      {/* Individual row overlay to prevent interactions when editing */}
                       {editingRowId === row.data?.viewId && (
-                        <td 
-                          className="absolute inset-0 bg-transparent z-[55]" 
+                        <td
+                          className="absolute inset-0 bg-transparent z-[150]"
                           colSpan={1}
                           onClick={(e) => {
                             e.preventDefault();
@@ -1721,8 +1616,7 @@ export default function DataTable({
                           style={{ pointerEvents: 'all' }}
                         />
                       )}
-                      
-                      {/* Row content - unchanged except for the arrow icons condition */}
+
                       {showDetailView && (
                         <td className="w-10 p-3">
                           {expandedRowId === row.data?.viewId ? (
@@ -1733,15 +1627,14 @@ export default function DataTable({
                         </td>
                       )}
                       {effectiveColumns.map((column) => (
-                        <td key={column.key} className="p-3 break-words">
+                        <td key={column.key} className="p-3 break-words" role="cell">
                           {column.render
-                            ? column.render(row.data[column.key], row.data)
+                            ? column.render(row.data[column.key], row)
                             : safeRenderValue(row.data[column.key])}
                         </td>
                       ))}
-                      {/* Always show the Actions cell when showDefaultActions is true */}
                       {showDefaultActions && (
-                        <td className="p-3 text-right">
+                        <td className="p-3 text-right" role="cell">
                           <div className="flex justify-end space-x-2">
                             {effectiveActions && effectiveActions.map((action) => (
                               <button
@@ -1754,21 +1647,17 @@ export default function DataTable({
                                   'bg-[#3c3c3c] text-white'
                                 }`}
                                 onClick={(e) => {
-                                  e.stopPropagation(); // Prevent row click
-                                  
-                                  // Don't allow action clicks if we're already editing
+                                  e.stopPropagation();
                                   if (editingRowId !== null || isAddingNewRow) {
                                     return;
                                   }
-                                  
-                                  action.onClick(row.data);
-                                  
-                                  if (row.data?.viewId && action.showDetail) {
-                                    handleRowClick(row.data.viewId, true);
+                                  action.onClick(row);
+                                  if (action.showDetail) {
+                                    handleRowClick(row.data?.viewId, true);
                                   }
                                 }}
-                                // Disable the button if any row is in edit mode
                                 disabled={editingRowId !== null || isAddingNewRow}
+                                aria-label={`${action.label} row ${row.data?.viewId}`}
                               >
                                 {action.iconLeft}
                                 <span className="mx-1">{action.label}</span>
@@ -1779,17 +1668,18 @@ export default function DataTable({
                         </td>
                       )}
                     </tr>
-                    
-                    {/* Detail row for expanded items - use viewId instead of id */}
-                    {row.data?.viewId && expandedRowId === row.data.viewId && (
-                      <tr className={editingRowId === row.data?.viewId ? 'relative z-[60]' : ''}>
+
+                    {isDefinedNumber(row.data?.viewId) && expandedRowId === row.data.viewId && (
+                      <tr className={editingRowId === row.data?.viewId ? 'relative z-[200]' : ''}>
                         <td
                           colSpan={effectiveColumns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)}
                           className="p-0 bg-[#252525] border-t border-[#3c3c3c]"
+                          role="row"
                         >
-                          <div 
-                            className="p-4 relative" 
+                          <div
+                            className="p-4 relative"
                             ref={editingRowId === row.data?.viewId ? detailContainerRef : null}
+                            style={{ zIndex: 200 }}
                           >
                             {renderRowDetail(row as TabTableRow)}
                           </div>
@@ -1822,26 +1712,22 @@ export default function DataTable({
         </div>
       </div>
 
-      {/* Improved blocking overlay with better z-indexing */}
       {showBlockingOverlay && (
         <>
-          {/* Global overlay */}
-          <div 
-            className="fixed inset-0 right-[17px] bg-black bg-opacity-40 z-[50]" 
-            style={{ pointerEvents: "all" }}
-            onClick={(e) => e.stopPropagation()}
+          <div
+            className="fixed inset-0 bg-black bg-opacity-40 z-[100]"
+            role="presentation"
             aria-hidden="true"
+            onClick={(e) => e.stopPropagation()}
           />
-          
-          {/* Focus guard */}
-          <div 
-            className="sr-only" 
+          <div
+            className="sr-only"
             tabIndex={0}
             aria-hidden="true"
             onFocus={() => {
               if (detailContainerRef.current) {
                 const firstInput = detailContainerRef.current.querySelector(
-                  'input, select, textarea, button'
+                  'input, select, textarea, button:not([disabled])'
                 ) as HTMLElement;
                 if (firstInput) firstInput.focus();
               }
@@ -1850,22 +1736,23 @@ export default function DataTable({
         </>
       )}
 
-      {/* Confirmation dialog for canceling edit */}
       {isEditConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[300] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="cancel-confirm-title">
           <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 className="text-lg font-medium mb-4">Confirm Cancel</h3>
+            <h3 id="cancel-confirm-title" className="text-lg font-medium mb-4">Confirm Cancel</h3>
             <p className="mb-6">Are you sure you want to cancel? All unsaved changes will be lost.</p>
             <div className="flex justify-end space-x-3">
-              <button 
+              <button
                 className="px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
                 onClick={() => handleConfirmation(false)}
+                aria-label="Continue editing"
               >
                 No, continue editing
               </button>
-              <button 
+              <button
                 className="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800"
                 onClick={() => handleConfirmation(true)}
+                aria-label="Discard changes"
               >
                 Yes, discard changes
               </button>
@@ -1873,25 +1760,51 @@ export default function DataTable({
           </div>
         </div>
       )}
-      
-      {/* Confirmation dialog for saving edit */}
+
       {isSaveConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[300] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="save-confirm-title">
           <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 className="text-lg font-medium mb-4">Confirm Save</h3>
+            <h3 id="save-confirm-title" className="text-lg font-medium mb-4">Confirm Save</h3>
             <p className="mb-6">Are you sure you want to save these changes?</p>
             <div className="flex justify-end space-x-3">
-              <button 
+              <button
                 className="px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
                 onClick={() => handleConfirmation(false)}
+                aria-label="Continue editing"
               >
                 No, continue editing
               </button>
-              <button 
+              <button
                 className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800"
                 onClick={() => handleConfirmation(true)}
+                aria-label="Save changes"
               >
                 Yes, save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDeleteConfirmOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-[300] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+          <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 id="delete-confirm-title" className="text-lg font-medium mb-4">Confirm Delete</h3>
+            <p className="mb-6">Are you sure you want to delete this record? This action cannot be undone.</p>
+            <div className="flex justify-end space-x-3">
+              <button
+                className="px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
+                onClick={() => handleConfirmation(false)}
+                aria-label="Cancel delete"
+              >
+                No, cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800"
+                onClick={() => handleConfirmation(true)}
+                aria-label="Confirm delete"
+              >
+                Yes, delete
               </button>
             </div>
           </div>

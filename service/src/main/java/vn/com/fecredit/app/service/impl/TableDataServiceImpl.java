@@ -8,7 +8,6 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.reflect.TypeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +20,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.AbstractRepository;
 import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
@@ -39,12 +39,11 @@ import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
 import vn.com.fecredit.app.service.factory.RelatedTablesFactory;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
+import vn.com.fecredit.app.service.util.EntityConverter;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.lang.reflect.TypeVariable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -75,6 +74,8 @@ public class TableDataServiceImpl implements TableDataService {
     private final RelatedTablesFactory relatedTablesFactory;
 
     private static final String ENTITY_PACKAGE = "vn.com.fecredit.app.entity";
+
+    private final EntityConverter entityConverter;
 
     @Override
     public TableFetchResponse fetchData(TableFetchRequest request) {
@@ -386,7 +387,7 @@ public class TableDataServiceImpl implements TableDataService {
         response.setTotalElements(page.getTotalElements());
         response.setTableName(tableName);
         response.setOriginalRequest(request);
-            response.setRows(rows);
+        response.setRows(rows);
         // // Get related linked objects based on search criteria in the request
         Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
         response.setRelatedLinkedObjects(relatedLinkedObjects);
@@ -829,7 +830,7 @@ public class TableDataServiceImpl implements TableDataService {
                 } else if ("id".equals(fieldName)) {
                     // Special handling for ID fields
                     Class<?> entityClass = Class.forName(ENTITY_PACKAGE + "." + matchingObjectType.name());
-                    Class<?> idType = (Class<?>) getIdType(entityClass);
+                    Class<?> idType = (Class<?>) entityConverter.getIdType(entityClass);
                     Object idValue = objectMapper.convertValue(fieldValue, idType);
                     predicates.add(cb.equal(join.get(fieldName), idValue));
                 } else if (fieldValue instanceof String) {
@@ -847,28 +848,29 @@ public class TableDataServiceImpl implements TableDataService {
         }
     }
 
-    private Type getIdType(Class<?> currentEntityClass) {
-        try {
-            Map<TypeVariable<?>, Type> typeVarToActualType =
-                TypeUtils.getTypeArguments(currentEntityClass, currentEntityClass.getSuperclass());
-            Type returnType = currentEntityClass.getMethod("getId").getGenericReturnType();
-            if (returnType instanceof TypeVariable) {
-                return typeVarToActualType.get(returnType);
-            } else {
-                return returnType;
-            }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-
-    }
-
     /**
      * Create a generic specification for entity filtering
      */
     private <T> Specification<T> createEntitySpecification(TableFetchRequest request) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            // Add default filter to exclude deleted entities
+            try {
+                // Check if entity has status field (from AbstractStatusAwareEntity)
+                if (entityConverter.containField(root.getJavaType(), "status")) {
+
+                    // Add predicate to filter out DELETED status
+                    try {
+                        predicates.add(criteriaBuilder.notEqual(root.get("status"), CommonStatus.DELETED));
+                        log.debug("Added default filter to exclude entities with DELETED status");
+                    } catch (Exception e) {
+                        log.warn("Could not add status filter: {}", e.getMessage());
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Error checking for status field: {}", e.getMessage());
+            }
 
             // Apply filters
             applyFilters(request, predicates, criteriaBuilder, root);

@@ -86,7 +86,8 @@ export const objectTypeToEndpoint: Record<ObjectType, string> = {
   [ObjectType.Configuration]: 'configurations',
   [ObjectType.BlacklistedToken]: 'blacklisted_tokens',
   [ObjectType.EventLocation]: 'event_locations',
-  [ObjectType.ParticipantEvent]: 'participant_events'
+  [ObjectType.ParticipantEvent]: 'participant_events',
+  [ObjectType.RewardEvent]: 'reward_events'  // Add the missing mapping for RewardEvent
 };
 
 // Helper function to construct full API URLs

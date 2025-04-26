@@ -2,7 +2,15 @@ package vn.com.fecredit.app.service.impl;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -10,7 +18,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
@@ -25,10 +35,12 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.config.FileStorageProperties;
 import vn.com.fecredit.app.entity.base.AbstractPersistableEntity;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.service.TableActionService;
+import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.FetchStatus;
 import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.TableAction;
@@ -39,6 +51,7 @@ import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
 import vn.com.fecredit.app.service.dto.UploadFile;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
+import vn.com.fecredit.app.service.util.EntityConverter;
 
 /**
  * Implementation of the TableActionService for processing table actions.
@@ -57,17 +70,20 @@ public class TableActionServiceImpl implements TableActionService {
 
     private final TableDataServiceImpl tableDataService;
 
-    
+    private final ObjectMapper objectMapper;
+    private final EntityConverter entityConverter;
+    private final FileStorageProperties fileStorageProperties;
+
     @Override
     @Transactional
     public TableActionResponse executeAction(TableActionRequest request) {
         if (request == null) {
             return TableActionResponse.error(null, "Request cannot be null");
         }
-        
-        log.info("Executing table action: {} for entity type: {}", 
-                request.getAction(), request.getObjectType());
-        
+
+        log.info("Executing table action: {} for entity type: {}",
+            request.getAction(), request.getObjectType());
+
         // Delegate to the dedicated action service
         return processAction(request);
     }
@@ -106,7 +122,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Process an ADD action request
      */
     @Transactional
-    private <T extends AbstractPersistableEntity> TableActionResponse processAddAction(TableActionRequest request) {
+    public <T extends AbstractPersistableEntity> TableActionResponse processAddAction(TableActionRequest request) {
         try {
             // Get the entity class
             Class<T> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
@@ -121,9 +137,9 @@ public class TableActionServiceImpl implements TableActionService {
             TableRow savedRow = convertEntityToTableRow(entity);
 
             return TableActionResponse.success(
-                    request,
-                    "Successfully created " + request.getObjectType() + " with ID: " + entity.getId(),
-                    savedRow);
+                request,
+                "Successfully created " + request.getObjectType() + " with ID: " + entity.getId(),
+                savedRow);
         } catch (Exception e) {
             log.error("Error processing ADD action", e);
             return TableActionResponse.error(request, "Failed to add entity: " + e.getMessage());
@@ -134,7 +150,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Process an UPDATE action request
      */
     @Transactional
-    private <T extends AbstractStatusAwareEntity> TableActionResponse processUpdateAction(TableActionRequest request) {
+    public <T extends AbstractStatusAwareEntity> TableActionResponse processUpdateAction(TableActionRequest request) {
         try {
             // Get the entity ID from the request data
             Map<String, Object> data = request.getData().getData();
@@ -142,17 +158,16 @@ public class TableActionServiceImpl implements TableActionService {
                 return TableActionResponse.error(request, "Update request must include entity ID");
             }
 
-            Long id = Long.valueOf(data.get("id").toString());
-
-            // Get the entity class
             Class<T> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
+            Class<?> idType = (Class<?>) entityConverter.getIdType(entityClass);
+            Object id = objectMapper.convertValue(data.get("id"), idType);
 
             // Find the existing entity
             T existingEntity = entityManager.find(entityClass, id);
             if (existingEntity == null) {
                 return TableActionResponse.error(
-                        request,
-                        "Entity not found with ID: " + id);
+                    request,
+                    "Entity not found with ID: " + id);
             }
 
             // Update the entity fields
@@ -165,9 +180,9 @@ public class TableActionServiceImpl implements TableActionService {
             TableRow updatedRow = convertEntityToTableRow(existingEntity);
 
             return TableActionResponse.success(
-                    request,
-                    "Successfully updated " + request.getObjectType() + " with ID: " + id,
-                    updatedRow);
+                request,
+                "Successfully updated " + request.getObjectType() + " with ID: " + id,
+                updatedRow);
         } catch (Exception e) {
             log.error("Error processing UPDATE action", e);
             return TableActionResponse.error(request, "Failed to update entity: " + e.getMessage());
@@ -178,7 +193,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Process a DELETE action request
      */
     @Transactional
-    private <T extends AbstractStatusAwareEntity> TableActionResponse processDeleteAction(TableActionRequest request) {
+    public <T extends AbstractStatusAwareEntity> TableActionResponse processDeleteAction(TableActionRequest request) {
         try {
             // Get the entity ID from the request data
             Map<String, Object> data = request.getData().getData();
@@ -186,48 +201,57 @@ public class TableActionServiceImpl implements TableActionService {
                 return TableActionResponse.error(request, "Delete request must include entity ID");
             }
 
-            Long id = Long.valueOf(data.get("id").toString());
-
             // Get the entity class
             Class<T> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
+            Class<?> idType = (Class<?>) entityConverter.getIdType(entityClass);
+            Object id = objectMapper.convertValue(data.get("id"), idType);
 
             // Find the entity to delete
             T entityToDelete = entityManager.find(entityClass, id);
             if (entityToDelete == null) {
                 return TableActionResponse.error(
-                        request,
-                        "Entity not found with ID: " + id);
+                    request,
+                    "Entity not found with ID: " + id);
             }
 
             // For soft delete, we can set status to INACTIVE/DELETED instead of physically
             // removing
-            if (data.containsKey("softDelete") && Boolean.TRUE.equals(data.get("softDelete"))) {
-                entityToDelete.setStatus(CommonStatus.INACTIVE);
-                entityManager.merge(entityToDelete);
+            entityToDelete.setStatus(CommonStatus.DELETED);
+            entityManager.merge(entityToDelete);
 
-                return TableActionResponse.success(
-                        request,
-                        "Successfully deactivated " + request.getObjectType() + " with ID: " + id,
-                        convertEntityToTableRow(entityToDelete));
-            } else {
-                // Hard delete
-                entityManager.remove(entityToDelete);
-
-                // Create simple response row with just the ID
-                TableRow deletedRow = new TableRow();
-                Map<String, Object> responseData = new HashMap<>();
-                responseData.put("id", id);
-                deletedRow.setData(responseData);
-
-                return TableActionResponse.success(
-                        request,
-                        "Successfully deleted " + request.getObjectType() + " with ID: " + id,
-                        deletedRow);
-            }
+            return TableActionResponse.success(
+                request,
+                "Successfully deactivated " + request.getObjectType() + " with ID: " + id,
+                convertEntityToTableRow(entityToDelete));
 
         } catch (Exception e) {
             log.error("Error processing DELETE action", e);
             return TableActionResponse.error(request, "Failed to delete entity: " + e.getMessage());
+        }
+    }
+
+    // Add this new inner class to help with column ordering
+    private static class ColumnMapping {
+        private final String displayName;
+        private final String fieldKey;
+        private final int columnIndex;
+
+        public ColumnMapping(String displayName, String fieldKey, int columnIndex) {
+            this.displayName = displayName;
+            this.fieldKey = fieldKey;
+            this.columnIndex = columnIndex;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        public String getFieldKey() {
+            return fieldKey;
+        }
+
+        public int getColumnIndex() {
+            return columnIndex;
         }
     }
 
@@ -236,58 +260,173 @@ public class TableActionServiceImpl implements TableActionService {
      */
     private TableActionResponse processExportAction(TableActionRequest request) {
         try {
-            // First fetch the data to export using TableDataService
-            TableFetchRequest fetchRequest = new TableFetchRequest();
-            fetchRequest.setObjectType(request.getObjectType());
-            fetchRequest.setEntityName(request.getEntityName());
-            fetchRequest.setPage(0);
-            // Setting a large page size for export
-            fetchRequest.setSize(10000);
-            fetchRequest.setSorts(request.getSorts());
-            fetchRequest.setFilters(request.getFilters());
-            fetchRequest.setSearch(request.getSearch());
+            // Generate a unique filename with timestamp
+            String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
+            String baseFilename = request.getObjectType() + "_" + timestamp;
+            String extractingFilename = baseFilename + ".extracting.xlsx";
+            String completeFilename = baseFilename + ".xlsx";
+            String failedFilename = baseFilename + ".failed.txt";
 
-            TableFetchResponse fetchResponse = tableDataService.fetchData(fetchRequest);
-
-            if (fetchResponse.getStatus() != FetchStatus.SUCCESS &&
-                    fetchResponse.getStatus() != FetchStatus.NO_DATA) {
-                return TableActionResponse.error(
-                        request,
-                        "Failed to fetch data for export: " + fetchResponse.getMessage());
+            // Use the configured path from properties
+            Path tempDir = fileStorageProperties.getExportsPath();
+            if (!Files.exists(tempDir)) {
+                Files.createDirectories(tempDir);
             }
 
-            // Create Excel workbook
-            try (Workbook workbook = new XSSFWorkbook()) {
-                Sheet sheet = workbook.createSheet(request.getObjectType().toString());
+            Path extractingFilePath = tempDir.resolve(extractingFilename);
+            Path completeFilePath = tempDir.resolve(completeFilename);
+            Path failedFilePath = tempDir.resolve(failedFilename);
 
-                // Create header row with column names
-                Map<String, String> columnMap = createHeaderRow(workbook, sheet, fetchResponse);
+            // Create a CompletableFuture for the export operation
+            CompletableFuture.runAsync(() -> {
+                try {
+                    // First fetch the data to export using TableDataService
+                    TableFetchRequest fetchRequest = new TableFetchRequest();
+                    fetchRequest.setObjectType(request.getObjectType());
+                    fetchRequest.setEntityName(request.getEntityName());
+                    fetchRequest.setPage(0);
+                    // Remove the row limit to export all data
+                    fetchRequest.setSize(Integer.MAX_VALUE);
+                    fetchRequest.setSorts(request.getSorts());
+                    fetchRequest.setFilters(request.getFilters());
+                    fetchRequest.setSearch(request.getSearch());
 
-                // Add data rows
-                addDataRows(workbook, sheet, fetchResponse, columnMap);
+                    TableFetchResponse fetchResponse = tableDataService.fetchData(fetchRequest);
 
-                // Auto-size columns
-                for (int i = 0; i < columnMap.size(); i++) {
-                    sheet.autoSizeColumn(i);
+                    if (fetchResponse.getStatus() != FetchStatus.SUCCESS &&
+                        fetchResponse.getStatus() != FetchStatus.NO_DATA) {
+                        throw new RuntimeException("Failed to fetch data for export: " + fetchResponse.getMessage());
+                    }
+
+                    // Create Excel workbook
+                    try (FileOutputStream outputStream = new FileOutputStream(extractingFilePath.toFile());
+                         Workbook workbook = new XSSFWorkbook()) {
+
+                        Sheet sheet = workbook.createSheet(request.getObjectType().toString());
+
+                        // Create header row with column names
+                        List<ColumnMapping> columnMappings = createHeaderRow(workbook, sheet, fetchResponse);
+
+                        // Add data rows
+                        addDataRows(workbook, sheet, fetchResponse, columnMappings);
+
+                        // Auto-size columns
+                        for (ColumnMapping mapping : columnMappings) {
+                            sheet.autoSizeColumn(mapping.getColumnIndex());
+                        }
+
+                        // Write to temporary file
+                        workbook.write(outputStream);
+                    }
+
+                    // If successful, rename to final filename
+                    Files.move(extractingFilePath, completeFilePath, StandardCopyOption.REPLACE_EXISTING);
+                    log.info("Export completed successfully: {}", completeFilePath);
+
+                } catch (Exception e) {
+                    // If an error occurs, create error file with details
+                    log.error("Error processing export in background", e);
+                    try {
+                        Files.writeString(failedFilePath, "Export failed: " + e.getMessage(), StandardCharsets.UTF_8);
+                        // Clean up extracting file if it exists
+                        if (Files.exists(extractingFilePath)) {
+                            Files.delete(extractingFilePath);
+                        }
+                    } catch (IOException ioe) {
+                        log.error("Error writing failure file", ioe);
+                    }
+                }
+            });
+
+            // Create the download info for immediate response
+            UploadFile downloadFile = new UploadFile();
+            downloadFile.setFileName(completeFilename);
+
+            // Return response immediately
+            return new TableActionResponse(
+                request,
+                FetchStatus.PROCESSING, // Use a processing status
+                "Export started. File will be available for download when ready.",
+                null, // No row data needed
+                downloadFile);
+
+        } catch (Exception e) {
+            log.error("Error initiating export action", e);
+            return TableActionResponse.error(request, "Failed to start export: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Create a header row in the Excel sheet
+     */
+    private List<ColumnMapping> createHeaderRow(Workbook workbook, Sheet sheet, TableFetchResponse response) {
+        List<ColumnMapping> columnMappings = new ArrayList<>();
+
+        // Create header style
+        CellStyle headerStyle = workbook.createCellStyle();
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+
+        // Create header row
+        Row headerRow = sheet.createRow(0);
+
+        // First collect all column keys from response
+        if (response.getFieldNameMap() != null) {
+            int colIndex = 0;
+            for (Map.Entry<String, ColumnInfo> entry : response.getFieldNameMap()
+                .entrySet()) {
+
+                // Skip complex object fields
+                if ("OBJECT".equals(entry.getValue().getFieldType())) {
+                    continue;
                 }
 
-                // Write to byte array
-                ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-                workbook.write(outputStream);
+                String columnKey = entry.getKey();
+                String displayName = entry.getValue().getFieldName();
 
-                // Create the download file
-                UploadFile downloadFile = new UploadFile();
+                // Create header cell
+                Cell cell = headerRow.createCell(colIndex);
+                cell.setCellValue(displayName);
+                cell.setCellStyle(headerStyle);
 
-                // Generate a filename with timestamp
-                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"));
-                downloadFile.setFileName(request.getObjectType() + "_" + timestamp + ".xlsx");
-                downloadFile.setFileContent(outputStream.toByteArray());
-
-                return TableActionResponse.withFile(request, downloadFile);
+                // Add to ordered column mappings list
+                columnMappings.add(new ColumnMapping(displayName, columnKey, colIndex));
+                colIndex++;
             }
-        } catch (Exception e) {
-            log.error("Error processing EXPORT action", e);
-            return TableActionResponse.error(request, "Failed to export data: " + e.getMessage());
+        }
+        return columnMappings;
+    }
+
+    /**
+     * Add data rows to the Excel sheet
+     */
+    private void addDataRows(Workbook workbook, Sheet sheet,
+                            TableFetchResponse response, List<ColumnMapping> columnMappings) {
+
+        // Create normal style for data
+        CellStyle dataStyle = workbook.createCellStyle();
+
+        // Create date style for date fields
+        CellStyle dateStyle = workbook.createCellStyle();
+        dateStyle.setDataFormat(workbook.createDataFormat().getFormat("yyyy-mm-dd"));
+
+        // Add data rows
+        int rowIndex = 1;
+        if (response.getRows() != null) {
+            for (TableRow tableRow : response.getRows()) {
+                Row row = sheet.createRow(rowIndex++);
+
+                // Add cells for each column in the same order as the headers
+                for (ColumnMapping mapping : columnMappings) {
+                    Cell cell = row.createCell(mapping.getColumnIndex());
+                    
+                    // Get value from tableRow data using the field key
+                    Object value = tableRow.getData().get(mapping.getFieldKey());
+                    
+                    setCellValue(cell, value);
+                }
+            }
         }
     }
 
@@ -295,12 +434,12 @@ public class TableActionServiceImpl implements TableActionService {
      * Process an IMPORT action request
      */
     @Transactional
-    private <T extends AbstractStatusAwareEntity> TableActionResponse processImportAction(TableActionRequest request) {
+    public <T extends AbstractStatusAwareEntity> TableActionResponse processImportAction(TableActionRequest request) {
         try {
             // Check if we have an upload file
             if (request.getUploadFile() == null ||
-                    request.getUploadFile().getFileContent() == null ||
-                    request.getUploadFile().getFileContent().length == 0) {
+                request.getUploadFile().getFileContent() == null ||
+                request.getUploadFile().getFileContent().length == 0) {
                 return TableActionResponse.error(request, "Import request must include a file");
             }
 
@@ -324,8 +463,8 @@ public class TableActionServiceImpl implements TableActionService {
 
             // Parse the Excel file
             List<Map<String, Object>> importedRecords = parseExcelFile(
-                    request.getUploadFile().getFileContent(),
-                    columnMapping);
+                request.getUploadFile().getFileContent(),
+                columnMapping);
 
             // Process the imported records
             List<T> savedEntities = new ArrayList<>();
@@ -343,8 +482,8 @@ public class TableActionServiceImpl implements TableActionService {
 
             // Create response
             String message = String.format(
-                    "Import completed. Imported %d records successfully. %d records failed.",
-                    savedEntities.size(), errors.size());
+                "Import completed. Imported %d records successfully. %d records failed.",
+                savedEntities.size(), errors.size());
 
             // Add first error if any
             if (!errors.isEmpty()) {
@@ -360,11 +499,11 @@ public class TableActionServiceImpl implements TableActionService {
             resultRow.setData(resultData);
 
             return new TableActionResponse(
-                    request,
-                    errors.isEmpty() ? FetchStatus.SUCCESS : FetchStatus.ERROR,
-                    message,
-                    resultRow,
-                    null);
+                request,
+                errors.isEmpty() ? FetchStatus.SUCCESS : FetchStatus.ERROR,
+                message,
+                resultRow,
+                null);
         } catch (Exception e) {
             log.error("Error processing IMPORT action", e);
             return TableActionResponse.error(request, "Failed to import data: " + e.getMessage());
@@ -391,98 +530,21 @@ public class TableActionServiceImpl implements TableActionService {
 
             // If we found data, return the first row
             if (fetchResponse.getStatus() == FetchStatus.SUCCESS &&
-                    fetchResponse.getRows() != null &&
-                    !fetchResponse.getRows().isEmpty()) {
+                fetchResponse.getRows() != null &&
+                !fetchResponse.getRows().isEmpty()) {
 
                 return TableActionResponse.success(
-                        request,
-                        "Successfully fetched " + request.getObjectType(),
-                        fetchResponse.getRows().get(0));
+                    request,
+                    "Successfully fetched " + request.getObjectType(),
+                    fetchResponse.getRows().get(0));
             } else {
                 return TableActionResponse.error(
-                        request,
-                        "No data found for the given criteria");
+                    request,
+                    "No data found for the given criteria");
             }
         } catch (Exception e) {
             log.error("Error processing VIEW action", e);
             return TableActionResponse.error(request, "Failed to view entity: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Create a header row in the Excel sheet
-     */
-    private Map<String, String> createHeaderRow(Workbook workbook, Sheet sheet, TableFetchResponse response) {
-        Map<String, String> columnMap = new HashMap<>();
-
-        // Create header style
-        CellStyle headerStyle = workbook.createCellStyle();
-        Font headerFont = workbook.createFont();
-        headerFont.setBold(true);
-        headerStyle.setFont(headerFont);
-
-        // Create header row
-        Row headerRow = sheet.createRow(0);
-
-        // First collect all column keys from response
-        if (response.getFieldNameMap() != null) {
-            int colIndex = 0;
-            for (Map.Entry<String, vn.com.fecredit.app.service.dto.ColumnInfo> entry : response.getFieldNameMap()
-                    .entrySet()) {
-
-                // Skip complex object fields
-                if ("OBJECT".equals(entry.getValue().getFieldType())) {
-                    continue;
-                }
-
-                String columnKey = entry.getKey();
-                String displayName = entry.getValue().getFieldName();
-
-                // Create header cell
-                Cell cell = headerRow.createCell(colIndex++);
-                cell.setCellValue(displayName);
-                cell.setCellStyle(headerStyle);
-
-                // Map display name to field key
-                columnMap.put(displayName, columnKey);
-            }
-        }
-        return columnMap;
-    }
-
-    /**
-     * Add data rows to the Excel sheet
-     */
-    private void addDataRows(Workbook workbook, Sheet sheet,
-            TableFetchResponse response, Map<String, String> columnMap) {
-
-        // Create normal style for data
-        CellStyle dataStyle = workbook.createCellStyle();
-
-        // Create date style for date fields
-        CellStyle dateStyle = workbook.createCellStyle();
-        dateStyle.setDataFormat(workbook.createDataFormat().getFormat("yyyy-mm-dd"));
-
-        // Add data rows
-        int rowIndex = 1;
-        if (response.getRows() != null) {
-            for (TableRow tableRow : response.getRows()) {
-                Row row = sheet.createRow(rowIndex++);
-
-                // Add cells for each column
-                int colIndex = 0;
-                for (Map.Entry<String, String> entry : columnMap.entrySet()) {
-                    String displayName = entry.getKey();
-                    String fieldName = entry.getValue();
-
-                    Cell cell = row.createCell(colIndex++);
-
-                    // Get value from tableRow data
-                    Object value = tableRow.getData().get(fieldName);
-
-                    setCellValue(cell, value);
-                }
-            }
         }
     }
 
@@ -586,7 +648,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Create an entity from TableRow data
      */
     private <T extends AbstractStatusAwareEntity> T createEntityFromData(
-            TableRow tableRow, Class<T> entityClass) throws Exception {
+        TableRow tableRow, Class<T> entityClass) throws Exception {
 
         if (tableRow == null || tableRow.getData() == null) {
             throw new IllegalArgumentException("Entity data cannot be null");
@@ -599,7 +661,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Create an entity from a map of field values
      */
     private <T extends AbstractStatusAwareEntity> T createEntityFromMap(
-            Map<String, Object> data, Class<T> entityClass) throws Exception {
+        Map<String, Object> data, Class<T> entityClass) throws Exception {
 
         T entity = entityClass.getDeclaredConstructor().newInstance();
 
@@ -613,7 +675,7 @@ public class TableActionServiceImpl implements TableActionService {
      * Update entity fields from TableRow data
      */
     private <T extends AbstractStatusAwareEntity> void updateEntityFromData(
-            T entity, TableRow tableRow, Class<T> entityClass) throws Exception {
+        T entity, TableRow tableRow, Class<T> entityClass) throws Exception {
 
         if (tableRow == null || tableRow.getData() == null) {
             throw new IllegalArgumentException("Update data cannot be null");
@@ -638,7 +700,7 @@ public class TableActionServiceImpl implements TableActionService {
                 Object value = data.get(fieldName);
 
                 // Skip null values and id field for existing entities
-                if (value == null || (fieldName.equals("id") && value.toString().isEmpty())) {
+                if (value == null || fieldName.equals("id")) {
                     continue;
                 }
 
@@ -702,7 +764,7 @@ public class TableActionServiceImpl implements TableActionService {
         } else if (fieldType.isEnum()) {
             // Handle enum conversion
             try {
-                @SuppressWarnings({ "unchecked", "rawtypes" })
+                @SuppressWarnings({"unchecked", "rawtypes"})
                 Object enumValue = Enum.valueOf((Class<Enum>) fieldType, stringValue);
                 return enumValue;
             } catch (Exception e) {
@@ -750,10 +812,10 @@ public class TableActionServiceImpl implements TableActionService {
 
                 // Skip complex objects
                 if (value != null &&
-                        !isPrimitiveOrWrapper(field.getType()) &&
-                        !field.getType().equals(String.class) &&
-                        !field.getType().isEnum() &&
-                        !(value instanceof LocalDateTime)) {
+                    !isPrimitiveOrWrapper(field.getType()) &&
+                    !field.getType().equals(String.class) &&
+                    !field.getType().isEnum() &&
+                    !(value instanceof LocalDateTime)) {
                     continue;
                 }
 
@@ -774,14 +836,14 @@ public class TableActionServiceImpl implements TableActionService {
      */
     private boolean isPrimitiveOrWrapper(Class<?> type) {
         return type.isPrimitive() ||
-                type == Integer.class ||
-                type == Long.class ||
-                type == Float.class ||
-                type == Double.class ||
-                type == Boolean.class ||
-                type == Character.class ||
-                type == Byte.class ||
-                type == Short.class;
+            type == Integer.class ||
+            type == Long.class ||
+            type == Float.class ||
+            type == Double.class ||
+            type == Boolean.class ||
+            type == Character.class ||
+            type == Byte.class ||
+            type == Short.class;
     }
 
 

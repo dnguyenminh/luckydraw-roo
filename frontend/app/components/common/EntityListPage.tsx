@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
 import ShellLayout from '../VSCodeLayout/ShellLayout';
-import DataTable from './DataTable';
+import DataTable, { ActionDef } from './DataTable'; // Import ActionDef type
 import { fetchTableData } from '@/app/lib/api/tableService';
 import { ObjectType, TableFetchRequest, TableFetchResponse, SortType, DataObject } from '@/app/lib/api/interfaces';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,6 +26,9 @@ interface EntityListPageProps {
   tabs?: { id: string; label: string }[];
   addButtonLabel?: string;
   onAddButtonClick?: () => void;
+  actions?: ActionDef[]; // These are row-level actions for the DataTable
+  showSearchBox?: boolean; // Add prop to control search box visibility
+  actionButtons?: React.ReactNode; // These are page-level actions for the header
 }
 
 export default function EntityListPage({
@@ -37,6 +40,9 @@ export default function EntityListPage({
   tabs = [],
   addButtonLabel,
   onAddButtonClick,
+  actions, // Extract actions parameter
+  showSearchBox = false,
+  actionButtons, // Extract actionButtons parameter
 }: EntityListPageProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -152,15 +158,20 @@ export default function EntityListPage({
             {description && <p className="text-gray-400 mt-1">{description}</p>}
           </div>
 
-          {addButtonLabel && (
-            <button
-              onClick={onAddButtonClick}
-              className="bg-[#007acc] text-white px-3 py-2 rounded flex items-center hover:bg-[#0069ac]"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {addButtonLabel}
-            </button>
-          )}
+          {/* Page-level actions rendered in the header */}
+          <div className="flex gap-2">
+            {actionButtons}
+            
+            {!actionButtons && addButtonLabel && (
+              <button
+                onClick={onAddButtonClick}
+                className="bg-[#007acc] text-white px-3 py-2 rounded flex items-center hover:bg-[#0069ac]"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                {addButtonLabel}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -229,10 +240,8 @@ export default function EntityListPage({
               data={tableData}
               entityType={entityType}
               showDetailView={true}
-              // addItemButton={addButtonLabel ? {
-              //   label: addButtonLabel,
-              //   onClick: onAddButtonClick || (() => { }),
-              // } : false}
+              actions={actions} // Row-level actions passed to DataTable
+              showSearchBox={showSearchBox} // Pass showSearchBox prop
             />
           )}
         </div>
