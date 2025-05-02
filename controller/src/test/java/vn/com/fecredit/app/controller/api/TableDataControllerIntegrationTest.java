@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import vn.com.fecredit.app.ControllerTestApplication;
 import vn.com.fecredit.app.controller.config.MockJwtTokenProvider;
-import vn.com.fecredit.app.controller.util.EntityUtils;
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.Participant;

@@ -27,7 +27,6 @@ import vn.com.fecredit.app.entity.RewardEvent;
 import vn.com.fecredit.app.entity.RewardEventKey;
 import vn.com.fecredit.app.entity.SpinHistory;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
-import vn.com.fecredit.app.repository.util.TestEntityHelper;
 
 class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
 
