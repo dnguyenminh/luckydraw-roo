@@ -58,7 +58,7 @@ public class EntityAuditEvent extends ApplicationEvent {
      * @param actionType The type of action performed
      */
     public EntityAuditEvent(
-            AbstractStatusAwareEntity entity,
+            AbstractStatusAwareEntity<?> entity,
             String entityType, 
             Serializable entityId, 
             List<FieldChange> changes, 

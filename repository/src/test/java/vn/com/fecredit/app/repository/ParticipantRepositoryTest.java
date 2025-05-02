@@ -73,7 +73,11 @@ class ParticipantRepositoryTest extends AbstractRepositoryTest {
         Province province = Province.builder()
                 .name("Test Province")
                 .code("TEST_PROV")
-                .region(region)
+                .regions(new HashSet<>() {
+                    {
+                        add(region);
+                    }
+                })
                 .status(CommonStatus.ACTIVE)
                 .version(0L)
                 .createdAt(now) // Set createdAt timestamp

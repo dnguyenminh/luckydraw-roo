@@ -10,20 +10,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.metamodel.EntityType;
 import jakarta.persistence.metamodel.Metamodel;
 import jakarta.persistence.metamodel.SingularAttribute;
 import lombok.AllArgsConstructor;
-import org.springframework.context.event.EventListener;
-import org.springframework.stereotype.Component;
-
 import vn.com.fecredit.app.entity.AuditLog;
-import vn.com.fecredit.app.entity.Event;
-import vn.com.fecredit.app.entity.Participant;
-import vn.com.fecredit.app.entity.Province;
-import vn.com.fecredit.app.entity.Region;
-import vn.com.fecredit.app.entity.Reward;
 import vn.com.fecredit.app.entity.base.SerializableKey;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.entity.event.EntityAuditEvent;
@@ -42,7 +37,7 @@ public class AuditEventListener {
 
     private final AuditLogRepository auditLogRepository;
 
-    private final EntityManager entityManager;
+    // private final EntityManager entityManager;
 
 //    /**
 //     * Constructor with required repository
@@ -227,7 +222,9 @@ public class AuditEventListener {
                 String key = escapeString(entry.getKey());
                 Object value = entry.getValue();
                 if (value instanceof Map) {
-                    return "\"" + key + "\":" + serializeMap((Map<String, Object>) value);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> mapValue = (Map<String, Object>) value;
+                    return "\"" + key + "\":" + serializeMap(mapValue);
                 } else if (value instanceof String) {
                     return "\"" + key + "\":\"" + escapeString((String) value) + "\"";
                 } else if (value == null) {
@@ -255,7 +252,7 @@ public class AuditEventListener {
 
         int depth = 0;
         int start = 0;
-        String currentKey = null;
+        // String currentKey = null;
         boolean inQuotes = false;
         List<String> parts = new ArrayList<>();
 

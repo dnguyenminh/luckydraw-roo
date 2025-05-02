@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import vn.com.fecredit.app.entity.AuditLog;
@@ -106,7 +107,6 @@ public interface AuditLogRepository extends AbstractRepository<AuditLog, Long> {
      * @return page of audit logs
      */
     Page<AuditLog> findByObjectTypeAndStatus(String objectType, CommonStatus status, Pageable pageable);
-
     /**
      * Find all audit logs with pagination.
      *
@@ -114,7 +114,8 @@ public interface AuditLogRepository extends AbstractRepository<AuditLog, Long> {
      * @return page of audit logs
      */
     @Override
-    Page<AuditLog> findAll(Pageable pageable);
+    @NonNull
+    Page<AuditLog> findAll(@NonNull Pageable pageable);
 
     /**
      * Find audit logs by object type with pagination.

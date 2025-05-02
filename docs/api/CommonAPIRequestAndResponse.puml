@@ -91,6 +91,7 @@ namespace vn.com.fecredit.app.service.dto {
         List<SortRequest> sorts
         List<FilterRequest> filters
         Map<ObjectType, DataObject> search
+        Map<String, ColumnInfo> viewColumns
     }
 
     class TableFetchResponse {
@@ -125,6 +126,7 @@ namespace vn.com.fecredit.app.service.dto {
     }
 
     class ColumnInfo {
+        ObjectType objectType
         String fieldName
         String fieldType
         SortType sortType

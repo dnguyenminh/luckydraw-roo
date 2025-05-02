@@ -28,7 +28,6 @@ class GoldenHourTest {
     private Event event;
     private EventLocation location;
     private LocalDateTime now;
-    @SuppressWarnings("unused") // Field used for test setup
     private Province province;
     private Region region; // Added missing field declaration
 
@@ -57,9 +56,13 @@ class GoldenHourTest {
                 .code("TEST_PROV")
                 .name("Test Province")
                 .status(CommonStatus.ACTIVE)
-                .region(region)
+                .regions(new HashSet<>() {
+                    {
+                        add(region);
+                    }
+                })
                 .build();
-
+        region.addProvince(province);
         location = EventLocation.builder()
                 .status(CommonStatus.ACTIVE)
                 .region(region)
@@ -107,9 +110,9 @@ class GoldenHourTest {
     void testOverlaps() {
         // Same time window
         GoldenHour other = goldenHour.toBuilder()
-            .startTime(goldenHour.getStartTime())
-            .endTime(goldenHour.getEndTime())
-            .build();
+                .startTime(goldenHour.getStartTime())
+                .endTime(goldenHour.getEndTime())
+                .build();
         assertTrue(goldenHour.overlaps(other));
 
         // Overlapping windows

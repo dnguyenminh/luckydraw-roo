@@ -18,8 +18,6 @@ import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.EventLocationKey;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.Reward;
-import vn.com.fecredit.app.entity.RewardEvent;
-import vn.com.fecredit.app.entity.RewardEventKey;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class RewardRepositoryTest extends AbstractRepositoryTest {
@@ -99,6 +97,7 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
         eventLocation.setCreatedAt(now);
         eventLocation.setUpdatedAt(now);
         entityManager.persist(eventLocation);
+        entityManager.flush();
         
         // Create active reward
         activeReward = Reward.builder()
@@ -114,26 +113,6 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .build();
         entityManager.persist(activeReward);
         
-        // Create RewardEvent for active reward
-        RewardEventKey activeRewardEventKey = new RewardEventKey();
-        activeRewardEventKey.setEventLocationKey(eventLocation.getId());
-        activeRewardEventKey.setRewardId(activeReward.getId());
-        
-        RewardEvent activeRewardEvent = RewardEvent.builder()
-            .eventLocation(eventLocation)
-            .reward(activeReward)
-            .quantity(10)
-            .todayQuantity(5)
-            .status(CommonStatus.ACTIVE)
-            .version(0L)
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
-        activeRewardEvent.setId(activeRewardEventKey);
-        entityManager.persist(activeRewardEvent);
-        
         // Create inactive reward
         inactiveReward = Reward.builder()
             .name("Inactive Reward")
@@ -147,26 +126,42 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .updatedBy("test-user")
             .build();
         entityManager.persist(inactiveReward);
+        entityManager.flush();
         
-        // Create RewardEvent for inactive reward
-        RewardEventKey inactiveRewardEventKey = new RewardEventKey();
-        inactiveRewardEventKey.setEventLocationKey(eventLocation.getId());
-        inactiveRewardEventKey.setRewardId(inactiveReward.getId());
-        
-        RewardEvent inactiveRewardEvent = RewardEvent.builder()
-            .eventLocation(eventLocation)
-            .reward(inactiveReward)
-            .quantity(5)
-            .todayQuantity(2)
-            .status(CommonStatus.INACTIVE)
-            .version(0L)
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
-        inactiveRewardEvent.setId(inactiveRewardEventKey);
-        entityManager.persist(inactiveRewardEvent);
+        // Use native SQL to insert RewardEvents directly to avoid JPA issues
+        entityManager.createNativeQuery(
+            "INSERT INTO reward_events (event_id, region_id, reward_id, created_at, created_by, " +
+            "updated_at, updated_by, status, quantity, today_quantity, version) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .setParameter(1, event.getId())
+            .setParameter(2, region.getId())
+            .setParameter(3, activeReward.getId())
+            .setParameter(4, now)
+            .setParameter(5, "test-user")
+            .setParameter(6, now)
+            .setParameter(7, "test-user")
+            .setParameter(8, CommonStatus.ACTIVE.name())
+            .setParameter(9, 10)
+            .setParameter(10, 5)
+            .setParameter(11, 0L)
+            .executeUpdate();
+
+        entityManager.createNativeQuery(
+            "INSERT INTO reward_events (event_id, region_id, reward_id, created_at, created_by, " +
+            "updated_at, updated_by, status, quantity, today_quantity, version) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .setParameter(1, event.getId())
+            .setParameter(2, region.getId())
+            .setParameter(3, inactiveReward.getId())
+            .setParameter(4, now)
+            .setParameter(5, "test-user")
+            .setParameter(6, now)
+            .setParameter(7, "test-user")
+            .setParameter(8, CommonStatus.INACTIVE.name())
+            .setParameter(9, 5)
+            .setParameter(10, 2)
+            .setParameter(11, 0L)
+            .executeUpdate();
         
         entityManager.flush();
         entityManager.clear();

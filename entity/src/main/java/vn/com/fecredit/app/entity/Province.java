@@ -9,11 +9,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -27,11 +27,10 @@ import vn.com.fecredit.app.entity.base.StatusAware;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
- * Entity representing a province or administrative division within a region.
+ * Entity representing a province or administrative division within regions.
  * <p>
- * Provinces are geographical subdivisions of regions that help organize participants
- * and track regional participation statistics. Each province belongs to exactly one
- * region and contains multiple participants.
+ * Provinces are geographical subdivisions that can belong to multiple regions and 
+ * help organize participants and track regional participation statistics.
  * </p>
  * <p>
  * The province hierarchy allows for detailed geographical analysis of participation
@@ -41,14 +40,13 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
 @Entity
 @Table(name = "provinces", indexes = {
         @Index(name = "idx_province_code", columnList = "code", unique = true),
-        @Index(name = "idx_province_region", columnList = "region_id"),
         @Index(name = "idx_province_status", columnList = "status")
 })
 @Data
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = { "region", "participants" })
+@ToString(callSuper = true, exclude = { "regions", "participants" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Province extends AbstractSimplePersistableEntity<Long> {
 
@@ -77,13 +75,17 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
     private String description;
 
     /**
-     * The region this province belongs to
-     * Represents the parent geographical entity containing this province
+     * The regions this province belongs to
+     * Represents the parent geographical entities containing this province
      */
-    @NotNull(message = "Region is required")
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "region_id", nullable = false)
-    private Region region;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "region_province",
+        joinColumns = @JoinColumn(name = "province_id"),
+        inverseJoinColumns = @JoinColumn(name = "region_id")
+    )
+    @Builder.Default
+    private Set<Region> regions = new HashSet<>();
 
     /**
      * Collection of participants residing in this province
@@ -118,6 +120,33 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
     }
 
     /**
+     * Add a region to this province with bidirectional relationship
+     *
+     * @param region the region to add
+     */
+    public void addRegion(Region region) {
+        if (region != null) {
+            regions.add(region);
+            if (!region.getProvinces().contains(this)) {
+                region.getProvinces().add(this);
+            }
+        }
+    }
+
+    /**
+     * Remove a region from this province
+     *
+     * @param region the region to remove
+     */
+    public void removeRegion(Region region) {
+        if (region != null && regions.remove(region)) {
+            if (region.getProvinces().contains(this)) {
+                region.getProvinces().remove(this);
+            }
+        }
+    }
+
+    /**
      * Set status with proper cascading to related entities
      * 
      * @param status the new status
@@ -136,18 +165,6 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
             if (participants != null) {
                 participants.forEach(participant -> participant.setStatus(CommonStatus.INACTIVE));
             }
-
-            // Check if this is the last active province in the region
-            if (region != null && region.getProvinces() != null) {
-                boolean anyOtherActiveProvinces = region.getProvinces().stream()
-                        .filter(p -> !p.equals(this)) // Exclude this province
-                        .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
-
-                if (!anyOtherActiveProvinces && region.getStatus() != null && region.getStatus().isActive()) {
-                    // Deactivate region if no other active provinces
-                    region.setStatus(CommonStatus.INACTIVE);
-                }
-            }
         }
 
         return this;
@@ -159,10 +176,6 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {
-        if (region == null) {
-            throw new IllegalStateException("Region must be specified");
-        }
-
         if (code != null) {
             code = code.toUpperCase();
         }
@@ -179,17 +192,15 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
     }
 
     /**
-     * Creates a new Province with the specified name, code and region.
+     * Creates a new Province with the specified name and code.
      * The province will be set to ACTIVE status by default.
      *
-     * @param name   the name of the province
-     * @param code   the unique code for the province
-     * @param region the region to which this province belongs
+     * @param name the name of the province
+     * @param code the unique code for the province
      */
-    public Province(String name, String code, Region region) {
+    public Province(String name, String code) {
         this.name = name;
         this.code = code;
-        this.region = region;
         this.setStatus(CommonStatus.ACTIVE);
     }
 
@@ -200,17 +211,13 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
      * @return this province entity after validation
      * @throws IllegalArgumentException if required fields are missing or invalid
      */
-    public AbstractStatusAwareEntity validate() {
+    public AbstractStatusAwareEntity<Long> validate() {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Province name cannot be empty");
         }
 
         if (code == null || code.trim().isEmpty()) {
             throw new IllegalArgumentException("Province code cannot be empty");
-        }
-
-        if (region == null) {
-            throw new IllegalArgumentException("Region cannot be null");
         }
 
         // Normalize code to uppercase
@@ -223,8 +230,15 @@ public class Province extends AbstractSimplePersistableEntity<Long> {
 
     public void deactivate() {
         super.deactivate();
-        if (region != null && region.getStatus() == CommonStatus.INACTIVE) {
-            throw new IllegalStateException("Cannot activate province with inactive region");
+        // Check if all regions are inactive
+        boolean allRegionsInactive = true;
+        if (regions != null && !regions.isEmpty()) {
+            allRegionsInactive = regions.stream()
+                .allMatch(region -> region.getStatus() == CommonStatus.INACTIVE);
+        }
+        
+        if (!allRegionsInactive) {
+            throw new IllegalStateException("Cannot deactivate province when it belongs to active regions");
         }
     }
 }

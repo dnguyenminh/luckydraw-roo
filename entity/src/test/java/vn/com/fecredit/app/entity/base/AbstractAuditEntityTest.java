@@ -193,7 +193,7 @@ class AbstractAuditEntityTest extends BaseEntityTest {
         }
 
         @Override
-        public AbstractAuditEntity setUpdatedAt(LocalDateTime updatedAt) {
+        public AbstractAuditEntity<Long> setUpdatedAt(LocalDateTime updatedAt) {
             lock.writeLock().lock();
             try {
                 super.setUpdatedAt(updatedAt);

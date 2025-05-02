@@ -2,6 +2,7 @@ package vn.com.fecredit.app.service.validation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -81,9 +82,10 @@ public class TableFetchRequestValidatorTest {
 
         Errors errors = new BeanPropertyBindingResult(request, "request");
         validator.validate(request, errors);
-
         assertTrue(errors.hasErrors());
-        assertTrue(errors.getAllErrors().get(0).getDefaultMessage().contains("Entity name must be one of"));
+        String errorMessage = errors.getAllErrors().get(0).getDefaultMessage();
+        assertNotNull(errorMessage);
+        assertTrue(errorMessage.contains("Entity name must be one of"));
     }
 
     @Test
@@ -98,8 +100,10 @@ public class TableFetchRequestValidatorTest {
         validator.validate(request, errors);
 
         assertTrue(errors.hasErrors());
+        var pageError = errors.getFieldError("page");
+        assertNotNull(pageError, "Should have error on page field");
         assertEquals("Page number must be non-negative",
-                errors.getFieldError("page").getDefaultMessage());
+                pageError.getDefaultMessage());
     }
 
     @Test
@@ -114,7 +118,9 @@ public class TableFetchRequestValidatorTest {
         validator.validate(request, errors);
 
         assertTrue(errors.hasErrors());
+        var sizeError = errors.getFieldError("size");
+        assertNotNull(sizeError, "Should have error on size field");
         assertEquals("Page size must be positive",
-                errors.getFieldError("size").getDefaultMessage());
+                sizeError.getDefaultMessage());
     }
 }

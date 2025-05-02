@@ -1,17 +1,28 @@
 package vn.com.fecredit.app.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
-
-import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.Set;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
 
 /**
  * Entity representing an individual who participates in events.
@@ -73,7 +84,7 @@ public class Participant extends AbstractSimplePersistableEntity<Long> {
      * Tracks the last number of spins added to this participant
      * Used for auditing and preventing abuse
      */
-    @Column(name = "lastAddingSpin")
+    @Column(name = "last_adding_spin")
     private int lastAddingSpin;
 
     /**

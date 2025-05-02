@@ -9,22 +9,21 @@ import java.util.UUID;
 
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.HttpMethod;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.config.FileStorageProperties;
 import vn.com.fecredit.app.service.TableActionService;
 import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ObjectType;
@@ -34,7 +33,6 @@ import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
 import vn.com.fecredit.app.service.dto.UploadFile;
-import vn.com.fecredit.app.config.FileStorageProperties;
 
 /**
  * REST controller for handling table data operations.
@@ -296,8 +294,8 @@ public class TableDataController {
             log.debug("Validating token: {} for file: {}", token, filename);
             log.debug("Active tokens in memory: {}", downloadTokens.keySet());
 
-            // Simple validation approach: verify token is a valid UUID format
-            UUID uuid = UUID.fromString(token);
+            // // Simple validation approach: verify token is a valid UUID format
+            // UUID uuid = UUID.fromString(token);
 
             // For file-based tokens, check against our filename-token mapping
             if (downloadTokens.containsKey(token)) {
@@ -311,13 +309,13 @@ public class TableDataController {
             // If the token is valid but not in memory, log it
             log.warn("Token {} not found in memory for file {}", token, filename);
 
-            // DEVELOPMENT MODE: For testing/development, we'll be more permissive
-            // In production, this should be removed and only use the strict validation above
-            boolean isDevelopment = true; // TODO: Use a proper environment check
-            if (isDevelopment) {
-                log.debug("Development mode: Accepting valid UUID token format");
-                return true;  // Accept any valid UUID format token in development
-            }
+            // // DEVELOPMENT MODE: For testing/development, we'll be more permissive
+            // // In production, this should be removed and only use the strict validation above
+            // boolean isDevelopment = true; // TO DO: Use a proper environment check
+            // if (isDevelopment) {
+            //     log.debug("Development mode: Accepting valid UUID token format");
+            //     return true;  // Accept any valid UUID format token in development
+            // }
 
             // For simple validation during development,
             // allow tokens that match the expected pattern

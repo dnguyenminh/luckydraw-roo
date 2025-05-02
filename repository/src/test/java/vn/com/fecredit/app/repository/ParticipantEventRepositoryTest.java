@@ -2,32 +2,30 @@ package vn.com.fecredit.app.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
-import java.math.BigDecimal;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.springframework.data.domain.Pageable;
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.EventLocationKey;
 import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.entity.ParticipantEvent;
 import vn.com.fecredit.app.entity.ParticipantEventKey;
-import vn.com.fecredit.app.entity.RewardEvent;
-import vn.com.fecredit.app.entity.RewardEventKey;
 import vn.com.fecredit.app.entity.Province;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.Reward;
+import vn.com.fecredit.app.entity.RewardEvent;
+import vn.com.fecredit.app.entity.RewardEventKey;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
@@ -106,7 +104,11 @@ class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
                 province = Province.builder()
                                 .name("Test Province")
                                 .code("TP1")
-                                .region(region)
+                                .regions(new HashSet<>() {
+                                    {
+                                        add(region);
+                                    }
+                                })
                                 .status(CommonStatus.ACTIVE)
                                 .participants(new HashSet<>())
                                 .build();
@@ -116,7 +118,8 @@ class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
                 province.setCreatedAt(now);
                 province.setUpdatedAt(now);
                 province = entityManager.merge(province);
-
+                region.getProvinces().add(province);
+                entityManager.merge(region);
                 // Create events
                 event1 = Event.builder()
                                 .name("Test Event 1")
@@ -303,12 +306,12 @@ class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
                 reward.setUpdatedAt(now);
                 entityManager.persist(reward);
                 entityManager.flush(); // Make sure the reward has an ID
-                
+
                 // Now create the RewardEvent with proper composite key
                 RewardEventKey rewardEventKey = new RewardEventKey();
                 rewardEventKey.setEventLocationKey(location1.getId());
                 rewardEventKey.setRewardId(reward.getId());
-                
+
                 RewardEvent rewardEvent = RewardEvent.builder()
                                 .eventLocation(location1)
                                 .reward(reward)
@@ -321,10 +324,10 @@ class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
                 rewardEvent.setUpdatedBy("test");
                 rewardEvent.setCreatedAt(now);
                 rewardEvent.setUpdatedAt(now);
-                
+
                 // Set bidirectional relationship
                 reward.getRewardEvents().add(rewardEvent);
-                
+
                 // Persist the RewardEvent
                 entityManager.persist(rewardEvent);
 

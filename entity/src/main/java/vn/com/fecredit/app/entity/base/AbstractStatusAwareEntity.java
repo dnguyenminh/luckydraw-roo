@@ -28,13 +28,13 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  * status management (like ACTIVE, INACTIVE, etc.). It implements status
  * lifecycle methods and status-based filtering capabilities.
  * </p>
- * 
+ *
  * <p>
  * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
  * annotation and is required by JPA for entity instantiation. This constructor
  * initializes a new entity with the default status (typically ACTIVE).
  * </p>
- * 
+ *
  * @param <T> The type of the identifier used by entities extending this class,
  *           must implement {@link Serializable}
  */
@@ -54,7 +54,7 @@ public abstract class AbstractStatusAwareEntity<T extends Serializable> extends 
     @Enumerated(EnumType.STRING)
     @Builder.Default
     private CommonStatus status = CommonStatus.ACTIVE;
-    
+
     /**
      * Temporary attributes for audit and other purposes
      * Not persisted to the database and not serialized
@@ -62,9 +62,10 @@ public abstract class AbstractStatusAwareEntity<T extends Serializable> extends 
     @Transient
     @ToString.Exclude
     private final Map<String, Object> temporaryAttributes = new ConcurrentHashMap<>();
-    
+
     /**
      * Set the status of this entity
+     *
      * @param status the new status
      * @return this entity for chaining
      */
@@ -73,34 +74,28 @@ public abstract class AbstractStatusAwareEntity<T extends Serializable> extends 
         this.status = status;
         return this;
     }
-    
+
     /**
      * Activate this entity by setting status to ACTIVE
      */
     public void activate() {
         this.status = CommonStatus.ACTIVE;
     }
-    
+
     /**
      * Deactivate this entity by setting status to INACTIVE
      */
     public void deactivate() {
         this.status = CommonStatus.INACTIVE;
     }
-    
+
     /**
      * Check if this entity is active
+     *
      * @return true if status is ACTIVE
      */
     public boolean isActive() {
         return status != null && CommonStatus.ACTIVE.equals(status);
     }
-    
-    /**
-     * Get temporary attributes for this entity instance
-     * @return map of temporary attributes
-     */
-    public Map<String, Object> getTemporaryAttributes() {
-        return temporaryAttributes;
-    }
+
 }

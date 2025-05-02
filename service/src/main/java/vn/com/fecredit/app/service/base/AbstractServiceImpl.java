@@ -1,5 +1,6 @@
 package vn.com.fecredit.app.service.base;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,11 +16,11 @@ import vn.com.fecredit.app.service.exception.EntityNotFoundException;
 
 @Slf4j
 @Transactional
-public abstract class AbstractServiceImpl<T extends AbstractPersistableEntity> implements AbstractService<T> {
+public abstract class AbstractServiceImpl<T extends AbstractPersistableEntity<U>, U extends Serializable> implements AbstractService<T,U> {
 
-    protected final JpaRepository<T, Long> repository;
+    protected final JpaRepository<T, U> repository;
 
-    protected AbstractServiceImpl(JpaRepository<T, Long> repository) {
+    protected AbstractServiceImpl(JpaRepository<T, U> repository) {
         this.repository = repository;
     }
 
@@ -40,7 +41,7 @@ public abstract class AbstractServiceImpl<T extends AbstractPersistableEntity> i
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<T> findById(Long id) {
+    public Optional<T> findById(U id) {
         return repository.findById(id);
     }
 
@@ -57,14 +58,14 @@ public abstract class AbstractServiceImpl<T extends AbstractPersistableEntity> i
     }
 
     @Override
-    public void deleteById(Long id) {
+    public void deleteById(U id) {
         T entity = findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + id));
         repository.delete(entity);
     }
 
     @Override
-    public T activate(Long id) {
+    public T activate(U id) {
         T entity = findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + id));
         entity.setStatus(CommonStatus.ACTIVE);
@@ -72,7 +73,7 @@ public abstract class AbstractServiceImpl<T extends AbstractPersistableEntity> i
     }
 
     @Override
-    public T deactivate(Long id) {
+    public T deactivate(U id) {
         T entity = findById(id)
             .orElseThrow(() -> new EntityNotFoundException("Entity not found with id: " + id));
         entity.setStatus(CommonStatus.INACTIVE);

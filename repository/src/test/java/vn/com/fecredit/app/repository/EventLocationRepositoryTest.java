@@ -1,9 +1,7 @@
 package vn.com.fecredit.app.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatNoException;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 

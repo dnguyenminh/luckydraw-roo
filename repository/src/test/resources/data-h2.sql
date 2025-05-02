@@ -3,11 +3,12 @@
 -- Clear all existing data
 DELETE FROM spin_histories;
 DELETE FROM golden_hours;
-DELETE FROM reward_events;
+-- Remove reference to non-existent reward_events table
 DELETE FROM rewards;
 DELETE FROM participant_events;
 DELETE FROM participants;
 DELETE FROM event_locations;
+DELETE FROM region_province;
 DELETE FROM provinces;
 DELETE FROM events;
 DELETE FROM regions;
@@ -27,7 +28,7 @@ INSERT INTO roles (id, created_by, created_at, updated_by, updated_at, status, r
 (4, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'ROLE_PARTICIPANT', 'Participant', 4, 0);
 
 -- Insert Permissions based on PermissionName enum
-INSERT INTO permissions (id, created_by, created_at, updated_by, updated_at, status, name, type, description, version) VALUES
+INSERT INTO permissions (id, created_by, created_at, updated_by, updated_at, status, name, permission_type, description, version) VALUES
 (1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'CREATE_USER', 'WRITE', 'Create user accounts', 0),
 (2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'READ_USER', 'READ', 'View user accounts', 0),
 (3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'UPDATE_USER', 'WRITE', 'Modify user accounts', 0),
@@ -36,7 +37,7 @@ INSERT INTO permissions (id, created_by, created_at, updated_by, updated_at, sta
 (6, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'READ_EVENT', 'READ', 'View events', 0);
 
 -- Insert Users with direct role reference (removed 'enabled' column)
-INSERT INTO users (id, created_by, created_at, updated_by, updated_at, status, username, password, email, full_name, role_id, version) 
+INSERT INTO users (id, created_by, created_at, updated_by, updated_at, status, username, password, email, full_name, role_id, version)
 VALUES
 (1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'admin', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'admin@example.com', 'Admin User', 1, 0),
 (2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'user', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'user@example.com', 'Regular User', 2, 0);
@@ -71,7 +72,7 @@ INSERT INTO event_locations (event_id, region_id, created_by, created_at, update
 (2, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'INACTIVE', 'Central winter event', 80, 40, 0.1, 0);
 
 -- Insert Participants
-INSERT INTO participants (id, created_by, created_at, updated_by, updated_at, status, name, code, phone, address, lastAddingSpin, province_id, version) VALUES
+INSERT INTO participants (id, created_by, created_at, updated_by, updated_at, status, name, code, phone, address, last_adding_spin, province_id, version) VALUES
 (1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'John Doe', 'JOHN001', '1234567890', '123 Main St', 0, 1, 0),
 (2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Jane Smith', 'JANE001', '2345678901', '456 Oak Ave', 0, 2, 0),
 (3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Robert Johnson', 'ROBERT001', '3456789012', '789 Pine Rd', 0, 3, 0);
@@ -83,22 +84,19 @@ INSERT INTO participant_events (participant_id, event_id, region_id, created_by,
 (3, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 4, 0),
 (1, 2, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 2, 0);
 
--- Insert Rewards
-INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, prizeValue, quantity, remaining_quantity, probability, version) VALUES
-(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Gold Prize', 'GOLD', 'Gold prize description', 1000.00, 10, 10, 0.05, 0),
-(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Silver Prize', 'SILVER', 'Silver prize description', 500.00, 20, 20, 0.1, 0),
-(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 30, 30, 0.15, 0);
+-- Insert rewards directly with event_id and region_id
+INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, prize_value, event_id, region_id, version) VALUES
+(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Gold Prize', 'GOLD', 'Gold prize description', 1000.00, 1, 1, 0),
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Silver Prize', 'SILVER', 'Silver prize description', 500.00, 1, 2, 0),
+(3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 2, 1, 0);
 
--- Insert Reward Events (with composite key)
-INSERT INTO reward_events (event_id, region_id, reward_id, created_by, created_at, updated_by, updated_at, status, quantity, today_quantity, version) VALUES
-(1, 1, 1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 5, 2, 0),
-(1, 1, 2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 10, 4, 0),
-(1, 3, 3, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 15, 6, 0);
+-- Remove reference to reward_events table
 
--- Insert Golden Hours
-INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, status, event_location_id, start_time, end_time, multiplier, max_rewards, claimed_rewards, version) VALUES
-(1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 1, DATEADD('HOUR', 1, CURRENT_TIMESTAMP), DATEADD('HOUR', 3, CURRENT_TIMESTAMP), 2.0, 20, 0, 0),
-(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 2, DATEADD('HOUR', 2, CURRENT_TIMESTAMP), DATEADD('HOUR', 4, CURRENT_TIMESTAMP), 1.5, 15, 0, 0);
+-- Fix Golden Hours insert - add missing region_id in third record
+INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, status, event_id, region_id, start_time, end_time, multiplier, version) VALUES
+(1, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, 1, '2023-06-15 12:00:00', '2023-06-15 14:00:00', 2.0, 0),
+(2, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, 2, '2023-07-15 18:00:00', '2023-07-15 20:00:00', 2.0, 0),
+(3, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 2, 1, '2023-06-20 13:00:00', '2023-06-20 15:00:00', 2.5, 0);
 
 -- Insert Spin Histories (some wins, some losses) with correct references for composite keys
 INSERT INTO spin_histories (id, created_by, created_at, updated_by, updated_at, status, participant_id, participant_event_id, participant_region_id, spin_time, reward_id, reward_event_id, reward_region_id, golden_hour_id, win, wheel_position, multiplier, server_seed, client_seed, version) VALUES
@@ -119,4 +117,4 @@ INSERT INTO configurations (id, created_by, created_at, updated_by, updated_at, 
 -- Insert Audit Logs
 INSERT INTO audit_logs (id, created_by, created_at, updated_by, updated_at, status, object_type, object_id, property_path, old_value, new_value, value_type, update_time, context, action_type, version) VALUES
 (1, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Event', '1', 'name', NULL, 'Summer Festival', 'String', DATEADD('DAY', -1, CURRENT_TIMESTAMP), 'Event creation', 'CREATED', 0),
-(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Reward', '1', 'prizeValue', NULL, '1000.00', 'BigDecimal', DATEADD('HOUR', -12, CURRENT_TIMESTAMP), 'Reward creation', 'CREATED', 0);
+(2, 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 'ACTIVE', 'Reward', '1', 'prize_value', NULL, '1000.00', 'BigDecimal', DATEADD('HOUR', -12, CURRENT_TIMESTAMP), 'Reward creation', 'CREATED', 0);

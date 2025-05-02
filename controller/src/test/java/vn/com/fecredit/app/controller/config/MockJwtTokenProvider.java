@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 @Component
 public class MockJwtTokenProvider {
 
-    private final String secretKey = "mock-secret-key-for-testing-purposes-only";
+    // private final String secretKey = "mock-secret-key-for-testing-purposes-only";
 
     public String createToken(String username, String roles) {
         return "mock-jwt-token";

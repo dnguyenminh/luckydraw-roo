@@ -90,7 +90,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
      * @param createdAt the creation timestamp
      * @return this entity for chaining
      */
-    public AbstractAuditEntity setCreatedAt(LocalDateTime createdAt) {
+    public AbstractAuditEntity<T> setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
         return this;
     }
@@ -100,7 +100,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
      * @param createdBy the user who created this entity
      * @return this entity for chaining
      */
-    public AbstractAuditEntity setCreatedBy(String createdBy) {
+    public AbstractAuditEntity<T> setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
         return this;
     }
@@ -110,7 +110,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
      * @param updatedAt the update timestamp
      * @return this entity for chaining
      */
-    public AbstractAuditEntity setUpdatedAt(LocalDateTime updatedAt) {
+    public AbstractAuditEntity<T> setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
         return this;
     }
@@ -120,7 +120,7 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
      * @param updatedBy the user who updated this entity
      * @return this entity for chaining
      */
-    public AbstractAuditEntity setUpdatedBy(String updatedBy) {
+    public AbstractAuditEntity<T> setUpdatedBy(String updatedBy) {
         this.updatedBy = updatedBy;
         return this;
     }

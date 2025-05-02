@@ -22,7 +22,6 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 
 /**
  * Entity representing a single spin attempt in the lucky draw.

@@ -15,7 +15,7 @@ import java.io.Serializable;
  * @param <T> Entity type that extends AbstractStatusAwareEntity
  */
 @NoRepositoryBean
-public interface AbstractRepository<T extends AbstractStatusAwareEntity, ID extends Serializable>
+public interface AbstractRepository<T extends AbstractStatusAwareEntity<ID>, ID extends Serializable>
     extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
 
     // Common repository methods can be added here

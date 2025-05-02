@@ -26,16 +26,24 @@ INSERT INTO regions (id, created_by, created_at, updated_by, updated_at, status,
 (4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'East Region', 'EAST', 'Eastern provinces of the country', 0),
 (5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'West Region', 'WEST', 'Western provinces of the country', 0);
 
--- Insert Provinces
-INSERT INTO provinces (id, created_by, created_at, updated_by, updated_at, status, name, code, description, region_id, version) VALUES
-(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province A', 'PROV_A', 'First province in North Region', 1, 0),
-(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province B', 'PROV_B', 'Second province in North Region', 1, 0),
-(3, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province C', 'PROV_C', 'First province in Central Region', 2, 0),
-(4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province D', 'PROV_D', 'Second province in Central Region', 2, 0),
-(5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province E', 'PROV_E', 'First province in South Region', 3, 0),
-(6, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province F', 'PROV_F', 'Second province in South Region', 3, 0),
-(7, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'Province G', 'PROV_G', 'Inactive province in East Region', 4, 0),
-(8, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'Province H', 'PROV_H', 'Inactive province in West Region', 5, 0);
+-- Insert Provinces (removed region_id foreign key)
+INSERT INTO provinces (id, created_by, created_at, updated_by, updated_at, status, name, code, description, version) VALUES
+(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province A', 'PROV_A', 'First province in North Region', 0),
+(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province B', 'PROV_B', 'Second province in North Region', 0),
+(3, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province C', 'PROV_C', 'First province in Central Region', 0),
+(4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province D', 'PROV_D', 'Second province in Central Region', 0),
+(5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province E', 'PROV_E', 'First province in South Region', 0),
+(6, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'Province F', 'PROV_F', 'Second province in South Region', 0),
+(7, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'Province G', 'PROV_G', 'Inactive province in East Region', 0),
+(8, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'Province H', 'PROV_H', 'Inactive province in West Region', 0);
+
+-- Insert many-to-many relationships between regions and provinces
+INSERT INTO region_province (province_id, region_id) VALUES
+(1, 1), (2, 1),  -- Provinces A, B belong to North Region
+(3, 2), (4, 2),  -- Provinces C, D belong to Central Region
+(5, 3), (6, 3),  -- Provinces E, F belong to South Region
+(7, 4),          -- Province G belongs to East Region
+(8, 5);          -- Province H belongs to West Region
 
 -- Insert Events
 INSERT INTO events (id, created_by, created_at, updated_by, updated_at, status, name, code, description, start_time, end_time, version) VALUES
@@ -45,15 +53,15 @@ INSERT INTO events (id, created_by, created_at, updated_by, updated_at, status, 
 (4, 'admin', '2023-01-15 00:00:00', 'admin', '2023-01-15 00:00:00', 'INACTIVE', 'Fall Harvest', 'FALL_FEST', 'Fall promotional event', '2023-09-01 00:00:00', '2023-11-30 23:59:59', 0),
 (5, 'admin', '2023-01-15 00:00:00', 'admin', '2023-01-15 00:00:00', 'ACTIVE', 'Anniversary Special', 'ANNIV_SPEC', 'Company anniversary event', '2023-10-15 00:00:00', '2023-10-30 23:59:59', 0);
 
--- Insert Event Locations
-INSERT INTO event_locations (id, created_by, created_at, updated_by, updated_at, status, name, code, description, max_spin, quantity, win_probability, event_id, region_id, version) VALUES
-(1, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'North Mall', 'NORTH_MALL', 'Shopping mall in North Region', 100, 50, 0.2, 1, 1, 0),
-(2, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Central Plaza', 'CENTRAL_PLAZA', 'Shopping plaza in Central Region', 150, 75, 0.15, 1, 2, 0),
-(3, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'South Center', 'SOUTH_CENTER', 'Shopping center in South Region', 200, 100, 0.1, 1, 3, 0),
-(4, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Winter Village', 'WINTER_VILLAGE', 'Winter event location in North Region', 120, 60, 0.25, 2, 1, 0),
-(5, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Spring Garden', 'SPRING_GARDEN', 'Spring event location in Central Region', 180, 90, 0.12, 3, 2, 0),
-(6, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'INACTIVE', 'Fall Market', 'FALL_MARKET', 'Fall event location in South Region', 160, 80, 0.18, 4, 3, 0),
-(7, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Anniversary Hall', 'ANNIV_HALL', 'Anniversary event location', 250, 125, 0.3, 5, 1, 0);
+-- Insert Event Locations with compound key and province_id
+INSERT INTO event_locations (event_id, region_id, province_id, created_by, created_at, updated_by, updated_at, status, name, code, description, max_spin, quantity, win_probability, version) VALUES
+(1, 1, 1, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'North Mall', 'NORTH_MALL', 'Shopping mall in North Region', 100, 50, 0.2, 0),
+(1, 2, 3, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Central Plaza', 'CENTRAL_PLAZA', 'Shopping plaza in Central Region', 150, 75, 0.15, 0),
+(1, 3, 5, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'South Center', 'SOUTH_CENTER', 'Shopping center in South Region', 200, 100, 0.1, 0),
+(2, 1, 2, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Winter Village', 'WINTER_VILLAGE', 'Winter event location in North Region', 120, 60, 0.25, 0),
+(3, 2, 4, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Spring Garden', 'SPRING_GARDEN', 'Spring event location in Central Region', 180, 90, 0.12, 0),
+(4, 3, 6, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'INACTIVE', 'Fall Market', 'FALL_MARKET', 'Fall event location in South Region', 160, 80, 0.18, 0),
+(5, 1, 1, 'admin', '2023-01-20 00:00:00', 'admin', '2023-01-20 00:00:00', 'ACTIVE', 'Anniversary Hall', 'ANNIV_HALL', 'Anniversary event location', 250, 125, 0.3, 0);
 
 -- Insert Participants
 INSERT INTO participants (id, created_by, created_at, updated_by, updated_at, status, name, code, phone, address, province_id, version) VALUES
@@ -68,87 +76,92 @@ INSERT INTO participants (id, created_by, created_at, updated_by, updated_at, st
 (9, 'system', '2023-02-01 00:00:00', 'system', '2023-02-01 00:00:00', 'INACTIVE', 'James Martin', 'JAMES001', '9012345678', '606 Willow Ct', 8, 0),
 (10, 'system', '2023-02-01 00:00:00', 'system', '2023-02-01 00:00:00', 'ACTIVE', 'Jennifer Garcia', 'JENNIFER001', '0123456789', '707 Aspen Rd', 1, 0);
 
--- Insert Participant Events
-INSERT INTO participant_events (id, created_by, created_at, updated_by, updated_at, status, event_id, event_location_id, participant_id, spins_remaining, version) VALUES
-(1, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 1, 1, 1, 5, 0),
-(2, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 1, 2, 2, 3, 0),
-(3, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 1, 3, 3, 4, 0),
-(4, 'system', '2023-12-05 00:00:00', 'system', '2023-12-05 00:00:00', 'ACTIVE', 2, 4, 4, 6, 0),
-(5, 'system', '2023-03-05 00:00:00', 'system', '2023-03-05 00:00:00', 'ACTIVE', 3, 5, 5, 2, 0),
-(6, 'system', '2023-09-05 00:00:00', 'system', '2023-09-05 00:00:00', 'INACTIVE', 4, 6, 6, 0, 0),
-(7, 'system', '2023-10-16 00:00:00', 'system', '2023-10-16 00:00:00', 'ACTIVE', 5, 7, 7, 8, 0),
-(8, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 1, 1, 8, 0, 0),
-(9, 'system', '2023-12-05 00:00:00', 'system', '2023-12-05 00:00:00', 'INACTIVE', 2, 4, 9, 0, 0),
-(10, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 1, 3, 10, 7, 0);
+-- Insert Participant Events with compound key structure
+INSERT INTO participant_events (event_id, region_id, participant_id, created_by, created_at, updated_by, updated_at, status, spins_remaining, version) VALUES
+(1, 1, 1, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 5, 0),
+(1, 2, 2, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 3, 0),
+(1, 3, 3, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 4, 0),
+(2, 1, 4, 'system', '2023-12-05 00:00:00', 'system', '2023-12-05 00:00:00', 'ACTIVE', 6, 0),
+(3, 2, 5, 'system', '2023-03-05 00:00:00', 'system', '2023-03-05 00:00:00', 'ACTIVE', 2, 0),
+(4, 3, 6, 'system', '2023-09-05 00:00:00', 'system', '2023-09-05 00:00:00', 'INACTIVE', 0, 0),
+(5, 1, 7, 'system', '2023-10-16 00:00:00', 'system', '2023-10-16 00:00:00', 'ACTIVE', 8, 0),
+(1, 1, 8, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 0, 0),
+(2, 1, 9, 'system', '2023-12-05 00:00:00', 'system', '2023-12-05 00:00:00', 'INACTIVE', 0, 0),
+(1, 3, 10, 'system', '2023-06-05 00:00:00', 'system', '2023-06-05 00:00:00', 'ACTIVE', 7, 0);
 
--- Insert Rewards
-INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, event_location_id, prizeValue, version) VALUES
-(1, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Cash Prize $100', 'CASH100', '$100 cash prize', 1, 100.00, 0),
-(2, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Gift Card $50', 'GIFT50', '$50 gift card', 1, 50.00, 0),
-(3, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smartphone', 'PHONE', 'Latest smartphone', 2, 800.00, 0),
-(4, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Tablet Device', 'TABLET', 'New tablet device', 2, 400.00, 0),
-(5, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smart Watch', 'WATCH', 'Smart watch', 3, 250.00, 0),
-(6, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Wireless Headphones', 'HEADPHONE', 'Premium wireless headphones', 3, 150.00, 0),
-(7, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Winter Jacket', 'JACKET', 'Warm winter jacket', 4, 100.00, 0),
-(8, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Snow Boots', 'BOOTS', 'Waterproof snow boots', 4, 80.00, 0),
-(9, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Garden Tool Set', 'GARDEN', 'Spring gardening tools', 5, 90.00, 0),
-(10, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'INACTIVE', 'Umbrella', 'UMBRELLA', 'Stylish umbrella', 6, 25.00, 0),
-(11, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Anniversary Cake', 'CAKE', 'Celebratory cake', 7, 40.00, 0),
-(12, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Champagne Bottle', 'CHAMPAGNE', 'Premium champagne', 7, 60.00, 0);
+-- Insert Rewards with updated event_location reference (using event_id and region_id)
+INSERT INTO rewards (id, created_by, created_at, updated_by, updated_at, status, name, code, description, event_id, region_id, prize_value, version) VALUES
+(1, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Cash Prize $100', 'CASH100', '$100 cash prize', 1, 1, 100.00, 0),
+(2, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Gift Card $50', 'GIFT50', '$50 gift card', 1, 1, 50.00, 0),
+(3, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smartphone', 'PHONE', 'Latest smartphone', 1, 2, 800.00, 0),
+(4, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Tablet Device', 'TABLET', 'New tablet device', 1, 2, 400.00, 0),
+(5, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Smart Watch', 'WATCH', 'Smart watch', 1, 3, 250.00, 0),
+(6, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Wireless Headphones', 'HEADPHONE', 'Premium wireless headphones', 1, 3, 150.00, 0),
+(7, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Winter Jacket', 'JACKET', 'Warm winter jacket', 2, 1, 100.00, 0),
+(8, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Snow Boots', 'BOOTS', 'Waterproof snow boots', 2, 1, 80.00, 0),
+(9, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Garden Tool Set', 'GARDEN', 'Spring gardening tools', 3, 2, 90.00, 0),
+(10, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'INACTIVE', 'Umbrella', 'UMBRELLA', 'Stylish umbrella', 4, 3, 25.00, 0),
+(11, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Anniversary Cake', 'CAKE', 'Celebratory cake', 5, 1, 40.00, 0),
+(12, 'admin', '2023-02-10 00:00:00', 'admin', '2023-02-10 00:00:00', 'ACTIVE', 'Champagne Bottle', 'CHAMPAGNE', 'Premium champagne', 5, 1, 60.00, 0);
 
--- Insert Golden Hours
-INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, status, event_location_id, start_time, end_time, multiplier, version) VALUES
-(1, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, '2023-06-15 12:00:00', '2023-06-15 14:00:00', 2.0, 0),
-(2, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, '2023-07-15 18:00:00', '2023-07-15 20:00:00', 2.0, 0),
-(3, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 2, '2023-06-20 13:00:00', '2023-06-20 15:00:00', 2.5, 0),
-(4, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 3, '2023-07-25 14:00:00', '2023-07-25 16:00:00', 2.0, 0),
-(5, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 4, '2023-12-25 16:00:00', '2023-12-25 18:00:00', 3.0, 0),
-(6, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 5, '2023-05-01 15:00:00', '2023-05-01 17:00:00', 2.0, 0),
-(7, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'INACTIVE', 6, '2023-10-31 18:00:00', '2023-10-31 20:00:00', 2.5, 0),
-(8, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 7, '2023-10-20 19:00:00', '2023-10-20 21:00:00', 3.0, 0);
+-- Insert Golden Hours with updated event_location reference (using event_id and region_id)
+INSERT INTO golden_hours (id, created_by, created_at, updated_by, updated_at, status, event_id, region_id, start_time, end_time, multiplier, version) VALUES
+(1, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, 1, '2023-06-15 12:00:00', '2023-06-15 14:00:00', 2.0, 0),
+(2, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, 1, '2023-07-15 18:00:00', '2023-07-15 20:00:00', 2.0, 0),
+(3, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, 2, '2023-06-20 13:00:00', '2023-06-20 15:00:00', 2.5, 0),
+(4, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 1, 3, '2023-07-25 14:00:00', '2023-07-25 16:00:00', 2.0, 0),
+(5, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 2, 1, '2023-12-25 16:00:00', '2023-12-25 18:00:00', 3.0, 0),
+(6, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 3, 2, '2023-05-01 15:00:00', '2023-05-01 17:00:00', 2.0, 0),
+(7, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'INACTIVE', 4, 3, '2023-10-31 18:00:00', '2023-10-31 20:00:00', 2.5, 0),
+(8, 'admin', '2023-02-15 00:00:00', 'admin', '2023-02-15 00:00:00', 'ACTIVE', 5, 1, '2023-10-20 19:00:00', '2023-10-20 21:00:00', 3.0, 0);
 
--- Insert Spin Histories (some wins, some losses)
-INSERT INTO spin_histories (id, created_by, created_at, updated_by, updated_at, status, participant_event_id, spin_time, reward_id, win, version) VALUES
-(1, 'system', '2023-06-15 12:30:00', 'system', '2023-06-15 12:30:00', 'ACTIVE', 1, '2023-06-15 12:30:00', 1, true, 0),
-(2, 'system', '2023-06-15 13:00:00', 'system', '2023-06-15 13:00:00', 'ACTIVE', 1, '2023-06-15 13:00:00', NULL, false, 0),
-(3, 'system', '2023-06-15 13:15:00', 'system', '2023-06-15 13:15:00', 'ACTIVE', 1, '2023-06-15 13:15:00', 2, true, 0),
-(4, 'system', '2023-06-20 14:00:00', 'system', '2023-06-20 14:00:00', 'ACTIVE', 2, '2023-06-20 14:00:00', 3, true, 0),
-(5, 'system', '2023-06-20 14:30:00', 'system', '2023-06-20 14:30:00', 'ACTIVE', 2, '2023-06-20 14:30:00', NULL, false, 0),
-(6, 'system', '2023-07-25 15:00:00', 'system', '2023-07-25 15:00:00', 'ACTIVE', 3, '2023-07-25 15:00:00', 5, true, 0),
-(7, 'system', '2023-12-25 17:00:00', 'system', '2023-12-25 17:00:00', 'ACTIVE', 4, '2023-12-25 17:00:00', 7, true, 0),
-(8, 'system', '2023-05-01 16:00:00', 'system', '2023-05-01 16:00:00', 'ACTIVE', 5, '2023-05-01 16:00:00', NULL, false, 0),
-(9, 'system', '2023-10-31 19:00:00', 'system', '2023-10-31 19:00:00', 'INACTIVE', 6, '2023-10-31 19:00:00', 10, true, 0),
-(10, 'system', '2023-10-20 20:00:00', 'system', '2023-10-20 20:00:00', 'ACTIVE', 7, '2023-10-20 20:00:00', 11, true, 0),
-(11, 'system', '2023-06-16 10:00:00', 'system', '2023-06-16 10:00:00', 'ACTIVE', 1, '2023-06-16 10:00:00', NULL, false, 0),
-(12, 'system', '2023-06-16 11:00:00', 'system', '2023-06-16 11:00:00', 'ACTIVE', 1, '2023-06-16 11:00:00', NULL, false, 0),
-(13, 'system', '2023-06-21 09:00:00', 'system', '2023-06-21 09:00:00', 'ACTIVE', 2, '2023-06-21 09:00:00', 4, true, 0),
-(14, 'system', '2023-07-26 14:00:00', 'system', '2023-07-26 14:00:00', 'ACTIVE', 3, '2023-07-26 14:00:00', 6, true, 0),
-(15, 'system', '2023-10-20 19:30:00', 'system', '2023-10-20 19:30:00', 'ACTIVE', 7, '2023-10-20 19:30:00', 12, true, 0);
+-- Insert Spin Histories with updated foreign key references
+INSERT INTO spin_histories (id, created_by, created_at, updated_by, updated_at, status, event_id, region_id, participant_id, spin_time, reward_id, win, version) VALUES
+(1, 'system', '2023-06-15 12:30:00', 'system', '2023-06-15 12:30:00', 'ACTIVE', 1, 1, 1, '2023-06-15 12:30:00', 1, true, 0),
+(2, 'system', '2023-06-15 13:00:00', 'system', '2023-06-15 13:00:00', 'ACTIVE', 1, 1, 1, '2023-06-15 13:00:00', NULL, false, 0),
+(3, 'system', '2023-06-15 13:15:00', 'system', '2023-06-15 13:15:00', 'ACTIVE', 1, 1, 1, '2023-06-15 13:15:00', 2, true, 0),
+(4, 'system', '2023-06-20 14:00:00', 'system', '2023-06-20 14:00:00', 'ACTIVE', 1, 2, 2, '2023-06-20 14:00:00', 3, true, 0),
+(5, 'system', '2023-06-20 14:30:00', 'system', '2023-06-20 14:30:00', 'ACTIVE', 1, 2, 2, '2023-06-20 14:30:00', NULL, false, 0),
+(6, 'system', '2023-07-25 15:00:00', 'system', '2023-07-25 15:00:00', 'ACTIVE', 1, 3, 3, '2023-07-25 15:00:00', 5, true, 0),
+(7, 'system', '2023-12-25 17:00:00', 'system', '2023-12-25 17:00:00', 'ACTIVE', 2, 1, 4, '2023-12-25 17:00:00', 7, true, 0),
+(8, 'system', '2023-05-01 16:00:00', 'system', '2023-05-01 16:00:00', 'ACTIVE', 3, 2, 5, '2023-05-01 16:00:00', NULL, false, 0),
+(9, 'system', '2023-10-31 19:00:00', 'system', '2023-10-31 19:00:00', 'INACTIVE', 4, 3, 6, '2023-10-31 19:00:00', 10, true, 0),
+(10, 'system', '2023-10-20 20:00:00', 'system', '2023-10-20 20:00:00', 'ACTIVE', 5, 1, 7, '2023-10-20 20:00:00', 11, true, 0),
+(11, 'system', '2023-06-16 10:00:00', 'system', '2023-06-16 10:00:00', 'ACTIVE', 1, 1, 1, '2023-06-16 10:00:00', NULL, false, 0),
+(12, 'system', '2023-06-16 11:00:00', 'system', '2023-06-16 11:00:00', 'ACTIVE', 1, 1, 1, '2023-06-16 11:00:00', NULL, false, 0),
+(13, 'system', '2023-06-21 09:00:00', 'system', '2023-06-21 09:00:00', 'ACTIVE', 1, 2, 2, '2023-06-21 09:00:00', 4, true, 0),
+(14, 'system', '2023-07-26 14:00:00', 'system', '2023-07-26 14:00:00', 'ACTIVE', 1, 3, 3, '2023-07-26 14:00:00', 6, true, 0),
+(15, 'system', '2023-10-20 19:30:00', 'system', '2023-10-20 19:30:00', 'ACTIVE', 5, 1, 7, '2023-10-20 19:30:00', 12, true, 0);
 
 -- Update audit log entry for SpinHistory
-UPDATE audit_logs 
+UPDATE audit_logs
 SET property_path = 'win', old_value = NULL, new_value = 'true'
 WHERE id = 6 AND object_type = 'SpinHistory';
 
 DELETE FROM audit_logs WHERE id = 7;
 
--- Insert Permissions
-INSERT INTO permissions (id, created_by, created_at, updated_by, updated_at, status, name, description, version) VALUES
-(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'EVENT_CREATE', 'Create new events', 0),
-(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'EVENT_READ', 'View event details', 0),
-(3, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'EVENT_UPDATE', 'Update existing events', 0),
-(4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'EVENT_DELETE', 'Delete events', 0),
-(5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_CREATE', 'Create new participants', 0),
-(6, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_READ', 'View participant details', 0),
-(7, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_UPDATE', 'Update existing participants', 0),
-(8, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_DELETE', 'Delete participants', 0),
-(9, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'REWARD_MANAGE', 'Manage rewards', 0),
-(10, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'GOLDEN_HOUR_MANAGE', 'Manage golden hours', 0),
-(11, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'USER_MANAGE', 'Manage users', 0),
-(12, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'ROLE_MANAGE', 'Manage roles', 0),
-(13, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'AUDIT_VIEW', 'View audit logs', 0),
-(14, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'CONFIG_MANAGE', 'Manage system configuration', 0),
-(15, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'SPIN_HISTORY_VIEW', 'View spin history', 0);
+-- Insert permissions
+INSERT INTO permissions (id, created_by, created_at, updated_by, updated_at, status, name, permission_type, description, version)
+VALUES
+(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'CREATE_USER', 'WRITE', 'Create user accounts', 0),
+(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'READ_USER', 'READ', 'View user accounts', 0),
+(3, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'UPDATE_USER', 'WRITE', 'Modify user accounts', 0),
+(4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'DELETE_USER', 'WRITE', 'Delete user accounts', 0),
+(5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'CREATE_EVENT', 'WRITE', 'Create events', 0),
+(6, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'READ_EVENT', 'READ', 'View events', 0),
+(7, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'UPDATE_EVENT', 'WRITE', 'Modify events', 0),
+(8, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'DELETE_EVENT', 'WRITE', 'Delete events', 0),
+(9, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_CREATE', 'WRITE', 'Create new participants', 0),
+(10, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_READ', 'READ', 'View participant details', 0),
+(11, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_UPDATE', 'WRITE', 'Update existing participants', 0),
+(12, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'PARTICIPANT_DELETE', 'WRITE', 'Delete participants', 0),
+(13, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'REWARD_MANAGE', 'WRITE', 'Manage rewards', 0),
+(14, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'GOLDEN_HOUR_MANAGE', 'WRITE', 'Manage golden hours', 0),
+(15, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'USER_MANAGE', 'WRITE', 'Manage users', 0),
+(16, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'ROLE_MANAGE', 'WRITE', 'Manage roles', 0),
+(17, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'AUDIT_VIEW', 'READ', 'View audit logs', 0),
+(18, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'CONFIG_MANAGE', 'WRITE', 'Manage system configuration', 0),
+(19, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'SPIN_HISTORY_VIEW', 'READ', 'View spin history', 0);
 
 -- Insert Roles
 INSERT INTO roles (id, created_by, created_at, updated_by, updated_at, status, role_type, description, display_order, version) VALUES
@@ -167,12 +180,12 @@ INSERT INTO role_permissions (role_id, permission_id) VALUES
 (5, 2);
 
 -- Insert Users (with BCrypt-encoded passwords - all passwords are "password")
-INSERT INTO users (id, created_by, created_at, updated_by, updated_at, status, username, password, email, full_name, role, enabled, account_expired, account_locked, credentials_expired, version) VALUES
-(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'admin', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'admin@example.com', 'Admin User', 'ROLE_ADMIN', true, false, false, false, 0),
-(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'eventmgr', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'eventmgr@example.com', 'Event Manager', 'ROLE_MANAGER', true, false, false, false, 0),
-(3, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'partmgr', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'partmgr@example.com', 'Participant Manager', 'ROLE_PARTICIPANT', true, false, false, false, 0),
-(4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'viewer', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'viewer@example.com', 'Viewer User', 'ROLE_USER', true, false, false, false, 0),
-(5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'guest', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'guest@example.com', 'Guest User', 'ROLE_GUEST', false, true, true, true, 0);
+INSERT INTO users (id, created_by, created_at, updated_by, updated_at, status, username, password, email, full_name, role_id, version) VALUES
+(1, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'admin', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'admin@example.com', 'Admin User', 1, 0),
+(2, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'eventmgr', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'eventmgr@example.com', 'Event Manager', 2, 0),
+(3, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'partmgr', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'partmgr@example.com', 'Participant Manager', 3, 0),
+(4, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'ACTIVE', 'viewer', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'viewer@example.com', 'Viewer User', 4, 0),
+(5, 'system', '2023-01-01 00:00:00', 'system', '2023-01-01 00:00:00', 'INACTIVE', 'guest', '$2a$10$qeS0HEh7urweMojsnwNAR.vcXJeXR1UcMRZ2WcGQl9YeuspUL7qhy', 'guest@example.com', 'Guest User', 5, 0);
 
 -- Insert User Roles
 INSERT INTO user_roles (user_id, role_id) VALUES

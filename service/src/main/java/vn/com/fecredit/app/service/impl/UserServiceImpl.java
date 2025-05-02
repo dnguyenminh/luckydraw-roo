@@ -1,15 +1,11 @@
 package vn.com.fecredit.app.service.impl;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import lombok.RequiredArgsConstructor;
 import vn.com.fecredit.app.entity.User;
 import vn.com.fecredit.app.repository.UserRepository;
 import vn.com.fecredit.app.service.UserService;

@@ -43,8 +43,16 @@ CREATE TABLE provinces (
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL,
     description VARCHAR(255),
+    version BIGINT DEFAULT 0
+    -- Removed region_id foreign key
+);
+
+-- Create many-to-many relationship table
+CREATE TABLE region_province (
+    province_id BIGINT NOT NULL,
     region_id BIGINT NOT NULL,
-    version BIGINT DEFAULT 0,
+    PRIMARY KEY (province_id, region_id),
+    FOREIGN KEY (province_id) REFERENCES provinces(id),
     FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
@@ -63,9 +71,11 @@ CREATE TABLE events (
     version BIGINT DEFAULT 0
 );
 
--- Create event_locations table with direct ID instead of composite key
+-- Create event_locations table with compound primary key
 CREATE TABLE IF NOT EXISTS event_locations (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    province_id BIGINT NOT NULL,
     created_by VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL,
     updated_by VARCHAR(255),
@@ -77,13 +87,13 @@ CREATE TABLE IF NOT EXISTS event_locations (
     max_spin INT,
     quantity INT CHECK (quantity >= 0),
     win_probability DECIMAL(5,4),
-    event_id BIGINT NOT NULL,
-    region_id BIGINT NOT NULL,
-    daily_spin_dist_rate DOUBLE DEFAULT 0,  -- Original field from entity
-    remaining_today_spin DOUBLE DEFAULT 0,  -- Add the missing column that Hibernate expects
+    daily_spin_dist_rate DOUBLE DEFAULT 0,
+    remaining_today_spin DOUBLE DEFAULT 0,
     version BIGINT DEFAULT 0,
+    PRIMARY KEY (event_id, region_id),
     CONSTRAINT fk_event_locations_event FOREIGN KEY (event_id) REFERENCES events(id),
-    CONSTRAINT fk_event_locations_region FOREIGN KEY (region_id) REFERENCES regions(id)
+    CONSTRAINT fk_event_locations_region FOREIGN KEY (region_id) REFERENCES regions(id),
+    CONSTRAINT fk_event_locations_province FOREIGN KEY (province_id) REFERENCES provinces(id)
 );
 
 CREATE TABLE participants (
@@ -97,29 +107,32 @@ CREATE TABLE participants (
     code VARCHAR(50) NOT NULL UNIQUE,
     phone VARCHAR(20),
     address VARCHAR(255),
-    lastAddingSpin INT DEFAULT 0,
+    last_adding_spin INT DEFAULT 0,
     province_id BIGINT NOT NULL,
     version BIGINT DEFAULT 0,
     FOREIGN KEY (province_id) REFERENCES provinces(id)
 );
 
-CREATE TABLE participant_events (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+-- Create participant_events table with compound key structure
+CREATE TABLE IF NOT EXISTS participant_events (
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    participant_id BIGINT NOT NULL,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    event_id BIGINT NOT NULL,
-    event_location_id BIGINT NOT NULL,
-    participant_id BIGINT NOT NULL,
     spins_remaining INT DEFAULT 0,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_location_id) REFERENCES event_locations(id),
-    FOREIGN KEY (participant_id) REFERENCES participants(id),
-    FOREIGN KEY (event_id) REFERENCES events(id)
+    PRIMARY KEY (event_id, region_id, participant_id),
+    CONSTRAINT fk_participant_events_event_location FOREIGN KEY (event_id, region_id)
+        REFERENCES event_locations(event_id, region_id),
+    CONSTRAINT fk_participant_events_participant FOREIGN KEY (participant_id)
+        REFERENCES participants(id)
 );
 
+-- Update rewards table to reference the compound key of event_locations
 CREATE TABLE rewards (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
@@ -130,14 +143,16 @@ CREATE TABLE rewards (
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL,
     description VARCHAR(255),
-    prizeValue DECIMAL(10,2) DEFAULT 0,
+    prize_value DECIMAL(10,2) DEFAULT 0,
     probability DECIMAL(5,4) DEFAULT 0,
     quantity INT DEFAULT 0,
-    event_location_id BIGINT NOT NULL,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
 );
 
+-- Update golden_hours table to reference the compound key of event_locations
 CREATE TABLE golden_hours (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
@@ -145,14 +160,16 @@ CREATE TABLE golden_hours (
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    event_location_id BIGINT NOT NULL,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     multiplier DECIMAL(5,2) DEFAULT 1.0,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_location_id) REFERENCES event_locations(id)
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
 );
 
+-- Update spin_histories table to reference compound keys in participant_events and rewards
 CREATE TABLE spin_histories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
@@ -160,12 +177,16 @@ CREATE TABLE spin_histories (
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    participant_event_id BIGINT NOT NULL,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    participant_id BIGINT NOT NULL,
     spin_time TIMESTAMP NOT NULL,
     reward_id BIGINT,
+    reward_event_id BIGINT,
+    reward_region_id BIGINT,
     win BOOLEAN DEFAULT false,
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (participant_event_id) REFERENCES participant_events(id),
+    FOREIGN KEY (event_id, region_id, participant_id) REFERENCES participant_events(event_id, region_id, participant_id),
     FOREIGN KEY (reward_id) REFERENCES rewards(id)
 );
 
@@ -182,35 +203,33 @@ CREATE TABLE roles (
     version BIGINT DEFAULT 0
 );
 
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    name VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    permission_type VARCHAR(50), -- Changed from 'type' to 'permission_type'
     description VARCHAR(255),
     version BIGINT DEFAULT 0
 );
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    email VARCHAR(100) NOT NULL,
-    full_name VARCHAR(100),
-    role VARCHAR(50) NOT NULL,
-    enabled BOOLEAN DEFAULT true,
-    account_expired BOOLEAN DEFAULT false,
-    account_locked BOOLEAN DEFAULT false,
-    credentials_expired BOOLEAN DEFAULT false,
-    version BIGINT DEFAULT 0
+    email VARCHAR(255),
+    full_name VARCHAR(255),
+    role_id BIGINT,
+    version BIGINT DEFAULT 0,
+    CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
 CREATE TABLE user_roles (
@@ -280,12 +299,16 @@ CREATE TABLE audit_logs (
 CREATE INDEX idx_event_location_event ON event_locations(event_id);
 CREATE INDEX idx_event_location_region ON event_locations(region_id);
 CREATE INDEX idx_participant_province ON participants(province_id);
-CREATE INDEX idx_participant_event_participant ON participant_events(participant_id);
-CREATE INDEX idx_participant_event_location ON participant_events(event_location_id);
-CREATE INDEX idx_participant_event_event ON participant_events(event_id);
-CREATE INDEX idx_reward_event_location ON rewards(event_location_id);
-CREATE INDEX idx_golden_hour_event_location ON golden_hours(event_location_id);
-CREATE INDEX idx_spin_history_participant_event ON spin_histories(participant_event_id);
+CREATE INDEX idx_participant_event ON participant_events(event_id);
+CREATE INDEX idx_participant_region ON participant_events(region_id);
+CREATE INDEX idx_participant_person ON participant_events(participant_id);
+CREATE INDEX idx_reward_event ON rewards(event_id);
+CREATE INDEX idx_reward_region ON rewards(region_id);
+CREATE INDEX idx_golden_hour_event ON golden_hours(event_id);
+CREATE INDEX idx_golden_hour_region ON golden_hours(region_id);
+CREATE INDEX idx_spin_history_event ON spin_histories(event_id);
+CREATE INDEX idx_spin_history_region ON spin_histories(region_id);
+CREATE INDEX idx_spin_history_participant ON spin_histories(participant_id);
 CREATE INDEX idx_spin_history_reward ON spin_histories(reward_id);
 CREATE INDEX idx_blacklisted_token_user ON blacklisted_tokens(user_id);
 CREATE INDEX idx_audit_log_object_type ON audit_logs(object_type);
@@ -293,3 +316,6 @@ CREATE INDEX idx_audit_log_object_id ON audit_logs(object_id);
 CREATE INDEX idx_audit_log_update_time ON audit_logs(update_time);
 CREATE INDEX idx_audit_log_action_type ON audit_logs(action_type);
 CREATE INDEX idx_audit_log_status ON audit_logs(status);
+CREATE INDEX idx_region_province_region ON region_province(region_id);
+CREATE INDEX idx_region_province_province ON region_province(province_id);
+CREATE INDEX idx_event_location_province ON event_locations(province_id);

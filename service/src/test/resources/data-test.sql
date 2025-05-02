@@ -4,11 +4,12 @@
 -- Truncate tables in reverse dependency order
 DELETE FROM SPIN_HISTORIES;
 DELETE FROM GOLDEN_HOURS;
-DELETE FROM REWARD_EVENTS;
+-- Remove reference to non-existent REWARD_EVENTS table
 DELETE FROM REWARDS;
 DELETE FROM PARTICIPANT_EVENTS;
 DELETE FROM PARTICIPANTS;
 DELETE FROM EVENT_LOCATIONS;
+DELETE FROM REGION_PROVINCE;
 DELETE FROM PROVINCES;
 DELETE FROM EVENTS;
 DELETE FROM REGIONS;
@@ -24,36 +25,42 @@ DELETE FROM AUDIT_LOGS;
 
 -- Test data for regions
 INSERT INTO REGIONS (id, version, code, name, status, created_by, created_at, updated_by, updated_at)
-VALUES 
+VALUES
 (1, 0, 'REGION001', 'North Region', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (2, 0, 'REGION002', 'South Region', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (3, 0, 'REGION003', 'East Region', 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP);
 
 -- Test data for events
 INSERT INTO EVENTS (id, version, code, name, description, start_time, end_time, status, created_by, created_at, updated_by, updated_at)
-VALUES 
+VALUES
 (1, 0, 'EVENT001', 'Test Event 1', 'Test Description 1', DATEADD('HOUR', -1, CURRENT_TIMESTAMP), DATEADD('HOUR', 23, CURRENT_TIMESTAMP), 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (2, 0, 'EVENT002', 'Test Event 2', 'Test Description 2', DATEADD('HOUR', -2, CURRENT_TIMESTAMP), DATEADD('HOUR', 22, CURRENT_TIMESTAMP), 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (3, 0, 'EVENT003', 'Test Event 3', 'Test Description 3', DATEADD('HOUR', 1, CURRENT_TIMESTAMP), DATEADD('HOUR', 25, CURRENT_TIMESTAMP), 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (4, 0, 'EVENT004', 'Test Event 4', 'Test Description 4', DATEADD('DAY', -1, CURRENT_TIMESTAMP), DATEADD('DAY', 6, CURRENT_TIMESTAMP), 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP);
 
--- Test data for provinces
-INSERT INTO PROVINCES (id, version, code, name, description, region_id, status, created_by, created_at, updated_by, updated_at)
-VALUES 
-(1, 0, 'PROVINCE001', 'Test Province 1', 'First test province', 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
-(2, 0, 'PROVINCE002', 'Test Province 2', 'Second test province', 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP);
+-- Test data for provinces (removed region_id column)
+INSERT INTO PROVINCES (id, version, code, name, description, status, created_by, created_at, updated_by, updated_at)
+VALUES
+(1, 0, 'PROVINCE001', 'Test Province 1', 'First test province', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
+(2, 0, 'PROVINCE002', 'Test Province 2', 'Second test province', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP);
+
+-- Many-to-many relationship between regions and provinces
+INSERT INTO REGION_PROVINCE (region_id, province_id)
+VALUES
+(1, 1),  -- North Region has Test Province 1
+(2, 2);  -- South Region has Test Province 2
 
 -- Test data for event_locations with composite key
-INSERT INTO EVENT_LOCATIONS (event_id, region_id, description, max_spin, today_spin, daily_spin_distributing_rate, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
-(1, 1, 'Event 1 in Region 1', 100, 50, 0.1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(1, 2, 'Event 1 in Region 2', 150, 75, 0.1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 1, 'Event 2 in Region 1', 200, 100, 0.2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(3, 1, 'Event 3 in Region 1', 100, 50, 0.1, 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+INSERT INTO EVENT_LOCATIONS (event_id, region_id, province_id, name, description, max_spin, remaining_today_spin, daily_spin_dist_rate, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
+(1, 1, 1, 'North Event 1 Location', 'Event 1 in Region 1', 100, 50, 0.1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(1, 2, 2, 'South Event 1 Location', 'Event 1 in Region 2', 150, 75, 0.1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 1, 1, 'North Event 2 Location', 'Event 2 in Region 1', 200, 100, 0.2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(3, 1, 1, 'North Event 3 Location', 'Event 3 in Region 1', 100, 50, 0.1, 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for participants
 INSERT INTO PARTICIPANTS (id, version, code, name, phone, address, last_adding_spin, province_id, status, created_by, created_at, updated_by, updated_at)
-VALUES 
+VALUES
 (1, 0, 'PART001', 'John Doe', '1234567890', '123 Main St', 0, 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (2, 0, 'PART002', 'Jane Smith', '2345678901', '456 Oak Ave', 0, 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
 (3, 0, 'PART003', 'Bob Johnson', '3456789012', '789 Pine Rd', 0, 2, 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP),
@@ -86,54 +93,49 @@ VALUES
 
 -- Test data for participant_events with composite key
 INSERT INTO PARTICIPANT_EVENTS (participant_id, event_id, region_id, spins_remaining, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
+VALUES
 (1, 1, 1, 5, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 1, 2, 3, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (3, 2, 1, 0, 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (4, 2, 1, 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for rewards
-INSERT INTO REWARDS (id, name, code, description, prize_value, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
-(1, 'Gold Prize', 'GOLD', 'Gold prize description', 1000.00, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 'Silver Prize', 'SILVER', 'Silver prize description', 500.00, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(3, 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+INSERT INTO REWARDS (id, name, code, description, prize_value, event_id, region_id, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
+(1, 'Gold Prize', 'GOLD', 'Gold prize description', 1000.00, 1, 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'Silver Prize', 'SILVER', 'Silver prize description', 500.00, 1, 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(3, 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 2, 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
--- Test data for reward_events with composite key
-INSERT INTO REWARD_EVENTS (event_id, region_id, reward_id, quantity, today_quantity, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
-(1, 1, 1, 10, 5, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(1, 2, 2, 20, 10, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 1, 3, 15, 7, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+-- Remove reference to reward_events table since it doesn't exist
 
 -- Test data for golden_hours
-INSERT INTO GOLDEN_HOURS (id, event_id, region_id, start_time, end_time, multiplier, max_rewards, claimed_rewards, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
-(1, 1, 1, DATEADD('HOUR', 1, CURRENT_TIMESTAMP), DATEADD('HOUR', 3, CURRENT_TIMESTAMP), 2.0, 20, 0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 1, 2, DATEADD('HOUR', 2, CURRENT_TIMESTAMP), DATEADD('HOUR', 4, CURRENT_TIMESTAMP), 1.5, 15, 0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+INSERT INTO GOLDEN_HOURS (id, event_id, region_id, start_time, end_time, multiplier, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
+(1, 1, 1, DATEADD('HOUR', 1, CURRENT_TIMESTAMP), DATEADD('HOUR', 3, CURRENT_TIMESTAMP), 2.0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 1, 2, DATEADD('HOUR', 2, CURRENT_TIMESTAMP), DATEADD('HOUR', 4, CURRENT_TIMESTAMP), 1.5, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for spin_histories
-INSERT INTO SPIN_HISTORIES (id, participant_id, event_id, region_id, spin_time, reward_id, reward_event_id, reward_region_id, win, wheel_position, multiplier, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
-(1, 1, 1, 1, DATEADD('MINUTE', -30, CURRENT_TIMESTAMP), 1, 1, 1, TRUE, 120.5, 2.0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 2, 1, 2, DATEADD('MINUTE', -20, CURRENT_TIMESTAMP), NULL, NULL, NULL, FALSE, 45.2, 1.0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(3, 4, 2, 1, DATEADD('MINUTE', -10, CURRENT_TIMESTAMP), 3, 2, 1, TRUE, 230.7, 1.0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+INSERT INTO SPIN_HISTORIES (id, participant_id, event_id, region_id, spin_time, reward_id, reward_event_id, reward_region_id, win, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
+(1, 1, 1, 1, DATEADD('MINUTE', -30, CURRENT_TIMESTAMP), 1, 1, 1, TRUE, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 2, 1, 2, DATEADD('MINUTE', -20, CURRENT_TIMESTAMP), NULL, NULL, NULL, FALSE, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(3, 4, 2, 1, DATEADD('MINUTE', -10, CURRENT_TIMESTAMP), 3, 2, 1, TRUE, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for blacklisted_tokens
 INSERT INTO BLACKLISTED_TOKENS (id, token, token_type, expiration_time, user_id, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
+VALUES
 (1, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMSJ9', 'ACCESS', DATEADD('DAY', -1, CURRENT_TIMESTAMP), 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyMiJ9', 'REFRESH', DATEADD('DAY', -2, CURRENT_TIMESTAMP), 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for configurations
 INSERT INTO CONFIGURATIONS (id, config_key, config_value, description, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
+VALUES
 (1, 'MAX_DAILY_SPINS', '5', 'Maximum spins per day', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 'GOLDEN_HOUR_MULTIPLIER', '2', 'Default golden hour multiplier', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for audit_logs
 INSERT INTO AUDIT_LOGS (id, object_type, object_id, action_type, update_time, context, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
+VALUES
 (1, 'USER', '1', 'CREATE', CURRENT_TIMESTAMP, 'User Registration', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 'EVENT', '1', 'UPDATE', CURRENT_TIMESTAMP, 'Event Modification', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 

@@ -82,7 +82,9 @@ public class TableFetchRequestValidatorTest {
         validator.validate(request, errors);
         
         assertTrue(errors.hasErrors());
-        assertTrue(errors.getAllErrors().get(0).getDefaultMessage().contains("Entity name must be one of"));
+        String defaultMessage = errors.getAllErrors().get(0).getDefaultMessage();
+        assertFalse(defaultMessage == null);
+        assertTrue(defaultMessage.contains("Entity name must be one of"));
     }
     
     @Test
@@ -97,8 +99,10 @@ public class TableFetchRequestValidatorTest {
         validator.validate(request, errors);
         
         assertTrue(errors.hasErrors());
+        assertTrue(errors.hasFieldErrors("page"));
+        org.springframework.validation.FieldError pageError = errors.getFieldError("page");
         assertEquals("Page number must be non-negative", 
-                errors.getFieldError("page").getDefaultMessage());
+                pageError != null ? pageError.getDefaultMessage() : null);
     }
     
     @Test
@@ -113,7 +117,8 @@ public class TableFetchRequestValidatorTest {
         validator.validate(request, errors);
         
         assertTrue(errors.hasErrors());
+        org.springframework.validation.FieldError sizeError = errors.getFieldError("size");
         assertEquals("Page size must be positive", 
-                errors.getFieldError("size").getDefaultMessage());
+                sizeError != null ? sizeError.getDefaultMessage() : null);
     }
 }

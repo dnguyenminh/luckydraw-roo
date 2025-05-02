@@ -74,13 +74,16 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
         region2.setCreatedAt(now);
         region2.setUpdatedAt(now);
         region2 = regionRepository.save(region2);
-
         // Create Provinces with builder pattern
         province1 = Province.builder()
                 .code("P1")
                 .name("Province 1")
                 .description("Northern Province")
-                .region(region1)
+                .regions(new HashSet<>() {
+                    {
+                        add(region1);
+                    }
+                })
                 .status(CommonStatus.ACTIVE)
                 .participants(new HashSet<>())
                 .build();
@@ -90,12 +93,18 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
         province1.setCreatedAt(now);
         province1.setUpdatedAt(now);
         province1 = provinceRepository.save(province1);
-
+        region1.getProvinces().add(province1); // Maintain bidirectional relationship
+        regionRepository.save(region1);
+        
         province2 = Province.builder()
                 .code("P2")
                 .name("Province 2")
                 .description("Southern Province")
-                .region(region2)
+                .regions(new HashSet<>() {
+                    {
+                        add(region2);
+                    }
+                })
                 .status(CommonStatus.ACTIVE)
                 .participants(new HashSet<>())
                 .build();
@@ -105,12 +114,18 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
         province2.setCreatedAt(now);
         province2.setUpdatedAt(now);
         province2 = provinceRepository.save(province2);
+        region2.getProvinces().add(province2); // Maintain bidirectional relationship
+        regionRepository.save(region2);
 
         province3 = Province.builder()
                 .code("P3")
                 .name("Province 3")
                 .description("Northern Inactive Province")
-                .region(region1)
+                .regions(new HashSet<>() {
+                    {
+                        add(region1);
+                    }
+                })
                 .status(CommonStatus.INACTIVE)
                 .participants(new HashSet<>())
                 .build();
@@ -120,7 +135,8 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
         province3.setCreatedAt(now);
         province3.setUpdatedAt(now);
         province3 = provinceRepository.save(province3);
-
+        region1.getProvinces().add(province3); // Maintain bidirectional relationship
+        regionRepository.save(region1);
         entityManager.flush();
         entityManager.clear();
     }
@@ -185,7 +201,11 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
             .name("Test Province")
             .code("TEST-PROV")
             .description("Test Province Description")
-            .region(region)
+            .regions(new HashSet<>() {
+                {
+                    add(region);
+                }
+            })
             .status(CommonStatus.ACTIVE)
             .build();
             
@@ -202,7 +222,7 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
         
         assertThat(savedProvince.getId()).isNotNull();
         assertThat(savedProvince.getName()).isEqualTo("Test Province");
-        assertThat(savedProvince.getRegion()).isEqualTo(region);
+        assertThat(savedProvince.getRegions()).contains(region);
     }
 
     private Region createTestRegion() {

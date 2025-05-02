@@ -1,13 +1,11 @@
 package vn.com.fecredit.app.repository;
 
-import jakarta.validation.constraints.NotNull;
-import vn.com.fecredit.app.entity.Role;
-import vn.com.fecredit.app.entity.User;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
-
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
+
+import jakarta.validation.constraints.NotNull;
+import vn.com.fecredit.app.entity.User;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
  * Repository for User entity operations.

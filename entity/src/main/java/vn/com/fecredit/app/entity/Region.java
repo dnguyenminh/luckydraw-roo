@@ -6,13 +6,12 @@ import java.util.Set;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotBlank;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -22,9 +21,8 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.entity.base.StatusAware;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
  * Entity representing a geographical region in the country.
@@ -80,7 +78,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
      * Collection of provinces within this region
      * Administrative subdivisions of the region
      */
-    @OneToMany(mappedBy = "region", cascade = CascadeType.ALL, orphanRemoval = true)
+    @ManyToMany(mappedBy = "regions")
     @Builder.Default
     private Set<Province> provinces = new HashSet<>();
 
@@ -98,8 +96,12 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
      * @param province the province to add
      */
     public void addProvince(Province province) {
-        provinces.add(province);
-        province.setRegion(this);
+        if (province != null) {
+            provinces.add(province);
+            if (!province.getRegions().contains(this)) {
+                province.getRegions().add(this);
+            }
+        }
     }
 
     /**
@@ -108,8 +110,11 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
      * @param province the province to remove
      */
     public void removeProvince(Province province) {
-        provinces.remove(province);
-        province.setRegion(null);
+        if (province != null && provinces.remove(province)) {
+            if (province.getRegions().contains(this)) {
+                province.getRegions().remove(this);
+            }
+        }
     }
 
     /**
@@ -168,8 +173,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
         }
 
         return provinces.stream()
-                .anyMatch(p1 -> other.getProvinces().stream()
-                        .anyMatch(p2 -> p1.equals(p2)));
+                .anyMatch(p -> other.getProvinces().contains(p));
     }
 
     @Override
@@ -213,12 +217,8 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
     public StatusAware setStatus(CommonStatus status) {
         super.setStatus(status);
 
-        // If region is inactive, cascade to provinces and event locations
+        // If region is inactive, cascade to event locations
         if (status != null && !status.isActive()) {
-            if (provinces != null) {
-                provinces.forEach(province -> province.setStatus(CommonStatus.INACTIVE));
-            }
-
             if (eventLocations != null) {
                 eventLocations.forEach(location -> location.setStatus(CommonStatus.INACTIVE));
             }
@@ -268,4 +268,10 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
         return provinces.stream()
                 .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
     }
+
+    @Override
+    public boolean isActive() {
+        return super.isActive() && hasActiveProvinces();
+    }
+
 }

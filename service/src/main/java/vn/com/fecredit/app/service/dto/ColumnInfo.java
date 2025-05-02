@@ -1,6 +1,7 @@
 package vn.com.fecredit.app.service.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,27 +11,33 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ColumnInfo {
+    /**
+     * Field object type
+     */
+    private ObjectType objectType;
     /**
      * Field name
      */
     private String fieldName;
-    
+
     /**
      * Field data type
      */
     private String fieldType;
-    
+
     /**
      * Sort type for the column
      */
     private SortType sortType;
-    
+
     /**
      * Flag indicating if the field is editable
      */
+    @Builder.Default
     private boolean editable = true;
-    
+
     /**
      * Constructor without editable flag (defaults to true)
      */
@@ -40,11 +47,16 @@ public class ColumnInfo {
         this.sortType = sortType;
         this.editable = true;
     }
-    
+
     /**
      * Static factory method to create a non-editable column
      */
     public static ColumnInfo createNonEditable(String fieldName, String fieldType, SortType sortType) {
-        return new ColumnInfo(fieldName, fieldType, sortType, false);
+        return ColumnInfo.builder()
+                .fieldName(fieldName)
+                .fieldType(fieldType)
+                .sortType(sortType)
+                .editable(false)
+                .build();
     }
 }

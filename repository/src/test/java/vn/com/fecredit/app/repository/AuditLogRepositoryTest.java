@@ -7,20 +7,22 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
 
 import vn.com.fecredit.app.entity.AuditLog;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
-class AuditLogRepositoryTest extends AbstractRepositoryTest{
+@ExtendWith(MockitoExtension.class)
+class AuditLogRepositoryTest extends AbstractRepositoryTest {
 
     @Autowired
     private AuditLogRepository auditLogRepository;
 
-    // Mock this bean to avoid Spring wiring issues during tests
-    @MockBean
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     private LocalDateTime now;

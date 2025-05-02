@@ -80,6 +80,7 @@ public class EntityAuditListener {
 
         try {
             // Store original state for later comparison
+            @SuppressWarnings("unchecked")
             AbstractPersistableEntity<? extends Serializable> statusEntity = (AbstractPersistableEntity<? extends Serializable>) entity;
             statusEntity.getTemporaryAttributes().put(ORIGINAL_STATE_KEY, cloneFieldValues(statusEntity));
         } catch (Exception e) {
@@ -100,6 +101,7 @@ public class EntityAuditListener {
         }
 
         // For new entities, store current state to avoid null pointer in postPersist
+        @SuppressWarnings("unchecked")
         AbstractPersistableEntity<? extends Serializable> statusEntity = (AbstractPersistableEntity<? extends Serializable>) entity;
         statusEntity.getTemporaryAttributes().put(ORIGINAL_STATE_KEY, new ArrayList<>());
     }
@@ -116,6 +118,7 @@ public class EntityAuditListener {
             return;
         }
 
+        @SuppressWarnings("unchecked")
         AbstractPersistableEntity<? extends Serializable> statusEntity = (AbstractPersistableEntity<? extends Serializable>) entity;
 
         try {
@@ -150,6 +153,7 @@ public class EntityAuditListener {
             return;
         }
 
+        @SuppressWarnings("unchecked")
         AbstractPersistableEntity<? extends Serializable> statusEntity = (AbstractPersistableEntity<? extends Serializable>) entity;
 
         try {
@@ -204,6 +208,7 @@ public class EntityAuditListener {
             return;
         }
 
+        @SuppressWarnings("unchecked")
         AbstractPersistableEntity<? extends Serializable> statusEntity = (AbstractPersistableEntity<? extends Serializable>) entity;
 
         try {

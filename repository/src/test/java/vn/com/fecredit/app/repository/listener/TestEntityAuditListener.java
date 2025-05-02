@@ -17,7 +17,7 @@ import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 @Slf4j
 public class TestEntityAuditListener {
 
-    private ApplicationEventPublisher eventPublisher;
+    // private ApplicationEventPublisher eventPublisher;
 
     /**
      * Setter method to allow for dependency injection
@@ -25,7 +25,7 @@ public class TestEntityAuditListener {
      */
     @Autowired(required = false) // Make this optional to avoid startup issues
     public void setEventPublisher(ApplicationEventPublisher eventPublisher) {
-        this.eventPublisher = eventPublisher;
+        // this.eventPublisher = eventPublisher;
         
         // Try to update the real listener if available
         try {

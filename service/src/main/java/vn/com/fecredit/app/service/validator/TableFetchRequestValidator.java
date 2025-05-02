@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -26,14 +27,13 @@ public class TableFetchRequestValidator implements Validator {
         Arrays.stream(ObjectType.values())
             .forEach(type -> VALID_ENTITY_NAMES.add(type.name()));
     }
-    
     @Override
-    public boolean supports(Class<?> clazz) {
+    public boolean supports(@NonNull Class<?> clazz) {
         return TableFetchRequest.class.isAssignableFrom(clazz);
     }
-
+    
     @Override
-    public void validate(Object target, Errors errors) {
+    public void validate(@NonNull Object target, @NonNull Errors errors) {
         TableFetchRequest request = (TableFetchRequest) target;
         
         // Check that at least one of objectType or entityName is provided

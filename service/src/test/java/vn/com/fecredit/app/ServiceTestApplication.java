@@ -3,6 +3,7 @@ package vn.com.fecredit.app;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
@@ -13,6 +14,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.mockito.Mockito;
+import vn.com.fecredit.app.config.FileStorageProperties;
+import vn.com.fecredit.app.config.TestConfig;
 import vn.com.fecredit.app.service.config.TestServiceConfig;
 
 /**
@@ -28,7 +31,8 @@ import vn.com.fecredit.app.service.config.TestServiceConfig;
     "vn.com.fecredit.app.service.factory",
     "vn.com.fecredit.app.service.validator" // Only include validator package, not validation
 })
-@Import(TestServiceConfig.class)
+@EnableConfigurationProperties({FileStorageProperties.class})
+@Import({TestServiceConfig.class, TestConfig.class})
 public class ServiceTestApplication {
     
     public static void main(String[] args) {

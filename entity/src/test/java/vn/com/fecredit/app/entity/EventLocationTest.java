@@ -202,19 +202,19 @@ class EventLocationTest {
     }
 
 
-    // Helper method to create a valid event location for tests
-    private EventLocation createValidEventLocation() {
-        return EventLocation.builder()
-            .maxSpin(100)
-            .maxSpin(100)
-            .maxSpin(10)
-            .dailySpinDistributingRate(0)
-            .maxSpin(10)
-            .todaySpin(10)
-            .status(CommonStatus.ACTIVE)
-            .rewardEvents(new HashSet<>())
-            .goldenHours(new HashSet<>())
-            .participantEvents(new HashSet<>())
-            .build();
-    }
+    // // Helper method to create a valid event location for tests
+    // private EventLocation createValidEventLocation() {
+    //     return EventLocation.builder()
+    //         .maxSpin(100)
+    //         .maxSpin(100)
+    //         .maxSpin(10)
+    //         .dailySpinDistributingRate(0)
+    //         .maxSpin(10)
+    //         .todaySpin(10)
+    //         .status(CommonStatus.ACTIVE)
+    //         .rewardEvents(new HashSet<>())
+    //         .goldenHours(new HashSet<>())
+    //         .participantEvents(new HashSet<>())
+    //         .build();
+    // }
 }

@@ -1,8 +1,7 @@
 package vn.com.fecredit.app.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.NoRepositoryBean;
+
 import vn.com.fecredit.app.entity.base.AbstractPersistableEntity;
 import vn.com.fecredit.app.entity.base.SerializableKey;
 
@@ -14,6 +13,6 @@ import vn.com.fecredit.app.entity.base.SerializableKey;
  * @param <T> entity type
  */
 @NoRepositoryBean
-public interface ComplexObjectRepository<T extends AbstractPersistableEntity, U extends SerializableKey> extends AbstractRepository<T, U> {
+public interface ComplexObjectRepository<T extends AbstractPersistableEntity<U>, U extends SerializableKey> extends AbstractRepository<T, U> {
     // Common repository methods can be added here
 }

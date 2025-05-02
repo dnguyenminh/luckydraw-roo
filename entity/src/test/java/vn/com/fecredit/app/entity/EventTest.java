@@ -60,16 +60,18 @@ class EventTest {
         province1 = Province.builder()
             .name("Province 1")
             .code("PROV1")
-            .region(region1)
             .status(CommonStatus.ACTIVE)
             .build();
 
         province2 = Province.builder()
             .name("Province 2")
             .code("PROV2")
-            .region(region2)
             .status(CommonStatus.ACTIVE)
             .build();
+
+        // Set up many-to-many relationships
+        province1.addRegion(region1);
+        province2.addRegion(region2);
 
         location1 = EventLocation.builder()
             .region(region1)
@@ -91,9 +93,7 @@ class EventTest {
             .endTime(now.plusDays(7))
             .build();
 
-        // Set up bidirectional relationships
-        region1.addProvince(province1);
-        region2.addProvince(province2);
+        // Add event locations to regions
         region1.addEventLocation(location1);
         region2.addEventLocation(location2);
     }
@@ -132,8 +132,7 @@ class EventTest {
     @Test
     void testOverlappingProvinces() {
         // Setup regions with overlapping province
-        region1.addProvince(province1);
-        region2.addProvince(province1);
+        province1.addRegion(region2); // Now province1 belongs to both region1 and region2
 
         event.addLocation(location1);
 
@@ -217,14 +216,22 @@ class EventTest {
     }
 
     /**
-     * Tests that the event properly handles locations with null regions.
-     * Verifies that province overlap validation is skipped when a region is null.
+     * Tests that the event properly handles locations with null regions or provinces.
+     * Verifies that province overlap validation is skipped when a region or province is null.
      */
     @Test
     void testOverlappingProvincesWithNull() {
+        // Test with null region
         location1.setRegion(null);
         event.addLocation(location1);
         // Should not throw exception when region is null
+        assertDoesNotThrow(() -> event.addLocation(location2));
+        
+        // Reset and test with null province
+        event.getLocations().clear();
+        location1.setRegion(region1);
+        event.addLocation(location1);
+        // Should not throw exception when province is null
         assertDoesNotThrow(() -> event.addLocation(location2));
     }
 }

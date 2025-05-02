@@ -22,25 +22,32 @@ public interface ProvinceRepository extends SimpleObjectRepository<Province, Lon
 
     List<Province> findByStatus(CommonStatus status);
 
-    // Methods with Entity parameters
+    // Methods with Entity parameters - using JPQL queries to handle many-to-many relationship
+    @Query("SELECT p FROM Province p WHERE :region MEMBER OF p.regions")
     List<Province> findByRegion(Region region);
 
+    @Query("SELECT p FROM Province p WHERE :region MEMBER OF p.regions AND p.status = :status")
     List<Province> findByRegionAndStatus(Region region, CommonStatus status);
 
-    boolean existsByCodeAndRegion(String code, Region region);
+    // Replace existsByCodeAndRegion method with a custom JPQL query that uses MEMBER OF operator
+    @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
+           "FROM Province p WHERE p.code = :code AND :region MEMBER OF p.regions")
+    boolean existsByCodeAndRegion(@Param("code") String code, @Param("region") Region region);
 
     // Methods with ID parameters
-    List<Province> findByRegionId(Long regionId);
+    @Query("SELECT p FROM Province p JOIN p.regions r WHERE r.id = :regionId")
+    List<Province> findByRegionId(@Param("regionId") Long regionId);
 
-    List<Province> findByRegionIdAndStatus(Long regionId, CommonStatus status);
+    @Query("SELECT p FROM Province p JOIN p.regions r WHERE r.id = :regionId AND p.status = :status")
+    List<Province> findByRegionIdAndStatus(@Param("regionId") Long regionId, @Param("status") CommonStatus status);
 
-    @Query("SELECT p FROM Province p " +
-           "WHERE p.region.id = :regionId " +
+    @Query("SELECT p FROM Province p JOIN p.regions r " +
+           "WHERE r.id = :regionId " +
            "AND p.status = 'ACTIVE'")
     List<Province> findActiveProvincesByRegion(@Param("regionId") Long regionId);
 
-    @Query("SELECT COUNT(p) FROM Province p " +
-           "WHERE p.region.id = :regionId " +
+    @Query("SELECT COUNT(p) FROM Province p JOIN p.regions r " +
+           "WHERE r.id = :regionId " +
            "AND p.status = 'ACTIVE'")
     long countActiveProvincesByRegion(@Param("regionId") Long regionId);
 
@@ -57,10 +64,11 @@ public interface ProvinceRepository extends SimpleObjectRepository<Province, Lon
            "           AND pt.status = 'ACTIVE')")
     List<Province> findActiveProvincesWithParticipants();
 
-    @Query("SELECT p FROM Province p WHERE p.region.code = :regionCode")
+    @Query("SELECT p FROM Province p JOIN p.regions r WHERE r.code = :regionCode")
     List<Province> findByRegionCode(@Param("regionCode") String regionCode);
 
     List<Province> findByNameContainingIgnoreCaseAndStatus(@NotBlank(message = "Province name is required") String name, @NotNull CommonStatus status);
 
+    @Query("SELECT COUNT(p) FROM Province p WHERE :region MEMBER OF p.regions")
     long countByRegion(@NotNull(message = "Region is required") Region region);
 }

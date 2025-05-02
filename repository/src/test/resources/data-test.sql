@@ -1,13 +1,15 @@
--- Test data for repository module
+-- Test data for repository module tests
+-- First, clear existing data to prevent primary key violations
 
--- Clear existing data
+-- Truncate tables in reverse dependency order
 DELETE FROM SPIN_HISTORIES;
 DELETE FROM GOLDEN_HOURS;
-DELETE FROM REWARD_EVENTS;
+-- Remove reference to non-existent REWARD_EVENTS table
 DELETE FROM REWARDS;
 DELETE FROM PARTICIPANT_EVENTS;
 DELETE FROM PARTICIPANTS;
 DELETE FROM EVENT_LOCATIONS;
+DELETE FROM REGION_PROVINCE;
 DELETE FROM PROVINCES;
 DELETE FROM EVENTS;
 DELETE FROM REGIONS;
@@ -55,8 +57,8 @@ VALUES
 (3, 'ROLE_MANAGER', 'Manager role', 3, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Test data for permissions
-INSERT INTO PERMISSIONS (id, name, type, description, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
+INSERT INTO PERMISSIONS (id, name, permission_type, description, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
 (1, 'CREATE_USER', 'WRITE', 'Create user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 'READ_USER', 'READ', 'View user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (3, 'UPDATE_EVENT', 'WRITE', 'Update events', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
@@ -90,28 +92,20 @@ VALUES
 (3, 1, 2, 4, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (1, 2, 1, 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
--- Test data for rewards
-INSERT INTO REWARDS (id, name, code, description, prize_value, status, created_by, created_at, updated_by, updated_at, version)
+-- Test data for rewards with event_id and region_id fields
+INSERT INTO REWARDS (id, name, code, description, prize_value, event_id, region_id, status, created_by, created_at, updated_by, updated_at, version)
 VALUES 
-(1, '$100 Cash', 'REWARD001', 'Cash prize of $100', 100.00, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, '$50 Voucher', 'REWARD002', 'Shopping voucher', 50.00, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(3, 'Smartphone', 'REWARD003', 'Latest smartphone', 999.99, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+(1, 'Gold Prize', 'GOLD', 'Gold prize description', 1000.00, 1, 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'Silver Prize', 'SILVER', 'Silver prize description', 500.00, 1, 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(3, 'Bronze Prize', 'BRONZE', 'Bronze prize description', 250.00, 2, 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
--- Test data for reward_events with composite key
-INSERT INTO REWARD_EVENTS (event_id, region_id, reward_id, quantity, today_quantity, status, created_by, created_at, updated_by, updated_at, version)
-VALUES 
-(1, 1, 1, 10, 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(1, 1, 2, 20, 4, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(1, 2, 3, 50, 5, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 1, 1, 15, 3, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
-
--- Test data for golden_hours
+-- Make sure all golden_hours data has proper compound keys referenced
 INSERT INTO GOLDEN_HOURS (id, event_id, region_id, start_time, end_time, multiplier, max_rewards, claimed_rewards, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
 (1, 1, 1, '2023-06-15 12:00:00', '2023-06-15 14:00:00', 2.0, 50, 0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 1, 2, '2023-07-01 18:00:00', '2023-07-01 20:00:00', 1.5, 40, 0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
--- Test data for spin_histories
+-- Ensure spin_histories properly reference the compound keys
 INSERT INTO SPIN_HISTORIES (id, participant_id, event_id, region_id, spin_time, reward_id, reward_event_id, reward_region_id, win, wheel_position, multiplier, status, created_by, created_at, updated_by, updated_at, version)
 VALUES 
 (1, 1, 1, 1, '2023-06-05 13:30:00', 1, 1, 1, TRUE, 120.5, 1.0, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),

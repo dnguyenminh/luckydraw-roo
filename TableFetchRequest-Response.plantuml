@@ -1,0 +1,129 @@
+@startuml
+
+!theme plain
+top to bottom direction
+skinparam linetype ortho
+
+annotation AllArgsConstructor << annotation >> {
+  + staticName(): String
+  + access(): AccessLevel
+   onConstructor_(): Object[]
+  + onConstructor(): AnyAnnotation[]
+}
+annotation AnyAnnotation << annotation >>
+annotation AnyAnnotation << annotation >>
+annotation Builder << annotation >> {
+  + access(): AccessLevel
+  + builderMethodName(): String
+  + toBuilder(): boolean
+  + setterPrefix(): String
+  + builderClassName(): String
+  + buildMethodName(): String
+}
+annotation Data << annotation >> {
+  + staticConstructor(): String
+}
+annotation Default << annotation >>
+annotation NoArgsConstructor << annotation >> {
+  + onConstructor(): AnyAnnotation[]
+   onConstructor_(): Object[]
+  + staticName(): String
+  + force(): boolean
+  + access(): AccessLevel
+}
+annotation ObtainVia << annotation >> {
+  + field(): String
+  + method(): String
+   static: boolean
+}
+class TableFetchRequest {
+  + TableFetchRequest(ObjectType, String, int, int, List<SortRequest>, List<FilterRequest>, Map<ObjectType, DataObject>, List<ColumnInfo>): 
+  + TableFetchRequest(): 
+  - objectType: ObjectType
+  - search: Map<ObjectType, DataObject>
+  - viewColumns: List<ColumnInfo>
+  - size: int
+  - entityName: String
+  - filters: List<FilterRequest>
+  - sorts: List<SortRequest>
+  - page: int
+  + hashCode(): int
+  - $default$filters(): List<FilterRequest>
+  - $default$sorts(): List<SortRequest>
+  + toString(): String
+  - $default$search(): Map<ObjectType, DataObject>
+  - $default$size(): int
+  + equals(Object?): boolean
+  - $default$page(): int
+  # canEqual(Object?): boolean
+  - $default$viewColumns(): List<ColumnInfo>
+  + builder(): TableFetchRequestBuilder
+  + addFilter(String, FilterType, String, String): TableFetchRequest
+  + addSort(String, SortType): TableFetchRequest
+  + addSearch(ObjectType, DataObject): TableFetchRequest
+   entityName: String
+   search: Map<ObjectType, DataObject>
+   viewColumns: List<ColumnInfo>
+   page: int
+   sorts: List<SortRequest>
+   filters: List<FilterRequest>
+   size: int
+   objectType: ObjectType
+}
+class TableFetchRequestBuilder {
+  ~ TableFetchRequestBuilder(): 
+  + objectType(ObjectType): TableFetchRequestBuilder
+  + entityName(String): TableFetchRequestBuilder
+  + page(int): TableFetchRequestBuilder
+  + size(int): TableFetchRequestBuilder
+  + sorts(List<SortRequest>): TableFetchRequestBuilder
+  + filters(List<FilterRequest>): TableFetchRequestBuilder
+  + search(Map<ObjectType, DataObject>): TableFetchRequestBuilder
+  + viewColumns(List<ColumnInfo>): TableFetchRequestBuilder
+  + build(): TableFetchRequest
+  + toString(): String
+}
+class TableFetchResponse {
+  + TableFetchResponse(TableFetchRequest, StatisticsInfo): 
+  + TableFetchResponse(): 
+  # TableFetchResponse(TableFetchResponseBuilder<?, ?>): 
+  - originalRequest: TableFetchRequest
+  - statistics: StatisticsInfo
+  + toString(): String
+  + builder(): TableFetchResponseBuilder<?, ?>
+  + equals(Object?): boolean
+  # canEqual(Object?): boolean
+  + hashCode(): int
+   statistics: StatisticsInfo
+   originalRequest: TableFetchRequest
+}
+class TableFetchResponseBuilder<C, B> {
+  + TableFetchResponseBuilder(): 
+  + originalRequest(TableFetchRequest): B
+  + statistics(StatisticsInfo): B
+  # self(): B
+  + build(): C
+  + toString(): String
+}
+class TableFetchResponseBuilderImpl {
+  - TableFetchResponseBuilderImpl(): 
+  # self(): TableFetchResponseBuilderImpl
+  + build(): TableFetchResponse
+}
+
+AnyAnnotation                  +-[#820000,plain]-  AllArgsConstructor            
+AnyAnnotation                  +-[#820000,plain]-  NoArgsConstructor             
+Default                        +-[#820000,plain]-  Builder                       
+ObtainVia                      +-[#820000,plain]-  Builder                       
+TableFetchRequest              -[#999900,dotted]-  AllArgsConstructor            
+TableFetchRequest              -[#999900,dotted]-  Builder                       
+TableFetchRequest              -[#999900,dotted]-  Data                          
+TableFetchRequest              -[#999900,dotted]-  NoArgsConstructor             
+TableFetchRequestBuilder       +-[#820000,plain]-  TableFetchRequest             
+TableFetchResponse             -[#999900,dotted]-  AllArgsConstructor            
+TableFetchResponse             -[#999900,dotted]-  Data                          
+TableFetchResponse             -[#999900,dotted]-  NoArgsConstructor             
+TableFetchResponseBuilder      +-[#820000,plain]-  TableFetchResponse            
+TableFetchResponseBuilderImpl  +-[#820000,plain]-  TableFetchResponse            
+TableFetchResponseBuilderImpl  -[#000082,plain]-^  TableFetchResponseBuilder     
+@enduml

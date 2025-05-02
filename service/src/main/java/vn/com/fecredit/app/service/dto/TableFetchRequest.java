@@ -97,4 +97,11 @@ public class TableFetchRequest {
         search.put(objectType, dataObject);
         return this;
     }
+
+    /**
+     * Map of related object names to their metadata
+     */
+    @Builder.Default
+    private List<ColumnInfo> viewColumns = new ArrayList<>();
+
 }

@@ -1,22 +1,22 @@
 package vn.com.fecredit.app.repository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import vn.com.fecredit.app.entity.Role;
-import vn.com.fecredit.app.entity.User;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
-import vn.com.fecredit.app.entity.enums.RoleType;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import vn.com.fecredit.app.entity.Role;
+import vn.com.fecredit.app.entity.User;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.entity.enums.RoleType;
 
 class UserRepositoryTest extends AbstractRepositoryTest {
 

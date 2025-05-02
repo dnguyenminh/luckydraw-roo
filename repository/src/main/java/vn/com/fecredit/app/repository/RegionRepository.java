@@ -24,7 +24,7 @@ public interface RegionRepository extends SimpleObjectRepository<Region, Long> {
             "LEFT JOIN FETCH r.provinces p " +
             "WHERE r.status = 'ACTIVE' " +
             "AND EXISTS (SELECT 1 FROM Province p2 " +
-            "           WHERE p2.region = r)")
+            "           WHERE r MEMBER OF p2.regions)")
     List<Region> findActiveRegionsWithProvinces();
 
     @Query("SELECT r FROM Region r " +
@@ -34,9 +34,7 @@ public interface RegionRepository extends SimpleObjectRepository<Region, Long> {
             "           AND el.status = 'ACTIVE')")
     List<Region> findActiveRegionsWithActiveLocations();
 
-    @Query("SELECT COUNT(p) FROM Province p " +
-            "WHERE p.region.id = :regionId " +
-            "AND p.status = 'ACTIVE'")
+    @Query("SELECT COUNT(p) FROM Province p JOIN p.regions r WHERE r.id = :regionId AND p.status = 'ACTIVE'")
     long countActiveProvinces(@Param("regionId") Long regionId);
 
     @Query("SELECT COUNT(el) FROM EventLocation el " +

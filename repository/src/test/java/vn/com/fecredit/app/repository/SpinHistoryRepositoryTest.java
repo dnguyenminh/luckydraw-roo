@@ -6,7 +6,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,13 +20,14 @@ import vn.com.fecredit.app.entity.GoldenHour;
 import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.entity.ParticipantEvent;
 import vn.com.fecredit.app.entity.ParticipantEventKey;
-import vn.com.fecredit.app.entity.RewardEventKey;
-import vn.com.fecredit.app.entity.RewardEvent;
 import vn.com.fecredit.app.entity.Province;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.Reward;
+import vn.com.fecredit.app.entity.RewardEvent;
+import vn.com.fecredit.app.entity.RewardEventKey;
 import vn.com.fecredit.app.entity.SpinHistory;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.repository.util.TestEntityHelper;
 
 class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
 
@@ -113,7 +113,11 @@ class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
         Province province = Province.builder()
             .name("Test Province")
             .code("TEST_PROV")
-            .region(region)
+            .regions(new HashSet<>() {
+                {
+                    add(region);
+                }
+            })
             .status(CommonStatus.ACTIVE)
             .version(0L)
             .participants(new HashSet<>())
@@ -212,28 +216,48 @@ class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
         participantEventKey.setEventLocationKey(location.getId()); // Set the EventLocationKey from the location
         participantEventKey.setParticipantId(participant.getId()); // Set the participant ID
         
-        // Create the ParticipantEvent with proper relationships
-        ParticipantEvent participantEvent = ParticipantEvent.builder()
-            .participant(participant)
-            .eventLocation(location)
-            .spinsRemaining(5)
-            .status(CommonStatus.ACTIVE)
-            .version(0L)
-            .spinHistories(new ArrayList<>())
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
+        // First clear any pending operations
+        entityManager.flush();
+        entityManager.clear();
         
-        // Set the composite key to the entity
+        // Use native SQL directly without creating a ParticipantEvent entity
+        entityManager.createNativeQuery(
+            "INSERT INTO participant_events (event_id, region_id, participant_id, created_at, created_by, " +
+            "updated_at, updated_by, status, spins_remaining, version) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .setParameter(1, location.getId().getEventId())
+            .setParameter(2, location.getId().getRegionId())
+            .setParameter(3, participant.getId())
+            .setParameter(4, now)
+            .setParameter(5, "test-user")
+            .setParameter(6, now)
+            .setParameter(7, "test-user")
+            .setParameter(8, CommonStatus.ACTIVE.name())
+            .setParameter(9, 5)  // spinsRemaining
+            .setParameter(10, 0L)  // version
+            .executeUpdate();
+        
+        // Clear the session to avoid conflicts
+        entityManager.flush();
+        entityManager.clear();
+        
+        // Now load the entity we just created
+        ParticipantEvent participantEvent = new ParticipantEvent();
         participantEvent.setId(participantEventKey);
-
-        // Maintain bidirectional relationship
-        location.getParticipantEvents().add(participantEvent);
+        participantEvent.setParticipant(participant);
+        participantEvent.setEventLocation(location);
+        participantEvent.setSpinsRemaining(5);
+        participantEvent.setStatus(CommonStatus.ACTIVE);
+        participantEvent.setVersion(0L);
+        participantEvent.setCreatedAt(now);
+        participantEvent.setUpdatedAt(now);
+        participantEvent.setCreatedBy("test-user");
+        participantEvent.setUpdatedBy("test-user");
+        participantEvent.setSpinHistories(new ArrayList<>());
         
-        // Persist and return
-        entityManager.persist(participantEvent);
+        // Don't add to the location's collection to prevent cascading
+        // location.getParticipantEvents().add(participantEvent);
+        
         return participantEvent;
     }
 
@@ -253,29 +277,33 @@ class SpinHistoryRepositoryTest extends AbstractRepositoryTest {
         entityManager.persist(reward);
         entityManager.flush(); // Ensure the reward has an ID
         
-        // Create the composite key for RewardEvent
-        RewardEventKey rewardEventKey = new RewardEventKey();
-        rewardEventKey.setEventLocationKey(eventLocation.getId());
-        rewardEventKey.setRewardId(reward.getId());
+        // Clear the session before SQL operation
+        entityManager.flush();
+        entityManager.clear();
         
-        // Create the RewardEvent with the composite key
-        RewardEvent rewardEvent = RewardEvent.builder()
-            .eventLocation(eventLocation)
-            .reward(reward)
-            .status(CommonStatus.ACTIVE)
-            .version(0L)
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
+        // Use native SQL to insert the RewardEvent directly
+        entityManager.createNativeQuery(
+            "INSERT INTO reward_events (event_id, region_id, reward_id, created_at, created_by, " +
+            "updated_at, updated_by, status, quantity, today_quantity, version) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+            .setParameter(1, eventLocation.getId().getEventId())
+            .setParameter(2, eventLocation.getId().getRegionId())
+            .setParameter(3, reward.getId())
+            .setParameter(4, now)
+            .setParameter(5, "test-user")
+            .setParameter(6, now)
+            .setParameter(7, "test-user")
+            .setParameter(8, CommonStatus.ACTIVE.name())
+            .setParameter(9, 10)  // quantity
+            .setParameter(10, 5)  // today quantity
+            .setParameter(11, 0L)  // version
+            .executeUpdate();
         
-        // Set the composite key to the entity
-        rewardEvent.setId(rewardEventKey);
+        entityManager.flush();
+        entityManager.clear();
         
-        // Then persist the RewardEvent
-        entityManager.persist(rewardEvent);
-        
+        // Reload the reward to ensure we have a fresh copy
+        reward = entityManager.find(Reward.class, reward.getId());
         return reward;
     }
 

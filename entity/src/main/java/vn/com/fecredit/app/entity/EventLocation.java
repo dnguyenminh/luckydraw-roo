@@ -210,7 +210,7 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
      *
      * @param participantEvent the participant event to remove from this location
      */
-    public void removeParticipantEvent(RewardEvent participantEvent) {
+    public void removeParticipantEvent(ParticipantEvent participantEvent) {
         if (participantEvent != null && participantEvents.remove(participantEvent)) {
             if (participantEvent.getEventLocation() == this) {
                 participantEvent.setEventLocation(null);

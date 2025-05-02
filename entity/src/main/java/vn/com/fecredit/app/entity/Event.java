@@ -1,19 +1,33 @@
 package vn.com.fecredit.app.entity;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.*;
-import lombok.*;
-import lombok.experimental.SuperBuilder;
-import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.listener.EntityAuditListener;
-
 import java.time.LocalDateTime;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
+import jakarta.persistence.Index;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
+import vn.com.fecredit.app.entity.listener.EntityAuditListener;
 
 /**
  * Entity representing a promotional event in the Lucky Draw application.

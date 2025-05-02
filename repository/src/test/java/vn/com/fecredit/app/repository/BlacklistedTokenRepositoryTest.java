@@ -15,7 +15,6 @@ import jakarta.persistence.PersistenceContext;
 import vn.com.fecredit.app.entity.BlacklistedToken;
 import vn.com.fecredit.app.entity.User;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
-import vn.com.fecredit.app.entity.enums.RoleType;
 
 @Rollback
 class BlacklistedTokenRepositoryTest extends AbstractRepositoryTest {

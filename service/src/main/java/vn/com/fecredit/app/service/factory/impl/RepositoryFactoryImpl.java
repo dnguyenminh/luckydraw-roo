@@ -3,7 +3,6 @@ package vn.com.fecredit.app.service.factory.impl;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Component;
@@ -18,11 +17,11 @@ import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.GoldenHour;
 import vn.com.fecredit.app.entity.Participant;
 import vn.com.fecredit.app.entity.ParticipantEvent;
-import vn.com.fecredit.app.entity.RewardEvent;
 import vn.com.fecredit.app.entity.Permission;
 import vn.com.fecredit.app.entity.Province;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.Reward;
+import vn.com.fecredit.app.entity.RewardEvent;
 import vn.com.fecredit.app.entity.Role;
 import vn.com.fecredit.app.entity.SpinHistory;
 import vn.com.fecredit.app.entity.User;
@@ -59,7 +58,6 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
     private final Map<ObjectType, String> tableNameMap;
     private final Map<String, ObjectType> entityNameToObjectTypeMap;
 
-    @Autowired
     public RepositoryFactoryImpl(ApplicationContext applicationContext) {
         this.applicationContext = applicationContext;
 
@@ -108,10 +106,12 @@ public class RepositoryFactoryImpl implements RepositoryFactory {
         mapEntity(ObjectType.Reward, Reward.class, RewardRepository.class, "rewards");
         mapEntity(ObjectType.RewardEvent, RewardEvent.class, RewardEventRepository.class, "rewards");
         mapEntity(ObjectType.Participant, Participant.class, ParticipantRepository.class, "participants");
-        mapEntity(ObjectType.ParticipantEvent, ParticipantEvent.class, ParticipantEventRepository.class, "participant_events");
+        mapEntity(ObjectType.ParticipantEvent, ParticipantEvent.class, ParticipantEventRepository.class,
+                "participant_events");
         mapEntity(ObjectType.SpinHistory, SpinHistory.class, SpinHistoryRepository.class, "spin_histories");
         mapEntity(ObjectType.AuditLog, AuditLog.class, AuditLogRepository.class, "audit_logs");
-        mapEntity(ObjectType.BlacklistedToken, BlacklistedToken.class, BlacklistedTokenRepository.class, "blacklisted_tokens");
+        mapEntity(ObjectType.BlacklistedToken, BlacklistedToken.class, BlacklistedTokenRepository.class,
+                "blacklisted_tokens");
         mapEntity(ObjectType.Configuration, Configuration.class, ConfigurationRepository.class, "configurations");
 
         // Also map by simple name for backward compatibility

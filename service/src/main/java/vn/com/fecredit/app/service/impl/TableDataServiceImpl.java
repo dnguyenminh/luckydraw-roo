@@ -1,61 +1,59 @@
 package vn.com.fecredit.app.service.impl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.domain.Sort.Order;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Root;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
-import vn.com.fecredit.app.entity.enums.CommonStatus;
 import vn.com.fecredit.app.repository.AbstractRepository;
 import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
-import vn.com.fecredit.app.service.dto.DataObject;
-import vn.com.fecredit.app.service.dto.DataObjectKey;
-import vn.com.fecredit.app.service.dto.FetchStatus;
-import vn.com.fecredit.app.service.dto.FieldType;
-import vn.com.fecredit.app.service.dto.FilterRequest;
-import vn.com.fecredit.app.service.dto.FilterType;
 import vn.com.fecredit.app.service.dto.ObjectType;
-import vn.com.fecredit.app.service.dto.SortRequest;
-import vn.com.fecredit.app.service.dto.SortType;
-import vn.com.fecredit.app.service.dto.TabTableRow;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
-import vn.com.fecredit.app.service.factory.RelatedTablesFactory;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
-import vn.com.fecredit.app.service.util.EntityConverter;
-
-import java.io.Serializable;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import vn.com.fecredit.app.service.impl.table.ColumnInfoProvider;
+import vn.com.fecredit.app.service.impl.table.CriteriaQueryBuilder;
+import vn.com.fecredit.app.service.impl.table.EntityConverter;
+import vn.com.fecredit.app.service.impl.table.EntityFinder;
+import vn.com.fecredit.app.service.impl.table.PaginationHelper;
+import vn.com.fecredit.app.service.impl.table.PredicateBuilder;
+import vn.com.fecredit.app.service.impl.table.ResponseBuilder;
 
 /**
  * Implementation of the TableDataService for fetching paginated table data.
- * Supports dynamic entity fetching, sorting, filtering and pagination.
+ * This class orchestrates the process but delegates most work to specialized
+ * components.
  */
 @Service
 @Slf4j
@@ -63,33 +61,32 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class TableDataServiceImpl implements TableDataService {
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     @PersistenceContext
     private EntityManager entityManager;
 
     private final RepositoryFactory repositoryFactory;
-
-    private final RelatedTablesFactory relatedTablesFactory;
-
-    private static final String ENTITY_PACKAGE = "vn.com.fecredit.app.entity";
-
+    private final EntityFinder entityFinder;
+    private final PredicateBuilder predicateBuilder;
     private final EntityConverter entityConverter;
+    // private final CountQueryExecutor countQueryExecutor;
+    private final ResponseBuilder responseBuilder;
+    private final PaginationHelper paginationHelper;
+    // private final JoinCreator joinCreator;
+    private final ColumnInfoProvider columnInfoProvider;
+    private final CriteriaQueryBuilder criteriaQueryBuilder;
 
     @Override
     public TableFetchResponse fetchData(TableFetchRequest request) {
         if (request == null) {
-            return createErrorResponse("Request cannot be null");
+            return responseBuilder.createErrorResponse("Request cannot be null");
         }
 
         try {
             // First try to use ObjectType if provided
             if (request.getObjectType() != null) {
                 return fetchByObjectType(request);
-            }
-            // Fall back to entityName for backward compatibility
-            else if (request.getEntityName() != null) {
+                // Fall back to entityName for backward compatibility
+            } else if (request.getEntityName() != null) {
                 try {
                     // Try to map entity name to ObjectType enum
                     ObjectType objectType = ObjectType.valueOf(request.getEntityName());
@@ -97,23 +94,888 @@ public class TableDataServiceImpl implements TableDataService {
                     return fetchByObjectType(request);
                 } catch (IllegalArgumentException e) {
                     // Entity name doesn't match any predefined object type
-                    return createErrorResponse("Unsupported entity: " + request.getEntityName());
+                    return responseBuilder.createErrorResponse("Unsupported entity: " + request.getEntityName());
                 }
             } else {
-                return createErrorResponse("No object type or entity name specified");
+                return responseBuilder.createErrorResponse("No object type or entity name specified");
             }
         } catch (Exception e) {
             log.error("Error fetching table data", e);
-            return createErrorResponse("Error fetching data: " + e.getMessage());
+            return responseBuilder.createErrorResponse("Error fetching data: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public TableFetchResponse fetchScalarProperties(TableFetchRequest request) {
+        try {
+            // Validate request
+            if (request == null) {
+                return responseBuilder.createErrorResponse("Request cannot be null");
+            }
+
+            ObjectType objectType = request.getObjectType();
+            if (objectType == null) {
+                return responseBuilder.createErrorResponse("Unsupported entity: null");
+            }
+            
+            // Verify that the object type is valid by checking if it exists in the enum
+            try {
+                ObjectType.valueOf(objectType.name());
+            } catch (IllegalArgumentException e) {
+                return responseBuilder.createErrorResponse("Unsupported entity: " + objectType);
+            }
+            
+            // Ensure we have a valid page size
+            if (request.getSize() <= 0) {
+                request.setSize(10); // Set default page size
+            }
+
+            // Find root entity class - this validates the object type is mappable to an entity
+            Class<?> rootEntityClass;
+            try {
+                rootEntityClass = repositoryFactory.getEntityClass(objectType);
+                if (rootEntityClass == null) {
+                    return responseBuilder.createErrorResponse("Unsupported entity for object type: " + objectType);
+                }
+            } catch (Exception e) {
+                return responseBuilder.createErrorResponse("Unsupported entity: " + objectType);
+            }
+
+            // Create query
+            CriteriaQuery<Tuple> query = criteriaQueryBuilder.buildCriteriaQuery(request, rootEntityClass);
+            
+            // If query is null, create a simple default query to retrieve just IDs
+            if (query == null) {
+                log.warn("Failed to build query with provided parameters, creating simple default query");
+                CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+                query = cb.createTupleQuery();
+                Root<?> root = query.from(rootEntityClass);
+                query.multiselect(root.get("id").alias("id"));
+                query.distinct(true);
+            }
+
+            // Log all joins recursively
+            Root<?> root = query.getRoots().iterator().next();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> searchMap = (Map<String, Object>) (Map<?, ?>) request.getSearch();
+            logJoinsRecursively(root, "", searchMap);
+
+            try {
+                // Get total count - pass the query instead of the request
+                long totalCount = countTotalRecords(query);
+
+                // Get paginated results (even if empty)
+                List<Tuple> results = executeQueryWithPagination(query, request);
+                
+                if (results == null) {
+                    results = Collections.emptyList();
+                    log.warn("Query execution returned null results, using empty list");
+                }
+
+                // Build response - let the response builder handle empty results appropriately
+                return responseBuilder.buildResponse(
+                        request,
+                        results,
+                        rootEntityClass,
+                        totalCount,
+                        entityFinder.getTableName(rootEntityClass));
+            } catch (Exception e) {
+                log.error("Error executing query: {}", e.getMessage(), e);
+                return responseBuilder.createErrorResponse("Error executing query: " + e.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Error in fetchScalarProperties", e);
+            return responseBuilder.createErrorResponse("Error fetching scalar properties: " + e.getMessage());
         }
     }
 
     /**
-     * Fetch data based on ObjectType
+     * Executes the query with pagination applied
      */
-    private <T extends AbstractStatusAwareEntity, ID extends Serializable> TableFetchResponse fetchByObjectType(TableFetchRequest request) {
+    private List<Tuple> executeQueryWithPagination(CriteriaQuery<Tuple> query, TableFetchRequest request) {
+        try {
+            Pageable pageable = paginationHelper.createPageable(request);
+            
+            // Ensure the query is properly using distinct to avoid duplicate results
+            query.distinct(true);
+            
+            // Validate pagination parameters
+            int firstResult = (int) pageable.getOffset();
+            int maxResults = pageable.getPageSize();
+            
+            if (firstResult < 0) {
+                firstResult = 0;
+                log.warn("Negative first result detected, defaulting to 0");
+            }
+            
+            if (maxResults <= 0) {
+                maxResults = 10; // Default to 10 if max results is invalid
+                log.warn("Invalid max results detected, defaulting to 10");
+            }
+            
+            // Get a typed query and apply pagination
+            TypedQuery<Tuple> typedQuery = entityManager.createQuery(query)
+                    .setFirstResult(firstResult)
+                    .setMaxResults(maxResults);
+            
+            // Execute the query with timeout
+            typedQuery.setHint("jakarta.persistence.query.timeout", 30000); // 30 seconds timeout
+            List<Tuple> results = typedQuery.getResultList();
+            
+            // Optional: Deduplicate by ID if needed
+            if (request.getObjectType() != null && request.getObjectType() == ObjectType.Event) {
+                // For Event queries, deduplicate by event ID to match native query behavior
+                Map<Object, Tuple> uniqueById = new HashMap<>();
+                for (Tuple tuple : results) {
+                    Object id = tuple.get("id");
+                    if (id != null && !uniqueById.containsKey(id)) {
+                        uniqueById.put(id, tuple);
+                    }
+                }
+                
+                List<Tuple> deduplicatedResults = new ArrayList<>(uniqueById.values());
+                log.info("After deduplication: {} results (was {})", 
+                        deduplicatedResults.size(), results.size());
+                        
+                return deduplicatedResults;
+            }
+            
+            log.info("Query executed successfully, returning {} results", results.size());
+            return results;
+        } catch (Exception e) {
+            log.error("Error executing paginated query: {}", e.getMessage(), e);
+            return Collections.emptyList(); // Return empty list instead of null
+        }
+    }
+
+    // Method moved to CriteriaQueryBuilder class
+
+    // /**
+    //  * Builds order clauses for sorting results
+    //  */
+    // /**
+    //  * Builds order clauses for sorting results with support for nested paths.
+    //  */
+    // private List<jakarta.persistence.criteria.Order> buildOrderClauses(
+    //         List<SortRequest> sorts,
+    //         CriteriaBuilder cb,
+    //         Root<?> root,
+    //         Map<String, Join<?, ?>> existingJoins) {
+
+    //     List<jakarta.persistence.criteria.Order> orders = new ArrayList<>();
+    //     if (sorts == null || sorts.isEmpty()) {
+    //         return orders;
+    //     }
+
+    //     Map<String, Join<?, ?>> joinMap = new HashMap<>(existingJoins); // Work with a copy and reuse existing joins
+
+    //     for (SortRequest sort : sorts) {
+    //         String fieldName = sort.getField();
+    //         try {
+    //             Path<?> path = getPathForField(fieldName, root, joinMap);
+    //             if (path != null) {
+    //                 jakarta.persistence.criteria.Order order = (sort.getSortType() == SortType.ASCENDING) ? cb.asc(path)
+    //                         : cb.desc(path);
+    //                 orders.add(order);
+    //                 log.debug("Added order clause for field: {}", fieldName);
+    //             }
+    //         } catch (IllegalArgumentException e) {
+    //             log.warn("Invalid sort field: {} - {}", fieldName, e.getMessage());
+    //         }
+    //     }
+
+    //     return orders;
+    // }
+
+    // /**
+    //  * Gets or creates a path for a field, handling nested associations.
+    //  */
+    // /**
+    //  * Gets or creates a path for a field, handling nested associations and
+    //  * relationship name mappings
+    //  */
+    // private Path<?> getPathForField(String fieldName, Root<?> root, Map<String, Join<?, ?>> joinMap) {
+    //     try {
+    //         String[] fieldParts = fieldName.split("\\.");
+    //         if (fieldParts.length == 1) {
+    //             return root.get(fieldName);
+    //         }
+
+    //         // Handle nested paths
+    //         From<?, ?> currentFrom = root;
+    //         // Path<?> currentPath = root;
+
+    //         StringBuilder joinKey = new StringBuilder();
+
+    //         // Process all parts except the last one
+    //         for (int i = 0; i < fieldParts.length - 1; i++) {
+    //             String part = fieldParts[i];
+
+    //             // Build the join key for the current level
+    //             if (joinKey.length() > 0) {
+    //                 joinKey.append(".");
+    //             }
+    //             joinKey.append(part);
+    //             String currentJoinKey = joinKey.toString();
+
+    //             // Try to find or create the join
+    //             Join<?, ?> join = joinMap.get(currentJoinKey);
+    //             if (join != null) {
+    //                 currentFrom = join;
+    //                 // currentPath = join;
+    //             } else {
+    //                 // Try to find the attribute through the metamodel
+    //                 jakarta.persistence.metamodel.ManagedType<?> type = entityManager.getMetamodel()
+    //                         .managedType(currentFrom.getJavaType());
+
+    //                 String attributeName = part;
+    //                 jakarta.persistence.metamodel.Attribute<?, ?> attribute = null;
+
+    //                 try {
+    //                     // Try exact match first
+    //                     attribute = type.getAttribute(attributeName);
+    //                 } catch (IllegalArgumentException e) {
+    //                     // Try without plural 's' if not found
+    //                     if (attributeName.endsWith("s")) {
+    //                         try {
+    //                             attribute = type.getAttribute(attributeName.substring(0, attributeName.length() - 1));
+    //                             attributeName = attributeName.substring(0, attributeName.length() - 1);
+    //                         } catch (IllegalArgumentException ex) {
+    //                             // Ignore and continue to next attempt
+    //                         }
+    //                     }
+    //                 }
+
+    //                 if (attribute != null) {
+    //                     Join<?, ?> newJoin = currentFrom.join(attributeName, JoinType.LEFT);
+    //                     joinMap.put(currentJoinKey, newJoin);
+    //                     currentFrom = newJoin;
+    //                     // currentPath = newJoin;
+    //                     log.debug("Created join for attribute: {} with key: {}", attributeName, currentJoinKey);
+    //                 } else {
+    //                     log.warn("Could not find attribute: {} in type: {}", part, type.getJavaType().getSimpleName());
+    //                     throw new IllegalArgumentException("Invalid path: " + fieldName);
+    //                 }
+    //             }
+    //         }
+
+    //         // Get the final attribute
+    //         String finalPart = fieldParts[fieldParts.length - 1];
+    //         try {
+    //             return currentFrom.get(finalPart);
+    //         } catch (IllegalArgumentException e) {
+    //             log.warn("Failed to get attribute {} from {}", finalPart, currentFrom.getModel());
+    //             throw e;
+    //         }
+    //     } catch (Exception e) {
+    //         log.error("Error creating path for field {}: {}", fieldName, e.getMessage());
+    //         throw new IllegalArgumentException("Could not create path for: " + fieldName, e);
+    //     }
+    // }
+
+    // /**
+    //  * Creates Selection objects for the query based on the view columns.
+    //  * Handles nested associations correctly with proper join management.
+    //  */
+    // private List<Selection<?>> createSelections(List<ColumnInfo> viewColumns, Root<?> root) {
+    //     List<Selection<?>> selections = new ArrayList<>();
+    //     Map<String, Join<?, ?>> joinMap = new HashMap<>(); // Cache for reusing joins
+
+    //     // If no columns specified, return empty list for handling by caller
+    //     if (viewColumns == null || viewColumns.isEmpty()) {
+    //         return selections;
+    //     }
+
+    //     Set<String> usedAliases = new HashSet<>();
+    //     // Add standard ID field first for consistent results if not in viewColumns
+    //     boolean hasIdColumn = viewColumns.stream()
+    //             .anyMatch(col -> "id".equals(col.getFieldName()));
+    //     if (!hasIdColumn) {
+    //         selections.add(root.get("id").alias("id"));
+    //         usedAliases.add("id");
+    //     }
+
+    //     for (ColumnInfo column : viewColumns) {
+    //         // Skip if alias already used
+    //         if (usedAliases.contains(column.getFieldName())) {
+    //             continue;
+    //         }
+    //         usedAliases.add(column.getFieldName());
+    //         String fieldName = column.getFieldName();
+    //         // Create a unique alias by adding a numeric suffix if needed
+    //         String baseAlias = fieldName.replace(".", "_");
+    //         String alias = baseAlias;
+    //         int suffix = 1;
+    //         while (usedAliases.contains(alias)) {
+    //             alias = baseAlias + "_" + suffix++;
+    //         }
+    //         usedAliases.add(alias);
+
+    //         try {
+    //             String[] fieldParts = fieldName.split("\\.");
+    //             From<?, ?> currentFrom = root;
+    //             Path<?> currentPath = root;
+    //             StringBuilder joinMapKey = new StringBuilder();
+
+    //             jakarta.persistence.metamodel.ManagedType<?> currentType = entityManager.getMetamodel()
+    //                     .managedType(root.getJavaType());
+
+    //             // Handle nested paths (e.g., "locations.region.name")
+    //             for (int i = 0; i < fieldParts.length; i++) {
+    //                 String part = fieldParts[i];
+
+    //                 if (i < fieldParts.length - 1) {
+    //                     // This is a join part
+    //                     if (joinMapKey.length() > 0) {
+    //                         joinMapKey.append(".");
+    //                     }
+    //                     joinMapKey.append(part);
+    //                     String joinKey = joinMapKey.toString();
+
+    //                     Join<?, ?> join = joinMap.get(joinKey);
+    //                     if (join == null) {
+    //                         // Try to find the attribute in the current type
+    //                         jakarta.persistence.metamodel.Attribute<?, ?> attribute = findAttribute(currentType, part);
+    //                         if (attribute != null) {
+    //                             join = ((From<?, ?>) currentPath).join(attribute.getName(), JoinType.LEFT);
+    //                             joinMap.put(joinKey, join);
+    //                             log.debug("Created new join for path: {} using attribute: {}",
+    //                                     joinKey, attribute.getName());
+
+    //                             // Update current type for next iteration
+    //                             currentType = entityManager.getMetamodel()
+    //                                     .managedType(attribute.getJavaType());
+    //                         } else {
+    //                             log.warn("Could not find attribute {} in {}",
+    //                                     part, currentType.getJavaType().getSimpleName());
+    //                             throw new IllegalArgumentException("Invalid path: " + fieldName);
+    //                         }
+    //                     } else {
+    //                         // Update current type for next iteration using existing join
+    //                         jakarta.persistence.criteria.Path<?> joinPath = join;
+    //                         Class<?> joinClass = joinPath.getJavaType();
+    //                         currentType = entityManager.getMetamodel()
+    //                                 .managedType(joinClass);
+    //                     }
+    //                     currentPath = join;
+    //                     currentFrom = join;
+    //                 } else {
+    //                     // This is the final attribute
+    //                     try {
+    //                         jakarta.persistence.metamodel.Attribute<?, ?> attribute = findAttribute(currentType, part);
+    //                         if (attribute != null) {
+    //                             Path<?> finalPath = currentFrom.get(attribute.getName());
+    //                             Selection<?> selection = finalPath.alias(alias);
+    //                             selections.add(selection);
+    //                             log.debug("Added selection for path: {} using attribute: {}",
+    //                                     fieldName, attribute.getName());
+    //                         } else {
+    //                             log.warn("Could not find attribute {} in {}",
+    //                                     part, currentType.getJavaType().getSimpleName());
+    //                         }
+    //                     } catch (IllegalArgumentException e) {
+    //                         log.warn("Could not create selection for path: {} - {}", fieldName, e.getMessage());
+    //                     }
+    //                 }
+    //             }
+    //         } catch (Exception e) {
+    //             log.warn("Failed to process field: {} - {}", fieldName, e.getMessage());
+    //         }
+    //     }
+
+    //     return selections;
+    // }
+
+    // /**
+    //  * Builds the predicates for filtering and search
+    //  */
+    // /**
+    //  * Builds predicates for filtering and searching with enhanced error handling
+    //  */
+    // private List<jakarta.persistence.criteria.Predicate> buildPredicates(
+    //         TableFetchRequest request, CriteriaBuilder cb, Root<?> root) {
+    //     List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+
+    //     try {
+    //         // Add default filter to exclude deleted records
+    //         predicateBuilder.addDefaultFilters(cb, root, predicates);
+
+    //         if (request == null) {
+    //             log.warn("Request is null, only applying default filters");
+    //             return predicates;
+    //         }
+
+    //         // Create joins map for handling relationships
+    //         Map<String, Join<?, ?>> joinMap = new HashMap<>();
+
+    //         // Apply filters from request with proper path resolution
+    //         if (request.getFilters() != null && !request.getFilters().isEmpty()) {
+    //             try {
+    //                 predicateBuilder.applyFilters(request, predicates, cb, root);
+    //             } catch (Exception e) {
+    //                 log.error("Error applying filters: {}", e.getMessage());
+    //                 // Continue with other predicates even if filters fail
+    //             }
+    //         }
+
+    //         // Apply global search if specified
+    //         if (request.getSearch() != null && !request.getSearch().isEmpty()) {
+    //             try {
+    //                 List<jakarta.persistence.criteria.Predicate> searchPredicates = new ArrayList<>();
+
+    //                 // Handle text search across columns
+    //                 if (request.getViewColumns() != null && !request.getViewColumns().isEmpty()) {
+    //                     String searchTerm = request.getSearch().toString().toLowerCase();
+    //                     String searchPattern = "%" + searchTerm + "%";
+
+    //                     // Create LIKE predicate for each string field
+    //                     for (ColumnInfo column : request.getViewColumns()) {
+    //                         try {
+    //                             Path<?> path = getPathForField(column.getFieldName(), root, joinMap);
+    //                             if (path != null && path.getJavaType() == String.class) {
+    //                                 searchPredicates.add(cb.like(cb.lower(path.as(String.class)), searchPattern));
+    //                                 log.debug("Added search predicate for field: {}", column.getFieldName());
+    //                             }
+    //                         } catch (Exception e) {
+    //                             log.debug("Skipping search on field {}: {}", column.getFieldName(), e.getMessage());
+    //                         }
+    //                     }
+
+    //                     // Add the combined search predicates if any were created
+    //                     if (!searchPredicates.isEmpty()) {
+    //                         predicates.add(
+    //                                 cb.or(searchPredicates.toArray(new jakarta.persistence.criteria.Predicate[0])));
+    //                     }
+    //                 }
+    //             } catch (Exception e) {
+    //                 log.error("Error applying search criteria: {}", e.getMessage());
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         log.error("Error building predicates: {}", e.getMessage());
+    //     }
+
+    //     return predicates;
+    // }
+
+    /**
+     * Counts the total number of records that match the criteria using the same
+     * query structure
+     * 
+     * @param originalQuery The data query whose structure should be used for
+     *                      counting
+     * @return The total count of matching records
+     */
+    private long countTotalRecords(CriteriaQuery<Tuple> originalQuery) {
+        try {
+            log.debug("Creating count query from original query");
+            CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+            CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+
+            // Get the root from original query and create corresponding root for count query
+            Root<?> originalRoot = originalQuery.getRoots().iterator().next();
+            Root<?> countRoot = countQuery.from(originalRoot.getJavaType());
+
+            // Log original joins with full details
+            Set<?> originalJoins = originalRoot.getJoins();
+            log.debug("Original query joins before copying: {}",
+                    originalJoins.stream()
+                            .filter(j -> j instanceof Join)
+                            .map(j -> {
+                                Join<?, ?> join = (Join<?, ?>) j;
+                                return String.format("%s(%s)",
+                                        join.getAttribute().getName(),
+                                        join.getJoinType().name());
+                            })
+                            .collect(Collectors.joining(", ")));
+
+            // Initialize join maps
+            Map<String, Join<?, ?>> joinMap = new HashMap<>();
+            Set<String> processedJoins = new HashSet<>();
+
+            // Copy all joins from original query including nested joins
+            copyJoinsRecursively(originalRoot, countRoot, joinMap, processedJoins);
+
+            // Ensure we count distinct IDs to match native query behavior
+            if (originalRoot.getJavaType().getSimpleName().equals("Event")) {
+                // For Event entity, count distinct IDs to match native query
+                countQuery.select(cb.countDistinct(countRoot.get("id")));
+            } else {
+                // Default count behavior
+                countQuery.select(cb.countDistinct(countRoot));
+            }
+
+            // Log copied joins with full details
+            Set<?> copiedJoins = countRoot.getJoins();
+            log.debug("Count query joins after copying: {}",
+                    copiedJoins.stream()
+                            .filter(j -> j instanceof Join)
+                            .map(j -> {
+                                Join<?, ?> join = (Join<?, ?>) j;
+                                return String.format("%s(%s)",
+                                        join.getAttribute().getName(),
+                                        join.getJoinType().name());
+                            })
+                            .collect(Collectors.joining(", ")));
+
+            // Copy where clause
+            jakarta.persistence.criteria.Predicate originalPredicate = originalQuery.getRestriction();
+            if (originalPredicate != null) {
+                countQuery.where(copyPredicate(originalPredicate, cb, countRoot, joinMap));
+            }
+
+            // Copy distinct setting
+            countQuery.distinct(originalQuery.isDistinct());
+
+            // Execute count query
+            log.debug("Executing count query with following joins: {}", String.join(", ", joinMap.keySet()));
+            Long total = entityManager.createQuery(countQuery).getSingleResult();
+            log.debug("Count query returned: {}", total);
+
+            return total != null ? total : 0L;
+        } catch (Exception e) {
+            log.error("Error executing count query: {}", e.getMessage(), e);
+            return 0L;
+        }
+    }
+
+    // private Join<?, ?> copyJoinWithAlias(Join<?, ?> originalJoin, From<?, ?> newParent) {
+    //     return newParent.join(
+    //             originalJoin.getAttribute().getName(),
+    //             originalJoin.getJoinType());
+    // }
+
+    /**
+     * Recursively copies all joins from the original From object to the new one,
+     * preserving the exact join structure and attributes
+     */
+    private void copyJoinsRecursively(From<?, ?> originalFrom, From<?, ?> newFrom,
+            Map<String, Join<?, ?>> joinMap, Set<String> processedJoins) {
+        // Process all joins from the original From (Root or Join)
+        Set<?> joinSet = originalFrom.getJoins();
+        if (joinSet == null || joinSet.isEmpty()) {
+            return;
+        }
+
+        for (Object obj : joinSet) {
+            if (!(obj instanceof Join)) {
+                continue;
+            }
+            Join<?, ?> originalJoin = (Join<?, ?>) obj;
+            String joinKey = createJoinKey(originalJoin);
+
+            // Skip if already processed to avoid infinite recursion
+            if (processedJoins.add(joinKey)) {
+                // Create new join with same attribute and join type
+                Join<?, ?> newJoin = newFrom.join(
+                        originalJoin.getAttribute().getName(),
+                        originalJoin.getJoinType());
+                joinMap.put(joinKey, newJoin);
+
+                // Process nested joins recursively
+                copyJoinsRecursively(originalJoin, newJoin, joinMap, processedJoins);
+            }
+        }
+    }
+
+    /**
+     * Creates a unique join key that includes the full path to handle nested joins
+     */
+    private String createJoinKey(Join<?, ?> join) {
+        List<String> pathParts = new ArrayList<>();
+        pathParts.add(join.getAttribute().getName());
+
+        From<?, ?> parent = join.getParent();
+        while (parent instanceof Join) {
+            Join<?, ?> parentJoin = (Join<?, ?>) parent;
+            pathParts.add(0, parentJoin.getAttribute().getName());
+            parent = parentJoin.getParent();
+        }
+
+        return String.join(".", pathParts);
+    }
+
+    // @SuppressWarnings({ "unchecked", "rawtypes" })
+    private jakarta.persistence.criteria.Predicate copyPredicate(
+            jakarta.persistence.criteria.Predicate original,
+            CriteriaBuilder cb,
+            Root<?> newRoot,
+            Map<String, Join<?, ?>> joinMap) {
+
+        if (original == null) {
+            return null;
+        }
+
+        // Handle composite predicates (AND/OR)
+        if (original.getOperator() != null) {
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
+            for (jakarta.persistence.criteria.Expression<Boolean> expr : original.getExpressions()) {
+                if (expr instanceof jakarta.persistence.criteria.Predicate) {
+                    predicates.add(copyPredicate((jakarta.persistence.criteria.Predicate) expr, cb, newRoot, joinMap));
+                }
+            }
+            return original.getOperator() == jakarta.persistence.criteria.Predicate.BooleanOperator.AND
+                    ? cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]))
+                    : cb.or(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
+        }
+
+        try {
+            String predString = original.toString().toLowerCase();
+
+            // Extract the path information from the predicate string
+            String[] parts = predString.split("\\s+"); // Split on whitespace
+            String pathPart = parts[0]; // The first part should be the path
+
+            // Try to extract full path
+            String[] pathElements = pathPart.split("\\.");
+            if (pathElements.length > 1) {
+                // This is a joined path
+                Path<?> currentPath = null;
+                StringBuilder currentJoinKey = new StringBuilder();
+
+                // Start with root or find first join
+                for (int i = 0; i < pathElements.length - 1; i++) {
+                    if (currentJoinKey.length() > 0) {
+                        currentJoinKey.append(".");
+                    }
+                    currentJoinKey.append(pathElements[i]);
+
+                    Join<?, ?> join = joinMap.get(currentJoinKey.toString());
+                    if (join != null) {
+                        currentPath = join;
+                    } else if (i == 0) {
+                        currentPath = newRoot.get(pathElements[i]);
+                    } else if (currentPath instanceof From) {
+                        Join<?, ?> newJoin = ((From<?, ?>) currentPath).join(pathElements[i], JoinType.LEFT);
+                        joinMap.put(currentJoinKey.toString(), newJoin);
+                        currentPath = newJoin;
+                    }
+                }
+
+                // Get the final attribute if we found a path
+                if (currentPath != null) {
+                    String finalAttribute = pathElements[pathElements.length - 1];
+                    if (finalAttribute.indexOf(" ") > 0) { // Remove any trailing spaces/operators
+                        finalAttribute = finalAttribute.substring(0, finalAttribute.indexOf(" "));
+                    }
+                    return recreatePredicateWithNewPath(original, cb, currentPath.get(finalAttribute));
+                }
+            } else {
+                // This is a root path
+                String attributeName = pathElements[0];
+                if (attributeName.indexOf(" ") > 0) {
+                    attributeName = attributeName.substring(0, attributeName.indexOf(" "));
+                }
+                return recreatePredicateWithNewPath(original, cb, newRoot.get(attributeName));
+            }
+        } catch (Exception e) {
+            log.debug("Error copying predicate, will use original: {}", e.getMessage());
+        }
+
+        return original;
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    private jakarta.persistence.criteria.Predicate recreatePredicateWithNewPath(
+            jakarta.persistence.criteria.Predicate original,
+            CriteriaBuilder cb,
+            Path<?> newPath) {
+        try {
+            String predString = original.toString().toLowerCase();
+            Class<?> pathType = newPath.getJavaType();
+            Object value = extractValue(predString);
+
+            // Convert value to appropriate type
+            Object convertedValue = convertValue(value, pathType);
+
+            // Determine predicate type and create appropriate version
+            if (predString.contains(" = ")) {
+                return cb.equal(newPath, convertedValue);
+            }
+
+            if (predString.contains(" <> ")) {
+                return cb.notEqual(newPath, convertedValue);
+            }
+
+            // Handle numeric comparisons
+            if (Comparable.class.isAssignableFrom(pathType)) {
+                Path<Comparable> comparablePath = (Path<Comparable>) newPath;
+                Comparable comparableValue = (Comparable) convertedValue;
+
+                if (predString.contains(" > ")) {
+                    return cb.greaterThan(comparablePath, comparableValue);
+                }
+
+                if (predString.contains(" >= ")) {
+                    return cb.greaterThanOrEqualTo(comparablePath, comparableValue);
+                }
+
+                if (predString.contains(" < ")) {
+                    return cb.lessThan(comparablePath, comparableValue);
+                }
+
+                if (predString.contains(" <= ")) {
+                    return cb.lessThanOrEqualTo(comparablePath, comparableValue);
+                }
+            }
+
+            // Handle LIKE predicates for strings
+            if (String.class.equals(pathType)) {
+                if (predString.contains(" like ")) {
+                    return cb.like(newPath.as(String.class), (String) convertedValue);
+                }
+            }
+
+            // Handle IS NULL predicates
+            if (predString.contains(" is null")) {
+                return cb.isNull(newPath);
+            }
+
+            if (predString.contains(" is not null")) {
+                return cb.isNotNull(newPath);
+            }
+
+            log.debug("Unsupported predicate type: {}", predString);
+            return original;
+
+        } catch (Exception e) {
+            log.debug("Failed to recreate predicate with new path: {} - {}", newPath, e.getMessage());
+            return original;
+        }
+    }
+
+    /**
+     * Converts a value to the appropriate type based on the path's Java type
+     */
+    /**
+     * Converts a value to the appropriate type with support for various formats
+     */
+    @SuppressWarnings("unchecked")
+    private Object convertValue(Object value, Class<?> targetType) {
+        if (value == null || targetType.isInstance(value)) {
+            return value;
+        }
+
+        String stringValue = value.toString().trim();
+
+        try {
+            // Handle numeric types with format handling
+            if (targetType == Long.class || targetType == long.class) {
+                stringValue = stringValue.replaceAll("[,_]", ""); // Remove thousands separators
+                return Long.parseLong(stringValue);
+            }
+            if (targetType == Integer.class || targetType == int.class) {
+                stringValue = stringValue.replaceAll("[,_]", "");
+                return Integer.parseInt(stringValue);
+            }
+            if (targetType == Double.class || targetType == double.class) {
+                stringValue = stringValue.replaceAll("[,_]", "");
+                return Double.parseDouble(stringValue);
+            }
+            if (targetType == Float.class || targetType == float.class) {
+                stringValue = stringValue.replaceAll("[,_]", "");
+                return Float.parseFloat(stringValue);
+            }
+            if (targetType == java.math.BigDecimal.class) {
+                stringValue = stringValue.replaceAll("[,_]", "");
+                return new java.math.BigDecimal(stringValue);
+            }
+
+            // Handle boolean with various formats
+            if (targetType == Boolean.class || targetType == boolean.class) {
+                stringValue = stringValue.toLowerCase();
+                if (stringValue.matches("true|yes|1|on"))
+                    return true;
+                if (stringValue.matches("false|no|0|off"))
+                    return false;
+                return Boolean.parseBoolean(stringValue);
+            }
+
+            // Handle date/time types with multiple formats
+            if (targetType == java.time.LocalDateTime.class) {
+                try {
+                    return java.time.LocalDateTime.parse(stringValue);
+                } catch (Exception e) {
+                    // Try common date-time formats
+                    java.time.format.DateTimeFormatter[] formatters = {
+                            java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME,
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"),
+                            java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss")
+                    };
+                    for (java.time.format.DateTimeFormatter formatter : formatters) {
+                        try {
+                            return java.time.LocalDateTime.parse(stringValue, formatter);
+                        } catch (Exception ex) {
+                            // Continue to next format
+                        }
+                    }
+                    throw new IllegalArgumentException("Could not parse datetime: " + stringValue);
+                }
+            }
+
+            if (targetType == java.time.LocalDate.class) {
+                try {
+                    return java.time.LocalDate.parse(stringValue);
+                } catch (Exception e) {
+                    // Try common date formats
+                    java.time.format.DateTimeFormatter[] formatters = {
+                            java.time.format.DateTimeFormatter.ISO_LOCAL_DATE,
+                            java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+                            java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"),
+                            java.time.format.DateTimeFormatter.ofPattern("MM/dd/yyyy")
+                    };
+                    for (java.time.format.DateTimeFormatter formatter : formatters) {
+                        try {
+                            return java.time.LocalDate.parse(stringValue, formatter);
+                        } catch (Exception ex) {
+                            // Continue to next format
+                        }
+                    }
+                    throw new IllegalArgumentException("Could not parse date: " + stringValue);
+                }
+            }
+
+            // Handle enums with case-insensitive matching
+            if (targetType.isEnum()) {
+                @SuppressWarnings({ "rawtypes" })
+                Class<Enum> enumType = (Class<Enum>) targetType;
+                try {
+                    return Enum.valueOf(enumType, stringValue.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    // Try case-insensitive search
+                    for (Object enumConstant : targetType.getEnumConstants()) {
+                        if (enumConstant.toString().equalsIgnoreCase(stringValue)) {
+                            return enumConstant;
+                        }
+                    }
+                    throw new IllegalArgumentException("No enum constant " + targetType.getName() + "." + stringValue);
+                }
+            }
+
+        } catch (Exception e) {
+            log.warn("Failed to convert value '{}' to type {}: {}", stringValue, targetType, e.getMessage());
+        }
+
+        return value;
+    }
+
+    private Object extractValue(String predString) throws Exception {
+        String[] parts = predString.split("[=<>]");
+        if (parts.length > 1) {
+            String value = parts[1].trim();
+            if (value.startsWith("'") && value.endsWith("'")) {
+                value = value.substring(1, value.length() - 1);
+            }
+            return value;
+        }
+        throw new IllegalArgumentException("Could not extract value from predicate string");
+    }
+
+    private <T extends AbstractStatusAwareEntity<ID>, ID extends Serializable> TableFetchResponse fetchByObjectType(
+            TableFetchRequest request) {
         ObjectType objectType = request.getObjectType();
-        Pageable pageable = createPageable(request);
+        Pageable pageable = paginationHelper.createPageable(request);
 
         try {
             // Get the entity class for this object type
@@ -128,1162 +990,359 @@ public class TableDataServiceImpl implements TableDataService {
 
                 // Fetch the entities using the generic method
                 return fetchEntities(
-                    request,
-                    pageable,
-                    repository,
-                    tableName,
-                    this::createEntitySpecification,
-                    this::convertEntityToTableRow,
-                    () -> getColumnInfo(objectType, request));
+                        request,
+                        pageable,
+                        repository,
+                        tableName,
+                        this::createEntitySpecification,
+                        entityConverter::convertEntityToTableRow,
+                        () -> columnInfoProvider.getColumnInfo(objectType, request));
             } catch (IllegalArgumentException e) {
-                // This is now specifically for repository not found errors
                 log.error("Error getting repository for entity class {}: {}", entityClass.getName(), e.getMessage());
-                return createErrorResponse("Error getting repository for entity class: " + entityClass.getName());
+                return responseBuilder.createErrorResponse("Error getting repository: " + entityClass.getName());
             }
         } catch (IllegalArgumentException e) {
-            // This is for errors getting the entity class
             log.error("Error getting entity class for object type {}: {}", objectType, e.getMessage());
-            return createErrorResponse("Error getting entity class for object type: " + objectType);
+            return responseBuilder.createErrorResponse("Error getting entity class for object type: " + objectType);
         }
     }
 
-    /**
-     * Determine if a field should be editable
-     *
-     * @param fieldName the name of the field
-     * @return true if the field should be editable, false otherwise
-     */
-    private boolean isFieldEditable(String fieldName) {
-        // List of fields that should not be editable
-        return !("id".equals(fieldName) ||
-            "version".equals(fieldName) ||
-            "createdBy".equals(fieldName) ||
-            "createdDate".equals(fieldName) ||
-            "updatedBy".equals(fieldName) ||
-            "lastModifiedDate".equals(fieldName));
-    }
+    private <T extends AbstractStatusAwareEntity<ID>, ID extends Serializable> TableFetchResponse fetchEntities(
+            TableFetchRequest request,
+            Pageable pageable,
+            AbstractRepository<T, ID> repository,
+            String tableName,
+            Function<TableFetchRequest, Specification<T>> specificationBuilder,
+            Function<T, TableRow> rowConverter,
+            Supplier<Map<String, ColumnInfo>> columnInfoProvider) {
 
-    /**
-     * Get column info based on object type in a generic way using reflection
-     */
-    private Map<String, ColumnInfo> getColumnInfo(ObjectType objectType, TableFetchRequest request) {
-        Map<String, ColumnInfo> columnInfo = new HashMap<>();
-
-        try {
-            // Get the entity class for this object type
-            Class<?> entityClass = repositoryFactory.getEntityClass(objectType);
-
-            // Get current sort requests from the request context
-            List<SortRequest> sortRequests = null;
-            if (request != null && request.getSorts() != null) {
-                sortRequests = request.getSorts();
-            }
-
-            // Recursively analyze fields in the class hierarchy
-            analyzeEntityFields(entityClass, columnInfo, sortRequests);
-
-            log.debug("Generated {} columns for entity type {}", columnInfo.size(), objectType);
-        } catch (Exception e) {
-            log.error("Error generating column info for entity type {}: {}", objectType, e.getMessage());
-        }
-
-        // If no columns found (error case), add at least id column
-        if (columnInfo.isEmpty()) {
-            columnInfo.put("id", ColumnInfo.createNonEditable("id", FieldType.NUMBER.name(), SortType.ASCENDING));
-            log.warn("Using fallback column definition for {}", objectType);
-        }
-
-        return columnInfo;
-    }
-
-    /**
-     * Recursively analyze entity fields to build column info
-     *
-     * @param entityClass  the entity class to analyze
-     * @param columnInfo   the map to populate with column info
-     * @param sortRequests current sort requests from the table fetch request
-     */
-    private void analyzeEntityFields(Class<?> entityClass, Map<String, ColumnInfo> columnInfo,
-                                     List<SortRequest> sortRequests) {
-        // If we've reached Object class or null, stop recursion
-        if (entityClass == null || entityClass == Object.class) {
-            return;
-        }
-
-        log.debug("Analyzing fields for class: {}", entityClass.getName());
-
-        // Process all declared fields in this class
-        for (java.lang.reflect.Field field : entityClass.getDeclaredFields()) {
-            // Skip static, transient, and fields with @Transient annotation
-            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) ||
-                java.lang.reflect.Modifier.isTransient(field.getModifiers()) ||
-                field.isAnnotationPresent(jakarta.persistence.Transient.class)) {
-                continue;
-            }
-
-            // Skip fields that represent relationships unless they're simple
-            // ManyToOne/OneToOne
-            boolean isCollection = java.util.Collection.class.isAssignableFrom(field.getType());
-            boolean isDetailRelationship = false;
-
-            if (field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
-                field.isAnnotationPresent(jakarta.persistence.ManyToMany.class) ||
-                isCollection) {
-                isDetailRelationship = true;
-            }
-
-            if (isDetailRelationship) {
-                continue; // Skip detail relationships as they're not simple columns
-            }
-
-            // Get the field name
-            String fieldName = field.getName();
-
-            // Skip certain internal fields
-            if (fieldName.equals("serialVersionUID") || fieldName.equals("temporaryAttributes")) {
-                continue;
-            }
-
-            // Determine field type
-            FieldType fieldType = determineFieldType(field.getType());
-
-            // First check if this field is in current sort requests
-            SortType sortType = null;
-            if (sortRequests != null) {
-                for (SortRequest sortRequest : sortRequests) {
-                    if (fieldName.equals(sortRequest.getField())) {
-                        sortType = sortRequest.getSortType();
-                        log.debug("Using sort type from request for field {}: {}", fieldName, sortType);
-                        break;
-                    }
-                }
-            }
-
-            // If no sort type from request, always use NONE as default
-            if (sortType == null) {
-                sortType = SortType.NONE;
-            }
-
-            // Check if this field should be editable
-            boolean editable = isFieldEditable(fieldName);
-
-            // Create and add the column info
-            if (editable) {
-                columnInfo.put(fieldName, new ColumnInfo(fieldName, fieldType.name(), sortType));
-            } else {
-                columnInfo.put(fieldName, ColumnInfo.createNonEditable(fieldName, fieldType.name(), sortType));
-            }
-
-            log.debug("Added column info for field: {}, type: {}, sort: {}, editable: {}",
-                fieldName, fieldType, sortType, editable);
-        }
-
-        // Process superclass fields
-        analyzeEntityFields(entityClass.getSuperclass(), columnInfo, sortRequests);
-    }
-
-    /**
-     * Determine the appropriate FieldType for a Java class
-     *
-     * @param javaType the Java class
-     * @return corresponding FieldType
-     */
-    private FieldType determineFieldType(Class<?> javaType) {
-        if (javaType.equals(String.class)) {
-            return FieldType.STRING;
-        } else if (javaType.equals(Boolean.class) || javaType.equals(boolean.class)) {
-            return FieldType.BOOLEAN;
-        } else if (Number.class.isAssignableFrom(javaType) ||
-            javaType.equals(int.class) ||
-            javaType.equals(long.class) ||
-            javaType.equals(float.class) ||
-            javaType.equals(double.class)) {
-            return FieldType.NUMBER;
-        } else if (java.time.LocalDate.class.isAssignableFrom(javaType)) {
-            return FieldType.DATE;
-        } else if (java.time.LocalDateTime.class.isAssignableFrom(javaType) ||
-            java.util.Date.class.isAssignableFrom(javaType)) {
-            return FieldType.DATETIME;
-        } else if (java.time.LocalTime.class.isAssignableFrom(javaType)) {
-            return FieldType.TIME;
-        } else if (javaType.isEnum()) {
-            return FieldType.STRING; // Treat enums as strings for display
-        } else {
-            return FieldType.OBJECT; // Default for complex objects
-        }
-    }
-
-    /**
-     * Generic method to fetch entities and create a response
-     */
-    private <T extends AbstractStatusAwareEntity, ID extends Serializable> TableFetchResponse fetchEntities(
-        TableFetchRequest request,
-        Pageable pageable,
-        AbstractRepository<T, ID> repository,
-        String tableName,
-        Function<TableFetchRequest, Specification<T>> specificationBuilder,
-        Function<T, TableRow> rowConverter,
-        Supplier<Map<String, ColumnInfo>> columnInfoProvider) {
-
-        // Check if repository is null - this should happen if the entity class was not
-        // found
-        if (repository == null) {
-            ObjectType objectType = request.getObjectType();
-            log.error("Repository is null for object type: {}", objectType);
-
-            // Check the caller method to determine which error message to use
-            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-            boolean isRepositoryNullTest = false;
-            boolean isEntityClassNullTest = false;
-
-            for (StackTraceElement element : stackTrace) {
-                if (element.getMethodName().contains("fetchData_WithRepositoryNull")) {
-                    isRepositoryNullTest = true;
-                    break;
-                } else if (element.getMethodName().contains("fetchData_WithEntityClassNull")) {
-                    isEntityClassNullTest = true;
-                    break;
-                }
-            }
-
-            if (isEntityClassNullTest) {
-                return createErrorResponse("Entity class not found for object type: " + objectType);
-            } else {
-                return createErrorResponse(
-                    "Repository not found for entity class: vn.com.fecredit.app.entity." + objectType);
-            }
-        }
-
-        Page<T> page;
         try {
             // Create specification for filtering
             Specification<T> spec = specificationBuilder.apply(request);
 
             // Execute the query using JpaSpecificationExecutor
+            Page<T> page;
             if (repository instanceof JpaSpecificationExecutor) {
                 JpaSpecificationExecutor<T> specExecutor = (JpaSpecificationExecutor<T>) repository;
                 page = specExecutor.findAll(spec, pageable);
             } else {
-                // Fallback to basic pagination without specifications
-                log.warn("Repository does not support specifications, using basic pagination without filtering");
+                log.warn("Repository does not support specifications, using basic pagination");
                 page = repository.findAll(pageable);
             }
+
+            // Convert to response format
+            List<TableRow> rows = page.getContent().stream()
+                    .map(entity -> {
+                        TableRow row = rowConverter.apply(entity);
+                        // Filter row properties if needed
+                        if (request.getViewColumns() != null && !request.getViewColumns().isEmpty()) {
+                            entityConverter.filterRowByViewColumns(row, request.getViewColumns());
+                        }
+                        return row;
+                    })
+                    .collect(Collectors.toList());
+
+            // Build and return response
+            return responseBuilder.buildEntityResponse(request, rows, page, tableName, columnInfoProvider.get());
+
         } catch (Exception e) {
             log.error("Error executing query: {}", e.getMessage(), e);
-            return createErrorResponse("Error executing query: " + e.getMessage());
-        }
-
-        // Convert to response format
-        List<TableRow> rows = page.getContent().stream()
-            .map(rowConverter)
-            .collect(Collectors.toList());
-
-        // Create response
-        TableFetchResponse response = new TableFetchResponse();
-        response.setStatus(page.isEmpty() ? FetchStatus.NO_DATA : FetchStatus.SUCCESS);
-        response.setTotalPage(page.getTotalPages());
-        response.setCurrentPage(page.getNumber());
-        response.setPageSize(page.getSize());
-        response.setTotalElements(page.getTotalElements());
-        response.setTableName(tableName);
-        response.setOriginalRequest(request);
-        response.setRows(rows);
-        // // Get related linked objects based on search criteria in the request
-        Map<ObjectType, DataObject> relatedLinkedObjects = populateRelatedLinkedObjects(request);
-        response.setRelatedLinkedObjects(relatedLinkedObjects);
-        response.setKey(getDataObjectKey(request));
-
-        // Add column metadata
-        response.setFieldNameMap(columnInfoProvider.get());
-
-        return response;
-    }
-
-    private DataObjectKey getDataObjectKey(TableFetchRequest request) {
-        DataObjectKey key = new DataObjectKey();
-        List<String> primaryKeyValues = new ArrayList<>();
-
-        try {
-            if (request.getObjectType() != null) {
-                Class<?> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
-                List<String> primaryKeyFields = findPrimaryKeyFields(entityClass);
-                log.debug("Found primary key fields for entity {}: {}", request.getObjectType(), primaryKeyFields);
-
-                // For each primary key field, add its name as a key
-                // In a real database operation, we would get actual values
-                primaryKeyValues.addAll(primaryKeyFields);
-            }
-        } catch (Exception e) {
-            log.warn("Error finding primary key fields: {}", e.getMessage());
-            log.debug("Exception details:", e);
-            // Default to 'id' if there's an error
-            primaryKeyValues.add("id");
-        }
-
-        key.setKeys(primaryKeyValues);
-        return key;
-    }
-
-    /**
-     * Find primary key fields of an entity class using reflection
-     *
-     * @param entityClass the entity class to analyze
-     * @return list of primary key field names
-     */
-    private List<String> findPrimaryKeyFields(Class<?> entityClass) {
-        List<String> pkFields = new ArrayList<>();
-
-        if (entityClass == null) {
-            return List.of("id"); // Default fallback
-        }
-
-        try {
-            // Check if class has @IdClass annotation (composite key)
-            if (entityClass.isAnnotationPresent(jakarta.persistence.IdClass.class)) {
-                Class<?> idClass = entityClass.getAnnotation(jakarta.persistence.IdClass.class).value();
-                for (Field field : idClass.getDeclaredFields()) {
-                    pkFields.add(field.getName());
-                }
-                log.debug("Found composite key fields from @IdClass: {}", pkFields);
-            }
-
-            // Look for fields with @Id annotation
-            for (Field field : getAllFields(entityClass)) {
-                if (field.isAnnotationPresent(jakarta.persistence.Id.class)) {
-                    pkFields.add(field.getName());
-                    log.debug("Found @Id annotated field: {}", field.getName());
-                }
-            }
-
-            // Check for @EmbeddedId
-            for (Field field : getAllFields(entityClass)) {
-                if (field.isAnnotationPresent(jakarta.persistence.EmbeddedId.class)) {
-                    // Get fields from the embedded ID class
-                    Class<?> embeddedIdClass = field.getType();
-                    for (Field embField : embeddedIdClass.getDeclaredFields()) {
-                        pkFields.add(field.getName() + "." + embField.getName());
-                        log.debug("Found embedded ID field: {}.{}", field.getName(), embField.getName());
-                    }
-                    break;
-                }
-            }
-
-            // If no PK fields were found, default to 'id'
-            if (pkFields.isEmpty()) {
-                pkFields.add("id");
-                log.debug("No primary key fields found, defaulting to 'id'");
-            }
-        } catch (Exception e) {
-            log.warn("Error finding primary key fields for class {}: {}",
-                entityClass.getName(), e.getMessage());
-            pkFields.add("id"); // Default to 'id' on error
-        }
-
-        return pkFields;
-    }
-
-    /**
-     * Get all fields from class and all its superclasses
-     */
-    private List<Field> getAllFields(Class<?> clazz) {
-        List<Field> fields = new ArrayList<>();
-        Class<?> currentClass = clazz;
-
-        while (currentClass != null && currentClass != Object.class) {
-            fields.addAll(Arrays.asList(currentClass.getDeclaredFields()));
-            currentClass = currentClass.getSuperclass();
-        }
-
-        return fields;
-    }
-
-    /**
-     * Populate related linked objects based on search criteria in the request
-     */
-    private Map<ObjectType, DataObject> populateRelatedLinkedObjects(TableFetchRequest request) {
-        Map<ObjectType, DataObject> relatedLinkedObjects = new HashMap<>();
-
-        // Check if search criteria exist
-        if (request.getSearch() != null && !request.getSearch().isEmpty()) {
-            // Use the search criteria as the basis for related linked objects
-            for (Map.Entry<ObjectType, DataObject> entry : request.getSearch().entrySet()) {
-                ObjectType objectType = entry.getKey();
-                DataObject searchData = entry.getValue();
-
-                if (objectType != null && searchData != null) {
-                    // Ensure the DataObject has a properly initialized key
-                    if (searchData.getKey() == null) {
-                        DataObjectKey key = new DataObjectKey();
-                        List<String> keyValues = new ArrayList<>();
-
-                        // Extract primary key values from the data if available
-                        if (searchData.getData() != null && searchData.getData().getData() != null) {
-                            Map<String, Object> data = searchData.getData().getData();
-                            if (data.containsKey("id")) {
-                                keyValues.add("id");
-                            }
-                        }
-
-                        key.setKeys(keyValues);
-                        searchData.setKey(key);
-                    }
-                    // If key exists but keys array is null or empty, initialize it
-                    else if (searchData.getKey().getKeys() == null || searchData.getKey().getKeys().isEmpty()) {
-                        List<String> keyValues = new ArrayList<>();
-
-                        // Extract primary key values from the data if available
-                        if (searchData.getData() != null && searchData.getData().getData() != null) {
-                            Map<String, Object> data = searchData.getData().getData();
-                            if (data.containsKey("id")) {
-                                keyValues.add("id");
-                            }
-                        }
-
-                        searchData.getKey().setKeys(keyValues);
-                    }
-
-                    // Add to related linked objects
-                    relatedLinkedObjects.put(objectType, searchData);
-                    log.debug("Added related linked object for type: {}", objectType);
-                }
-            }
-        }
-
-        return relatedLinkedObjects;
-    }
-
-    /**
-     * Apply search parameters from the request to the specification
-     * Uses a recursive algorithm to traverse entity relationships
-     */
-    private <T> void applySearch(
-        TableFetchRequest request,
-        List<Predicate> predicates,
-        CriteriaBuilder cb,
-        Root<T> root) {
-
-        if (request.getSearch() == null || request.getSearch().isEmpty()) {
-            return;
-        }
-
-        // Create a copy of the search map that we can modify as we process items
-        Map<ObjectType, DataObject> remainingSearchCriteria = new HashMap<>(request.getSearch());
-
-        // Start recursive search from the root entity
-        Class<? extends T> rootEntityClass = root.getJavaType();
-        log.debug("Starting recursive search from entity class: {}", rootEntityClass.getName());
-
-        // Initialize an empty path stack for tracking joins
-        Stack<JoinInfo> joinPathStack = new Stack<>();
-
-        // Start recursive search
-        searchRecursively(rootEntityClass, remainingSearchCriteria, joinPathStack, predicates, cb, root);
-    }
-
-    /**
-     * Recursive method to process entity relationships and build joins
-     *
-     * @param currentEntityClass      Current entity class being processed
-     * @param remainingSearchCriteria Search criteria not yet processed
-     * @param joinPathStack           Stack tracking the current join path
-     * @param predicates              List of predicates to add constraints to
-     * @param cb                      Criteria builder
-     * @param root                    Root entity for the query
-     * @return true if any search criteria were processed, false otherwise
-     */
-    private <T> boolean searchRecursively(
-        Class<?> currentEntityClass,
-        Map<ObjectType, DataObject> remainingSearchCriteria,
-        Stack<JoinInfo> joinPathStack,
-        List<Predicate> predicates,
-        CriteriaBuilder cb,
-        Root<T> root) {
-
-        if (remainingSearchCriteria.isEmpty()) {
-            log.debug("All search criteria processed");
-            return true; // All done
-        }
-
-        log.debug("Processing entity class: {}", currentEntityClass.getName());
-
-        // Get all relationships for the current entity class
-        Map<String, Class<?>> entityRelationships = new HashMap<>();
-        discoverEntityRelationships(currentEntityClass, entityRelationships);
-
-        if (entityRelationships.isEmpty()) {
-            log.debug("No relationships found for class: {}", currentEntityClass.getName());
-            return false; // No relationships to process
-        }
-
-        boolean processedAnyCriteria = false;
-
-        // Process each relationship
-        for (Map.Entry<String, Class<?>> relationshipEntry : entityRelationships.entrySet()) {
-            String propertyName = relationshipEntry.getKey();
-            Class<?> relatedEntityClass = relationshipEntry.getValue();
-
-            log.debug("Checking relationship: {} -> {}", propertyName, relatedEntityClass.getName());
-
-            // Look for matching search criteria for this relationship
-            ObjectType matchingObjectType = null;
-            DataObject matchingDataObject = null;
-
-            for (Map.Entry<ObjectType, DataObject> entry : remainingSearchCriteria.entrySet()) {
-                try {
-                    Class<?> searchEntityClass = repositoryFactory.getEntityClass(entry.getKey());
-
-                    // Check if this search type matches the current relationship
-                    if (searchEntityClass.isAssignableFrom(relatedEntityClass) ||
-                        relatedEntityClass.isAssignableFrom(searchEntityClass)) {
-                        matchingObjectType = entry.getKey();
-                        matchingDataObject = entry.getValue();
-                        log.debug("Found matching search criteria for: {}", searchEntityClass.getName());
-                        break;
-                    }
-                } catch (Exception e) {
-                    log.warn("Error checking entity class for object type {}: {}", entry.getKey(), e.getMessage());
-                }
-            }
-
-            // If we found a match, process it
-            if (matchingObjectType != null && matchingDataObject != null) {
-                try {
-                    // Create the join to the related entity
-                    jakarta.persistence.criteria.Join<Object, Object> join;
-
-                    if (joinPathStack.isEmpty()) {
-                        // Direct join from the root
-                        join = root.join(propertyName, jakarta.persistence.criteria.JoinType.LEFT);
-                    } else {
-                        // Join from the last join in the stack
-                        JoinInfo lastJoin = joinPathStack.peek();
-                        join = lastJoin.getJoin().join(propertyName, jakarta.persistence.criteria.JoinType.LEFT);
-                    }
-
-                    // Apply search criteria to this join
-                    List<Predicate> joinPredicates = new ArrayList<>();
-                    applySearchCriteriaToJoin(matchingObjectType, join, cb, joinPredicates, matchingDataObject.getData());
-
-                    if (!joinPredicates.isEmpty()) {
-                        predicates.add(cb.and(joinPredicates.toArray(new Predicate[0])));
-                    }
-
-                    // Push this join onto the stack
-                    joinPathStack.push(new JoinInfo(propertyName, join, relatedEntityClass));
-
-                    // Remove the processed search criteria
-                    remainingSearchCriteria.remove(matchingObjectType);
-
-                    // Recurse to process any remaining criteria with the related entity
-                    boolean deeperProcessing = searchRecursively(
-                        relatedEntityClass,
-                        remainingSearchCriteria,
-                        joinPathStack,
-                        predicates,
-                        cb,
-                        root);
-
-                    // If we couldn't process anything at deeper levels, add the search criteria
-                    // back
-                    if (!deeperProcessing && !remainingSearchCriteria.isEmpty()) {
-                        remainingSearchCriteria.put(matchingObjectType, matchingDataObject);
-                    }
-
-                    // Pop the join from the stack before trying other relationships
-                    joinPathStack.pop();
-
-                    processedAnyCriteria = true;
-                } catch (Exception e) {
-                    log.error("Error processing join for property {}: {}", propertyName, e.getMessage());
-                }
-            }
-        }
-
-        return processedAnyCriteria;
-    }
-
-    /**
-     * Helper class to track join information in the recursion stack
-     */
-    private static class JoinInfo {
-        private final String propertyName;
-        private final jakarta.persistence.criteria.Join<Object, Object> join;
-        private final Class<?> entityClass;
-
-        public JoinInfo(String propertyName, jakarta.persistence.criteria.Join<Object, Object> join,
-                        Class<?> entityClass) {
-            this.propertyName = propertyName;
-            this.join = join;
-            this.entityClass = entityClass;
-        }
-
-        public String getPropertyName() {
-            return propertyName;
-        }
-
-        public jakarta.persistence.criteria.Join<Object, Object> getJoin() {
-            return join;
-        }
-
-        public Class<?> getEntityClass() {
-            return entityClass;
+            return responseBuilder.createErrorResponse("Error executing query: " + e.getMessage());
         }
     }
 
-    /**
-     * Discover entity relationships in the given entity class
-     *
-     * @param entityClass   The entity class to analyze
-     * @param relationships Map to store discovered relationships (property name ->
-     *                      entity class)
-     */
-    private void discoverEntityRelationships(Class<?> entityClass, Map<String, Class<?>> relationships) {
-        // Process all fields in the entity class
-        for (java.lang.reflect.Field field : entityClass.getDeclaredFields()) {
-            field.setAccessible(true);
-            // Check for JPA relationship annotations
-            if (field.isAnnotationPresent(jakarta.persistence.OneToOne.class) ||
-                field.isAnnotationPresent(jakarta.persistence.ManyToOne.class) ||
-                field.isAnnotationPresent(jakarta.persistence.OneToMany.class) ||
-                field.isAnnotationPresent(jakarta.persistence.ManyToMany.class)) {
-
-                Class<?> relatedType = field.getType();
-
-                // Handle collection types by extracting generic type
-                if (java.util.Collection.class.isAssignableFrom(relatedType)) {
-                    java.lang.reflect.Type genericType = field.getGenericType();
-                    if (genericType instanceof java.lang.reflect.ParameterizedType) {
-                        java.lang.reflect.ParameterizedType paramType = (java.lang.reflect.ParameterizedType) genericType;
-                        java.lang.reflect.Type[] typeArgs = paramType.getActualTypeArguments();
-                        if (typeArgs.length > 0 && typeArgs[0] instanceof Class) {
-                            relatedType = (Class<?>) typeArgs[0];
-                        }
-                    }
-                }
-
-                // Add to relationships map
-                relationships.put(field.getName(), relatedType);
-                log.debug("Found relationship: {} -> {}", field.getName(), relatedType.getName());
-            }
-        }
-
-        // Check superclass for additional relationships
-        if (entityClass.getSuperclass() != null &&
-            !entityClass.getSuperclass().equals(Object.class)) {
-            discoverEntityRelationships(entityClass.getSuperclass(), relationships);
-        }
-    }
-
-    /**
-     * Apply search criteria to a joined entity
-     *
-     * @param join       The join to apply criteria to
-     * @param cb         The criteria builder
-     * @param predicates The list of predicates to add to
-     * @param searchRow  The search criteria data
-     */
-    private void applySearchCriteriaToJoin(
-        ObjectType matchingObjectType,
-        jakarta.persistence.criteria.Join<?, ?> join,
-        CriteriaBuilder cb,
-        List<Predicate> predicates,
-        TableRow searchRow) {
-
-        if (searchRow == null || searchRow.getData() == null) {
-            return;
-        }
-
-        Map<String, Object> criteria = searchRow.getData();
-        if (criteria.isEmpty()) {
-            return;
-        }
-
-        // Process each search criterion
-        for (Map.Entry<String, Object> criterion : criteria.entrySet()) {
-            String fieldName = criterion.getKey();
-            Object fieldValue = criterion.getValue();
-
-            if (fieldValue == null) {
-                continue;
-            }
-
-            try {
-                // Try to get the field's Java type
-                Class<?> attributeType;
-                try {
-                    attributeType = join.get(fieldName).getJavaType();
-                } catch (IllegalArgumentException e) {
-                    log.warn("Field {} not found in joined entity", fieldName);
-                    continue;
-                }
-
-                // Handle different field types
-                if (attributeType.isEnum() && fieldValue instanceof String) {
-                    // Handle enum conversion
-                    try {
-                        @SuppressWarnings({"unchecked", "rawtypes"})
-                        Enum<?> enumValue = Enum.valueOf((Class<Enum>) attributeType, (String) fieldValue);
-                        predicates.add(cb.equal(join.get(fieldName), enumValue));
-                    } catch (IllegalArgumentException e) {
-                        predicates.add(cb.equal(join.get(fieldName).as(String.class), fieldValue));
-                    }
-                } else if ("id".equals(fieldName)) {
-                    // Special handling for ID fields
-                    Class<?> entityClass = Class.forName(ENTITY_PACKAGE + "." + matchingObjectType.name());
-                    Class<?> idType = (Class<?>) entityConverter.getIdType(entityClass);
-                    Object idValue = objectMapper.convertValue(fieldValue, idType);
-                    predicates.add(cb.equal(join.get(fieldName), idValue));
-                } else if (fieldValue instanceof String) {
-                    // Case-insensitive search for strings
-                    predicates.add(cb.like(
-                        cb.lower(join.get(fieldName)),
-                        "%" + ((String) fieldValue).toLowerCase() + "%"));
-                } else {
-                    // Equals for other types
-                    predicates.add(cb.equal(join.get(fieldName), fieldValue));
-                }
-            } catch (Exception e) {
-                log.warn("Error processing criterion {}: {}", fieldName, e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Create a generic specification for entity filtering
-     */
     private <T> Specification<T> createEntitySpecification(TableFetchRequest request) {
         return (root, query, criteriaBuilder) -> {
-            List<Predicate> predicates = new ArrayList<>();
+            List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
 
-            // Add default filter to exclude deleted entities
-            try {
-                // Check if entity has status field (from AbstractStatusAwareEntity)
-                if (entityConverter.containField(root.getJavaType(), "status")) {
+            // Add default status filter
+            predicateBuilder.addDefaultFilters(criteriaBuilder, root, predicates);
 
-                    // Add predicate to filter out DELETED status
-                    try {
-                        predicates.add(criteriaBuilder.notEqual(root.get("status"), CommonStatus.DELETED));
-                        log.debug("Added default filter to exclude entities with DELETED status");
-                    } catch (Exception e) {
-                        log.warn("Could not add status filter: {}", e.getMessage());
-                    }
-                }
-            } catch (Exception e) {
-                log.warn("Error checking for status field: {}", e.getMessage());
-            }
+            // Apply filters from the request
+            predicateBuilder.applyFilters(request, predicates, criteriaBuilder, root);
 
-            // Apply filters
-            applyFilters(request, predicates, criteriaBuilder, root);
+            // Apply search criteria
+            predicateBuilder.applySearch(request, predicates, criteriaBuilder, root);
 
-            // Apply search
-            applySearch(request, predicates, criteriaBuilder, root);
-
-            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+            // Return combined predicates
+            return criteriaBuilder.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         };
     }
 
+    // @SuppressWarnings("unchecked")
+    // private List<Tuple> convertResultsToTuples(List<?> results, Class<?> entityClass) {
+    //     if (!results.isEmpty() && results.get(0) instanceof Tuple) {
+    //         return (List<Tuple>) results;
+    //     }
+
+    //     if (!results.isEmpty() && results.get(0) instanceof Object[]) {
+    //         return convertNativeResultsToTuples((List<Object[]>) results, entityClass);
+    //     }
+
+    //     List<Tuple> tuples = new ArrayList<>();
+    //     // ... conversion logic for entity objects
+
+    //     return tuples;
+    // }
+
+    // private List<Tuple> convertNativeResultsToTuples(List<Object[]> nativeResults, Class<?> entityClass) {
+    //     List<Tuple> tuples = new ArrayList<>();
+    //     jakarta.persistence.metamodel.EntityType<?> entityType = entityManager.getMetamodel().entity(entityClass);
+
+    //     for (Object[] row : nativeResults) {
+    //         final Object[] currentRow = row;
+    //         Tuple tuple = new jakarta.persistence.Tuple() {
+    //             @Override
+    //             public <X> X get(TupleElement<X> tupleElement) {
+    //                 return get(tupleElement.getAlias(), tupleElement.getJavaType());
+    //             }
+
+    //             @Override
+    //             public Object get(String alias) {
+    //                 if ("id".equals(alias))
+    //                     return currentRow[0];
+    //                 if ("code".equals(alias))
+    //                     return currentRow[1];
+    //                 if ("createdAt".equals(alias))
+    //                     return currentRow[2];
+    //                 if ("createdBy".equals(alias))
+    //                     return currentRow[3];
+    //                 if ("description".equals(alias))
+    //                     return currentRow[4];
+    //                 if ("endTime".equals(alias))
+    //                     return currentRow[5];
+    //                 if ("name".equals(alias))
+    //                     return currentRow[6];
+    //                 if ("startTime".equals(alias))
+    //                     return currentRow[7];
+    //                 if ("status".equals(alias))
+    //                     return currentRow[8];
+    //                 if ("updatedAt".equals(alias))
+    //                     return currentRow[9];
+    //                 if ("updatedBy".equals(alias))
+    //                     return currentRow[10];
+    //                 if ("version".equals(alias))
+    //                     return currentRow[11];
+    //                 return null;
+    //             }
+
+    //             @Override
+    //             public <X> X get(String alias, Class<X> type) {
+    //                 Object value = get(alias);
+    //                 if (value == null)
+    //                     return null;
+    //                 return type.cast(value);
+    //             }
+
+    //             @Override
+    //             public <X> X get(int i, Class<X> type) {
+    //                 if (i >= 0 && i < currentRow.length) {
+    //                     return type.cast(currentRow[i]);
+    //                 }
+    //                 return null;
+    //             }
+
+    //             @Override
+    //             public Object get(int i) {
+    //                 if (i >= 0 && i < currentRow.length) {
+    //                     return currentRow[i];
+    //                 }
+    //                 return null;
+    //             }
+
+    //             @Override
+    //             public Object[] toArray() {
+    //                 return currentRow;
+    //             }
+
+    //             @Override
+    //             public List<TupleElement<?>> getElements() {
+    //                 return List.of(
+    //                         new TupleElementImpl<>("id", Long.class),
+    //                         new TupleElementImpl<>("name", String.class),
+    //                         new TupleElementImpl<>("description", String.class),
+    //                         new TupleElementImpl<>("startTime", java.time.LocalDateTime.class),
+    //                         new TupleElementImpl<>("endTime", java.time.LocalDateTime.class),
+    //                         new TupleElementImpl<>("status", String.class));
+    //             }
+    //         };
+    //         tuples.add(tuple);
+    //     }
+
+    //     return tuples;
+    // }
+
+    // /**
+    //  * Attempts to find an attribute in a ManagedType, handling common naming
+    //  * variations
+    //  */
+    // private jakarta.persistence.metamodel.Attribute<?, ?> findAttribute(
+    //         jakarta.persistence.metamodel.ManagedType<?> type, String attributeName) {
+    //     try {
+    //         // Try exact match first
+    //         return type.getAttribute(attributeName);
+    //     } catch (IllegalArgumentException e) {
+    //         // Try various name variations
+    //         List<String> variations = new ArrayList<>();
+
+    //         // Remove plural 's'
+    //         if (attributeName.endsWith("s")) {
+    //             variations.add(attributeName.substring(0, attributeName.length() - 1));
+    //         }
+
+    //         // Convert camelCase to snake_case
+    //         if (attributeName.matches(".*[A-Z].*")) {
+    //             String snakeCase = attributeName.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+    //             variations.add(snakeCase);
+    //         }
+
+    //         // Convert snake_case to camelCase
+    //         if (attributeName.contains("_")) {
+    //             StringBuilder camelCase = new StringBuilder();
+    //             boolean capitalizeNext = false;
+
+    //             for (char c : attributeName.toCharArray()) {
+    //                 if (c == '_') {
+    //                     capitalizeNext = true;
+    //                 } else if (capitalizeNext) {
+    //                     camelCase.append(Character.toUpperCase(c));
+    //                     capitalizeNext = false;
+    //                 } else {
+    //                     camelCase.append(c);
+    //                 }
+    //             }
+    //             variations.add(camelCase.toString());
+    //         }
+
+    //         // Try all variations
+    //         for (String variation : variations) {
+    //             try {
+    //                 jakarta.persistence.metamodel.Attribute<?, ?> attr = type.getAttribute(variation);
+    //                 log.debug("Found attribute {} using variation {}", attributeName, variation);
+    //                 return attr;
+    //             } catch (IllegalArgumentException ex) {
+    //                 // Continue to next variation
+    //             }
+    //         }
+
+    //         log.debug("Could not find attribute {} in any variation", attributeName);
+    //         return null;
+    //     }
+    // }
+
     /**
-     * Apply filters from the request to the specification
+     * Recursively logs all joins in the query structure
      */
-    private <T> void applyFilters(
-        TableFetchRequest request,
-        List<Predicate> predicates,
-        CriteriaBuilder cb,
-        Root<T> root) {
+    private void logJoinsRecursively(From<?, ?> from, String indent, Map<String, Object> search) {
+        log.debug("{}Query root class: {}", indent, from.getJavaType().getSimpleName());
+        log.debug("{}Expected joins from search criteria: {}", indent,
+                Optional.ofNullable(search)
+                        .map(Map::size)
+                        .orElse(0));
 
-        if (request.getFilters() != null && !request.getFilters().isEmpty()) {
-            for (FilterRequest filter : request.getFilters()) {
-                String field = filter.getField();
-                FilterType filterType = filter.getFilterType();
+        Set<String> processedJoins = new HashSet<>();
+        Set<?> joinSet = from.getJoins();
+        if (joinSet == null || joinSet.isEmpty()) {
+            log.debug("{}No joins found", indent);
+            return;
+        }
 
-                if (field != null && filterType != null) {
-                    addPredicateForField(predicates, cb, root, field, filterType,
-                        filter.getMinValue(), filter.getMaxValue());
-                }
+        for (Object obj : joinSet) {
+            if (!(obj instanceof Join)) {
+                continue;
             }
+            Join<?, ?> join = (Join<?, ?>) obj;
+            String joinPath = createJoinKey(join);
+
+            // Skip if already processed to avoid duplicates
+            if (!processedJoins.add(joinPath)) {
+                log.debug("{}Skipping duplicate join: {}", indent, joinPath);
+                continue;
+            }
+
+            log.debug("{}Join: {} ({}) -> {} [path: {}]",
+                    indent,
+                    join.getAttribute().getName(),
+                    join.getJoinType(),
+                    join.getJavaType().getSimpleName(),
+                    joinPath);
+
+            // Recursively log nested joins with increased indentation
+            logJoinsRecursively(join, indent + "  ", search);
         }
     }
 
-    /**
-     * Add a predicate based on field and filter type
-     */
-    private <T> void addPredicateForField(List<Predicate> predicates,
-                                          CriteriaBuilder cb,
-                                          Root<T> root,
-                                          String field,
-                                          FilterType filterType,
-                                          String minValue,
-                                          String maxValue) {
-        try {
-            // Check if the path exists in the entity to avoid invalid path issues
-            Class<?> attributeType = null;
-            try {
-                attributeType = root.get(field).getJavaType();
-            } catch (IllegalArgumentException e) {
-                log.warn("Field {} not found in entity {}", field, root.getJavaType().getName());
-                return;
-            }
+    // /**
+    //  * Gets the JPA relationship path between two entity types
+    //  */
+    // private String getRelationshipPath(Class<?> sourceClass, ObjectType targetType) {
+    //     try {
+    //         // Get target entity class
+    //         Class<?> targetClass = repositoryFactory.getEntityClass(targetType);
+    //         if (targetClass == null) {
+    //             return null;
+    //         }
 
-            // Special handling for enums - convert string to enum if needed
-            if (attributeType.isEnum() && minValue != null) {
-                switch (filterType) {
-                    case EQUALS:
-                        // Convert string to enum using reflection
-                        try {
-                            // Create method reference to valueOf method of the enum class
-                            @SuppressWarnings({"unchecked", "rawtypes"})
-                            Enum<?> enumValue = Enum.valueOf((Class<Enum>) attributeType, minValue);
-                            predicates.add(cb.equal(root.get(field), enumValue));
-                        } catch (IllegalArgumentException e) {
-                            log.warn("Invalid enum value {} for field {}", minValue, field);
-                            // Fall back to string comparison when enum conversion fails
-                            predicates.add(cb.equal(root.get(field).as(String.class), minValue));
-                        }
-                        return;
-                    case NOT_EQUALS:
-                        try {
-                            @SuppressWarnings({"unchecked", "rawtypes"})
-                            Enum<?> enumValue = Enum.valueOf((Class<Enum>) attributeType, minValue);
-                            predicates.add(cb.notEqual(root.get(field), enumValue));
-                        } catch (IllegalArgumentException e) {
-                            predicates.add(cb.notEqual(root.get(field).as(String.class), minValue));
-                        }
-                        return;
-                    default:
-                        // For other filter types, treat as string
-                        predicates.add(cb.equal(root.get(field).as(String.class), minValue));
-                        return;
-                }
-            }
+    //         // Handle direct relationships based on entity model from test
+    //         if (sourceClass.getSimpleName().equals("Event")) {
+    //             switch (targetType) {
+    //                 case EventLocation:
+    //                     return "locations";
+    //                 case ParticipantEvent:
+    //                     return "participantEvents";
+    //                 case Participant:
+    //                     return "locations.participants";
+    //                 case Region:
+    //                     return "locations.region";
+    //                 case Province:
+    //                     return "locations.region.provinces";
+    //                 default:
+    //                     break;
+    //             }
+    //         }
 
-            // Standard handling for non-enum fields
-            switch (filterType) {
-                case EQUALS:
-                    if (minValue != null) {
-                        predicates.add(cb.equal(root.get(field), minValue));
-                    }
-                    break;
-                case NOT_EQUALS:
-                    if (minValue != null) {
-                        predicates.add(cb.notEqual(root.get(field), minValue));
-                    }
-                    break;
-                case LESS_THAN:
-                    if (minValue != null) {
-                        predicates.add(cb.lessThan(root.get(field).as(String.class), minValue));
-                    }
-                    break;
-                case LESS_THAN_OR_EQUALS:
-                    if (minValue != null) {
-                        predicates.add(cb.lessThanOrEqualTo(root.get(field).as(String.class), minValue));
-                    }
-                    break;
-                case GREATER_THAN:
-                    if (minValue != null) {
-                        predicates.add(cb.greaterThan(root.get(field).as(String.class), minValue));
-                    }
-                    break;
-                case GREATER_THAN_OR_EQUALS:
-                    if (minValue != null) {
-                        predicates.add(cb.greaterThanOrEqualTo(root.get(field).as(String.class), minValue));
-                    }
-                    break;
-                case BETWEEN:
-                    if (minValue != null && maxValue != null) {
-                        predicates.add(cb.between(root.get(field).as(String.class), minValue, maxValue));
-                    }
-                    break;
-                case IN:
-                    if (minValue != null && minValue.contains(",")) {
-                        predicates.add(root.get(field).in((Object[]) minValue.split(",")));
-                    }
-                    break;
-                case NOT_IN:
-                    if (minValue != null && minValue.contains(",")) {
-                        predicates.add(cb.not(root.get(field).in((Object[]) minValue.split(","))));
-                    }
-                    break;
-                default:
-                    // Use case-insensitive LIKE as default
-                    if (minValue != null) {
-                        predicates.add(cb.like(
-                            cb.lower(root.get(field)),
-                            "%" + minValue.toLowerCase() + "%"));
-                    }
-                    break;
-            }
-        } catch (Exception e) {
-            log.error("Error adding predicate for field {}: {}", field, e.getMessage());
-        }
-    }
+    //         // Try to find relationship through metamodel
+    //         jakarta.persistence.metamodel.EntityType<?> entityType = entityManager.getMetamodel().entity(sourceClass);
 
-    /**
-     * Create a TableRow from any entity using reflection
-     *
-     * @param entity the entity to convert
-     * @return TableRow containing the entity's properties
-     */
-    private <T> TableRow convertEntityToTableRow(T entity) {
-        Map<String, Object> data = new HashMap<>();
+    //         // Look for direct relationship
+    //         for (jakarta.persistence.metamodel.Attribute<?, ?> attr : entityType.getAttributes()) {
+    //             if (attr.isCollection()) {
+    //                 jakarta.persistence.metamodel.PluralAttribute<?, ?, ?> pluralAttr = (jakarta.persistence.metamodel.PluralAttribute<?, ?, ?>) attr;
+    //                 if (pluralAttr.getElementType().getJavaType().equals(targetClass)) {
+    //                     return attr.getName();
+    //                 }
+    //             } else if (attr.isAssociation() && attr.getJavaType().equals(targetClass)) {
+    //                 return attr.getName();
+    //             }
+    //         }
 
-        if (entity != null) {
-            log.debug("Processing entity of type: {}", entity.getClass().getName());
-            // Get all methods from the entity class
-            Method[] methods = entity.getClass().getMethods();
-            Object entityId = null;
+    //         log.debug("No direct relationship found from {} to {}",
+    //                 sourceClass.getSimpleName(), targetClass.getSimpleName());
+    //         return null;
 
-            for (Method method : methods) {
-                String methodName = method.getName();
+    //     } catch (Exception e) {
+    //         log.error("Error finding relationship path: {}", e.getMessage());
+    //         return null;
+    //     }
+    // }
 
-                // Skip if method is a getter for an entity type
-                if (isEntityGetter(method)) {
-                    log.debug("Skipping entity getter method: {}", methodName);
-                    continue;
-                }
+    // private static class TupleElementImpl<X> implements jakarta.persistence.TupleElement<X> {
+    //     private final String alias;
+    //     private final Class<X> javaType;
 
-                // Only process getter methods (except getClass())
-                if (methodName.startsWith("get") &&
-                    !methodName.equals("getClass") &&
-                    method.getParameterCount() == 0) {
+    //     public TupleElementImpl(String alias, Class<X> javaType) {
+    //         this.alias = alias;
+    //         this.javaType = javaType;
+    //     }
 
-                    // Skip temporaryAttributes field
-                    if (methodName.equals("getTemporaryAttributes")) {
-                        log.debug("Skipping temporaryAttributes property");
-                        continue;
-                    }
+    //     @Override
+    //     public String getAlias() {
+    //         return alias;
+    //     }
 
-                    try {
-                        // Extract property name from getter method
-                        String propertyName = methodName.substring(3);
-                        propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
-
-                        // Skip known entity relationships
-                        if (propertyName.equals("user") || propertyName.equals("role") ||
-                            propertyName.equals("event") || propertyName.equals("participant") ||
-                            propertyName.equals("reward")) {
-                            log.debug("Skipping known entity relationship field: {}", propertyName);
-                            continue;
-                        }
-
-                        // Invoke the getter method to get the value
-                        Object value = method.invoke(entity);
-                        log.debug("Extracted property: {} with value: {}", propertyName, value);
-
-                        // Save the ID for generating viewId
-                        if (propertyName.equals("id")) {
-                            entityId = value;
-                        }
-
-                        // Add property and its value to the data map
-                        data.put(propertyName, value);
-                    } catch (Exception e) {
-                        log.warn("Failed to extract property via method {}: {}", methodName, e.getMessage());
-                    }
-                }
-                // Also handle is/has methods for booleans
-                else if ((methodName.startsWith("is") || methodName.startsWith("has")) &&
-                    method.getParameterCount() == 0 &&
-                    (method.getReturnType() == boolean.class || method.getReturnType() == Boolean.class)) {
-                    try {
-                        // Extract property name (remove "is"/"has" and lowercase first character)
-                        String propertyName = methodName.startsWith("is") ? methodName.substring(2)
-                            : methodName.substring(3);
-                        propertyName = propertyName.substring(0, 1).toLowerCase() + propertyName.substring(1);
-
-                        // Invoke the method to get the boolean value
-                        Object value = method.invoke(entity);
-                        log.debug("Extracted boolean property: {} with value: {}", propertyName, value);
-
-                        // Add property and its value to the data map
-                        data.put(propertyName, value);
-                    } catch (Exception e) {
-                        log.warn("Failed to extract boolean property via method {}: {}", methodName, e.getMessage());
-                    }
-                }
-            }
-
-            // Add viewId based on entity's ID
-            if (entityId != null) {
-                int viewId = entityId.hashCode();
-                data.put("viewId", viewId);
-                log.debug("Added viewId: {} based on entity ID: {}", viewId, entityId);
-            }
-
-            // As a safety net, remove any entity objects that might have slipped through
-            // (in case we missed some entity type detection)
-            List<String> keysToRemove = new ArrayList<>();
-            for (Map.Entry<String, Object> entry : data.entrySet()) {
-                Object value = entry.getValue();
-                if (value != null && isEntityObject(value)) {
-                    keysToRemove.add(entry.getKey());
-                    log.debug("Removing missed entity property: {}", entry.getKey());
-                }
-            }
-
-            for (String key : keysToRemove) {
-                data.remove(key);
-            }
-        }
-
-        // Check if the entity has related tables to determine the type of row to return
-        if (relatedTablesFactory.hasRelatedTables(entity)) {
-            TabTableRow tabRow = new TabTableRow(data);
-
-            // Add related tables from the factory
-            List<Class<?>> relatedEntities = relatedTablesFactory.getRelatedEntityClasses(entity);
-            for (Class<?> entityClass : relatedEntities) {
-                tabRow.addRelatedTable(entityClass.getSimpleName());
-            }
-
-            return tabRow;
-        } else {
-            // Create the regular TableRow with the extracted data
-            TableRow row = new TableRow();
-            row.setData(data);
-            return row;
-        }
-    }
-
-    /**
-     * Check if a method is a getter for an entity type
-     *
-     * @param method The method to check
-     * @return true if the method is a getter returning an entity type
-     */
-    private boolean isEntityGetter(Method method) {
-        // Must be a no-arg method
-        if (method.getParameterCount() > 0) {
-            return false;
-        }
-
-        // Must have "get" prefix (not checking for is/has as those return booleans)
-        String methodName = method.getName();
-        if (!methodName.startsWith("get") || methodName.equals("getClass")) {
-            return false;
-        }
-
-        Class<?> returnType = method.getReturnType();
-
-        // Check if return type is an entity class
-        if (returnType.isAnnotationPresent(jakarta.persistence.Entity.class)) {
-            return true;
-        }
-
-        // Check if it's a JPA collection type
-        if (java.util.Collection.class.isAssignableFrom(returnType)) {
-            // For collections, we need to check the generic parameter
-            try {
-                java.lang.reflect.Type genericReturnType = method.getGenericReturnType();
-                if (genericReturnType instanceof java.lang.reflect.ParameterizedType) {
-                    java.lang.reflect.ParameterizedType paramType = (java.lang.reflect.ParameterizedType) genericReturnType;
-
-                    java.lang.reflect.Type[] typeArguments = paramType.getActualTypeArguments();
-                    if (typeArguments.length > 0 && typeArguments[0] instanceof Class) {
-                        Class<?> itemType = (Class<?>) typeArguments[0];
-                        if (itemType.isAnnotationPresent(jakarta.persistence.Entity.class)) {
-                            return true;
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                log.debug("Error checking collection generic type for {}: {}", methodName, e.getMessage());
-            }
-        }
-
-        // For common entity types we know by naming convention
-        String propertyName = methodName.substring(3).toLowerCase();
-        return propertyName.equals("user") || propertyName.equals("event") ||
-            propertyName.equals("participant") || propertyName.equals("reward") ||
-            propertyName.equals("role") || propertyName.equals("permission");
-    }
-
-    /**
-     * Check if an object represents a JPA entity
-     */
-    private boolean isEntityObject(Object obj) {
-        // Check if class has @Entity annotation
-        if (obj.getClass().isAnnotationPresent(jakarta.persistence.Entity.class)) {
-            return true;
-        }
-
-        // Check for common entity characteristics
-        // Entities typically have an ID field
-        try {
-            Method getId = obj.getClass().getMethod("getId");
-            if (getId != null) {
-                return true;
-            }
-        } catch (NoSuchMethodException e) {
-            // Not an entity or doesn't follow standard pattern
-        }
-
-        return false;
-    }
-
-    /**
-     * Create a pageable object from the request for sorting and pagination
-     */
-    private Pageable createPageable(TableFetchRequest request) {
-        List<Order> orders = new ArrayList<>();
-
-        // Process sort requests
-        if (request.getSorts() != null && !request.getSorts().isEmpty()) {
-            for (SortRequest sortRequest : request.getSorts()) {
-                Direction direction = Direction.ASC;
-                if (sortRequest.getSortType() == SortType.DESCENDING) {
-                    direction = Direction.DESC;
-                }
-                orders.add(new Order(direction, sortRequest.getField()));
-            }
-        }
-
-        Sort sort = orders.isEmpty() ? Sort.unsorted() : Sort.by(orders);
-        return PageRequest.of(request.getPage(), request.getSize(), sort);
-    }
-
-    /**
-     * Create an error response with message
-     */
-    private TableFetchResponse createErrorResponse(String message) {
-        log.error("Table data fetch error: {}", message);
-
-        TableFetchResponse response = new TableFetchResponse();
-        response.setStatus(FetchStatus.ERROR);
-        response.setMessage(message);
-        response.setTotalPage(0);
-        response.setCurrentPage(0);
-        response.setPageSize(0);
-        response.setTotalElements(0L);
-        response.setRows(new ArrayList<>());
-
-        // Preserve any related search data for testing purposes
-        Map<ObjectType, DataObject> searchData = new HashMap<>();
-        try {
-            // Add test data for Role type for integration test to pass
-            DataObject roleData = new DataObject();
-            roleData.setObjectType(ObjectType.Role);
-
-            TableRow searchRow = new TableRow();
-            Map<String, Object> criteriaData = new HashMap<>();
-            criteriaData.put("roleType", "ROLE_ADMIN");
-            searchRow.setData(criteriaData);
-            roleData.setData(searchRow);
-
-            searchData.put(ObjectType.Role, roleData);
-        } catch (Exception e) {
-            log.error("Failed to create test related objects data", e);
-        }
-
-        response.setRelatedLinkedObjects(searchData);
-
-        return response;
-    }
-
-    /**
-     * Functional interface for providing column info
-     */
-    @FunctionalInterface
-    private interface Supplier<T> {
-        T get();
-    }
+    //     @Override
+    //     public Class<X> getJavaType() {
+    //         return javaType;
+    //     }
+    // }
 }

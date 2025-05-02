@@ -21,11 +21,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.experimental.SuperBuilder;
 import lombok.ToString;
-
+import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractSimplePersistableEntity;
-import vn.com.fecredit.app.entity.base.AbstractStatusAwareEntity;
 import vn.com.fecredit.app.entity.base.SerializableKey;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
@@ -350,7 +348,9 @@ public class AuditLog extends AbstractSimplePersistableEntity<Long> {
                 String key = escapeString(entry.getKey());
                 Object value = entry.getValue();
                 if (value instanceof Map) {
-                    return "\"" + key + "\":" + serializeMap((Map<String, Object>) value);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> mapValue = (Map<String, Object>) value;
+                    return "\"" + key + "\":" + serializeMap(mapValue);
                 } else if (value instanceof String) {
                     return "\"" + key + "\":\"" + escapeString((String) value) + "\"";
                 } else if (value == null) {
@@ -378,7 +378,7 @@ public class AuditLog extends AbstractSimplePersistableEntity<Long> {
 
         int depth = 0;
         int start = 0;
-        String currentKey = null;
+        // String currentKey = null;
         boolean inQuotes = false;
         List<String> parts = new ArrayList<>();
 

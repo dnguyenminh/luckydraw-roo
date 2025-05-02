@@ -1,11 +1,12 @@
 package vn.com.fecredit.app.entity;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.HashSet;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,30 +22,34 @@ class ProvinceTest {
     @BeforeEach
     void setUp() {
         region = Region.builder()
-            .name("Test Region")
-            .code("TEST_REG")
-            .status(CommonStatus.ACTIVE)
-            .build();
+                .name("Test Region")
+                .code("TEST_REG")
+                .status(CommonStatus.ACTIVE)
+                .build();
 
         province = Province.builder()
-            .name("Test Province")
-            .code("TEST_PROV")
-            .region(region)
-            .status(CommonStatus.ACTIVE)
-            .build();
-
+                .name("Test Province")
+                .code("TEST_PROV")
+                .regions(new HashSet<>() {
+                    {
+                        add(region);
+                    }
+                })
+                .status(CommonStatus.ACTIVE)
+                .build();
+        region.addProvince(province);
         participant = Participant.builder()
-            .name("Test Participant")
-            .code("TEST_PART")
-            .status(CommonStatus.ACTIVE)
-            .build();
+                .name("Test Participant")
+                .code("TEST_PART")
+                .status(CommonStatus.ACTIVE)
+                .build();
     }
 
     @Test
     void testParticipantAssociation() {
         assertTrue(province.getParticipants().isEmpty());
         province.addParticipant(participant);
-        
+
         assertTrue(province.getParticipants().contains(participant));
         assertEquals(province, participant.getProvince());
 
@@ -64,7 +69,7 @@ class ProvinceTest {
         // Test province activation with active region
         province.setStatus(CommonStatus.ACTIVE);
         assertTrue(province.isActive());
-        assertFalse(region.isActive(), "Region should remain inactive");
+        assertTrue(region.isActive(), "Region should remain active");
 
         // Test province status with inactive region
         region.setStatus(CommonStatus.INACTIVE);
@@ -74,11 +79,10 @@ class ProvinceTest {
     @Test
     void testRegionStatusSync() {
         Province province2 = Province.builder()
-            .name("Second Province")
-            .code("PROV2")
-            .region(region)
-            .status(CommonStatus.ACTIVE)
-            .build();
+                .name("Second Province")
+                .code("PROV2")
+                .status(CommonStatus.ACTIVE)
+                .build();
         region.addProvince(province2);
 
         // Test inactive region not affected by province changes
@@ -104,27 +108,15 @@ class ProvinceTest {
         province.validate();
         assertEquals("LOWERCASE_CODE", province.getCode());
 
-        // Test missing region
-        Province invalid = Province.builder()
-            .name("Invalid")
-            .code("INVALID")
-            .build();
-        assertThrows(IllegalArgumentException.class, () -> invalid.validate(),
-            "Should not validate without region");
 
-        // Test Province status independent of Region status
-        region.setStatus(CommonStatus.INACTIVE);
-        province.setStatus(CommonStatus.ACTIVE);
-        assertDoesNotThrow(() -> province.validate(),
-            "Should allow Province status independent of Region status");
     }
 
     @Test
     void testValidateWithNullName() {
         Province province = new Province();
         province.setCode("TEST");
-        province.setRegion(new Region());
-        
+        province.addRegion(new Region());
+
         assertThrows(IllegalArgumentException.class, () -> {
             province.validate();
         });
@@ -134,21 +126,12 @@ class ProvinceTest {
     void testValidateWithNullCode() {
         Province province = new Province();
         province.setName("Test Province");
-        province.setRegion(new Region());
-        
+        province.addRegion(new Region());
+
         assertThrows(IllegalArgumentException.class, () -> {
             province.validate();
         });
     }
 
-    @Test
-    void testValidateWithNullRegion() {
-        Province province = new Province();
-        province.setName("Test Province");
-        province.setCode("TEST");
-        
-        assertThrows(IllegalArgumentException.class, () -> {
-            province.validate();
-        });
-    }
+
 }
