@@ -144,7 +144,7 @@ public class TableDataControllerIntegrationTest {
             .andExpect(jsonPath("$.originalRequest.filters[0]").exists());
 
         // Alternative approach: Use a separate request to check just basic success
-        performRequestAndVerifyBasics(requestJson, mockToken, "users");
+        performRequestAndVerifyBasicStructure(requestJson, mockToken, "users");
     }
 
     @Test
@@ -180,7 +180,7 @@ public class TableDataControllerIntegrationTest {
             .andExpect(jsonPath("$.originalRequest.sorts[0]").exists());
 
         // Just verify basic success with the helper method
-        performRequestAndVerifyBasics(requestJson, mockToken, "users");
+        performRequestAndVerifyBasicStructure(requestJson, mockToken, "users");
     }
 
     @Test
@@ -214,7 +214,7 @@ public class TableDataControllerIntegrationTest {
         String mockToken = mockJwtTokenProvider.createToken("test-user", "ROLE_ADMIN");
 
         // Execute request and verify response
-        performRequestAndVerifyBasics(requestJson, mockToken, "users")
+        performRequestAndVerifyBasicStructure(requestJson, mockToken, "users")
             .andExpect(jsonPath("$.originalRequest.search").exists());
     }
 
@@ -304,7 +304,7 @@ public class TableDataControllerIntegrationTest {
         String mockToken = mockJwtTokenProvider.createToken("test-user", "ROLE_ADMIN");
 
         // Execute request and verify response
-        performRequestAndVerifyBasics(requestJson, mockToken, "users")
+        performRequestAndVerifyBasicStructure(requestJson, mockToken, "users")
             .andExpect(jsonPath("$.originalRequest.filters.length()").value(2))
             .andExpect(jsonPath("$.originalRequest.sorts.length()").value(2));
     }
@@ -335,7 +335,7 @@ public class TableDataControllerIntegrationTest {
         String mockToken = mockJwtTokenProvider.createToken("test-user", "ROLE_USER");
 
         // Execute request with raw JSON
-        performRequestAndVerifyBasics(rawJsonRequest, mockToken, "users")
+        performRequestAndVerifyBasicStructure(rawJsonRequest, mockToken, "users")
             .andExpect(jsonPath("$.originalRequest.size").value(15));
     }
 
@@ -387,7 +387,7 @@ public class TableDataControllerIntegrationTest {
     }
 
     @Test
-    void testFetchEventParticipantsWithComplexSearch() throws Exception {
+    void testFetchEventParticipantsWithComplexSearchV2() throws Exception {
         // Fix the lazy initialization issue by using EntityManager with join fetch
         String fetchParticipantQuery = "SELECT p FROM Participant p " +
             "JOIN FETCH p.participantEvents pe " +
@@ -490,7 +490,7 @@ public class TableDataControllerIntegrationTest {
     }
 
     // Helper method to perform request and verify basic response structure
-    private ResultActions performRequestAndVerifyBasics(String requestJson, String token, String entityName)
+    private ResultActions performRequestAndVerifyBasicStructure(String requestJson, String token, String entityName)
         throws Exception {
         return mockMvc.perform(post("/api/table-data/fetch/" + entityName)
                 .header("Authorization", "Bearer " + token)

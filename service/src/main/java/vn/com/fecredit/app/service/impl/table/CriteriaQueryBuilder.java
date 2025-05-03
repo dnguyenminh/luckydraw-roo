@@ -1,22 +1,36 @@
 package vn.com.fecredit.app.service.impl.table;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Tuple;
-import jakarta.persistence.criteria.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-import vn.com.fecredit.app.service.dto.*;
-import vn.com.fecredit.app.service.factory.RepositoryFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Component;
+
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.From;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Selection;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import vn.com.fecredit.app.service.dto.ColumnInfo;
+import vn.com.fecredit.app.service.dto.DataObject;
+import vn.com.fecredit.app.service.dto.ObjectType;
+import vn.com.fecredit.app.service.dto.SortRequest;
+import vn.com.fecredit.app.service.dto.SortType;
+import vn.com.fecredit.app.service.dto.TableFetchRequest;
 
 @Slf4j
 @Component
@@ -24,20 +38,22 @@ import java.util.stream.Collectors;
 public class CriteriaQueryBuilder {
 
     private final EntityManager entityManager;
+    // private final JoinHandler joinHandler;
     private final PredicateBuilder predicateBuilder;
-    private final RepositoryFactory repositoryFactory;
+    private final EntityHandler entityHandler;
 
-    // Add a field to store mapping between SQL-safe aliases and original field names
+    // Add a field to store mapping between SQL-safe aliases and original field
+    // names
     private final Map<String, String> aliasToFieldNameMapping = new HashMap<>();
 
     public CriteriaQuery<Tuple> buildCriteriaQuery(TableFetchRequest request, Class<?> rootEntityClass) {
         try {
-            log.info("Building criteria query for {} with {} view columns", 
+            log.info("Building criteria query for {} with {} view columns",
                     rootEntityClass.getSimpleName(),
                     request.getViewColumns() != null ? request.getViewColumns().size() : 0);
-            
+
             CriteriaBuilder cb = entityManager.getCriteriaBuilder();
-            CriteriaQuery<Tuple> query = cb.createTupleQuery();
+            CriteriaQuery<Tuple> query = cb.createQuery(Tuple.class);
             Root<?> root = query.from(rootEntityClass);
 
             // Create joins map to track all joins
@@ -78,8 +94,8 @@ public class CriteriaQueryBuilder {
             log.info("Successfully built criteria query for {}", rootEntityClass.getSimpleName());
             return query;
         } catch (Exception e) {
-            log.error("Error building criteria query for {}: {}", 
-                     rootEntityClass.getSimpleName(), e.getMessage(), e);
+            log.error("Error building criteria query for {}: {}",
+                    rootEntityClass.getSimpleName(), e.getMessage(), e);
             return null;
         }
     }
@@ -152,7 +168,7 @@ public class CriteriaQueryBuilder {
         if (viewColumns == null || viewColumns.isEmpty()) {
             return selections;
         }
-        
+
         // Create a mapping for field name to SQL-safe alias
         Map<String, String> fieldToAliasMapping = new HashMap<>();
 
@@ -169,13 +185,13 @@ public class CriteriaQueryBuilder {
             String fieldName = column.getFieldName();
             // Create SQL-safe alias (replace dots with underscores)
             String sqlSafeAlias = fieldName.replace(".", "_");
-            
+
             // Store the mapping
             fieldToAliasMapping.put(fieldName, sqlSafeAlias);
-            
+
             try {
                 String[] parts = fieldName.split("\\.");
-                
+
                 if (parts.length == 1) {
                     // Direct field on root entity (e.g., "id", "name", "status")
                     Path<?> path = root.get(parts[0]);
@@ -188,12 +204,12 @@ public class CriteriaQueryBuilder {
                     From<?, ?> current = root;
                     Path<?> path = null;
                     boolean joinPathComplete = true;
-                    
+
                     // Build path from all join parts
                     for (int i = 0; i < parts.length - 1; i++) {
                         // String joinPart = parts[i];
                         String joinKey = String.join(".", java.util.Arrays.copyOfRange(parts, 0, i + 1));
-                        
+
                         Join<?, ?> join = joins.get(joinKey);
                         if (join == null) {
                             log.warn("Join not found for path: {}", joinKey);
@@ -202,7 +218,7 @@ public class CriteriaQueryBuilder {
                         }
                         current = join;
                     }
-                    
+
                     // If we successfully traversed the joins, add the final attribute
                     if (joinPathComplete && current != null) {
                         String finalAttribute = parts[parts.length - 1];
@@ -213,8 +229,8 @@ public class CriteriaQueryBuilder {
                             usedAliases.add(sqlSafeAlias);
                             log.debug("Added nested field selection: {} as {}", fieldName, sqlSafeAlias);
                         } catch (IllegalArgumentException e) {
-                            log.error("Cannot get attribute '{}' from join {}: {}", 
-                                finalAttribute, current, e.getMessage());
+                            log.error("Cannot get attribute '{}' from join {}: {}",
+                                    finalAttribute, current, e.getMessage());
                         }
                     }
                 }
@@ -230,13 +246,14 @@ public class CriteriaQueryBuilder {
             log.warn("No valid columns selected, adding ID as fallback");
             selections.add(root.get("id").alias("id"));
         }
-        
-        // Store the mapping in a ThreadLocal or somewhere it can be accessed by ResponseBuilder
+
+        // Store the mapping in a ThreadLocal or somewhere it can be accessed by
+        // ResponseBuilder
         log.info("Field to alias mapping: {}", fieldToAliasMapping);
-        
+
         // Log all selections for debugging
-        log.info("Created {} selections: {}", selections.size(), 
-                 selections.stream().map(Selection::getAlias).collect(Collectors.joining(", ")));
+        log.info("Created {} selections: {}", selections.size(),
+                selections.stream().map(Selection::getAlias).collect(Collectors.joining(", ")));
 
         return selections;
     }
@@ -280,40 +297,42 @@ public class CriteriaQueryBuilder {
      * for indirect relationships.
      * 
      * @param sourceClass The source entity class
-     * @param targetType The target entity type to find a path to
-     * @return The path expression as a dot-separated string, or null if no path exists
+     * @param targetType  The target entity type to find a path to
+     * @return The path expression as a dot-separated string, or null if no path
+     *         exists
      */
     private String getRelationshipPath(Class<?> sourceClass, ObjectType targetType) {
         // Get target class
-        Class<?> targetClass = repositoryFactory.getEntityClass(targetType);
+        Class<?> targetClass = entityHandler.resolveEntityClass(null, targetType);
         if (targetClass == null) {
             log.warn("Could not resolve target class for ObjectType: {}", targetType);
             return null;
         }
-        
+
         // First check for direct relationships using JPA metamodel
         String directPath = findDirectRelationship(sourceClass, targetClass);
         if (directPath != null) {
             return directPath;
         }
-        
-        // If no direct relationship, try to find an indirect path (limited to 2 levels deep for performance)
+
+        // If no direct relationship, try to find an indirect path (limited to 2 levels
+        // deep for performance)
         return findIndirectRelationship(sourceClass, targetClass, 0, 2);
     }
-    
+
     /**
-     * Finds a direct relationship between source and target classes using JPA metamodel
+     * Finds a direct relationship between source and target classes using JPA
+     * metamodel
      */
     private String findDirectRelationship(Class<?> sourceClass, Class<?> targetClass) {
         try {
             jakarta.persistence.metamodel.EntityType<?> entityType = entityManager.getMetamodel().entity(sourceClass);
-            
+
             // Search all attributes for a matching relationship
             for (jakarta.persistence.metamodel.Attribute<?, ?> attr : entityType.getAttributes()) {
                 if (attr.isCollection()) {
                     // Handle collection relationships (OneToMany, ManyToMany)
-                    jakarta.persistence.metamodel.PluralAttribute<?, ?, ?> pluralAttr = 
-                        (jakarta.persistence.metamodel.PluralAttribute<?, ?, ?>) attr;
+                    jakarta.persistence.metamodel.PluralAttribute<?, ?, ?> pluralAttr = (jakarta.persistence.metamodel.PluralAttribute<?, ?, ?>) attr;
                     if (pluralAttr.getElementType().getJavaType().equals(targetClass)) {
                         return attr.getName();
                     }
@@ -323,49 +342,49 @@ public class CriteriaQueryBuilder {
                 }
             }
         } catch (Exception e) {
-            log.debug("Error checking direct relationship from {} to {}: {}", 
-                sourceClass.getSimpleName(), targetClass.getSimpleName(), e.getMessage());
+            log.debug("Error checking direct relationship from {} to {}: {}",
+                    sourceClass.getSimpleName(), targetClass.getSimpleName(), e.getMessage());
         }
         return null;
     }
-    
+
     /**
      * Recursively searches for an indirect relationship between classes
-     * @param depth Current recursion depth
+     * 
+     * @param depth    Current recursion depth
      * @param maxDepth Maximum recursion depth to prevent infinite loops
      */
     private String findIndirectRelationship(Class<?> sourceClass, Class<?> targetClass, int depth, int maxDepth) {
         if (depth >= maxDepth) {
             return null; // Prevent excessive recursion
         }
-        
+
         try {
             jakarta.persistence.metamodel.EntityType<?> entityType = entityManager.getMetamodel().entity(sourceClass);
-            
+
             // For each relationship in the source class
             for (jakarta.persistence.metamodel.Attribute<?, ?> attr : entityType.getAttributes()) {
                 if (!attr.isAssociation()) {
                     continue; // Skip non-relationship attributes
                 }
-                
+
                 Class<?> relatedClass;
                 if (attr.isCollection()) {
                     // Get the element type for collections
-                    jakarta.persistence.metamodel.PluralAttribute<?, ?, ?> pluralAttr = 
-                        (jakarta.persistence.metamodel.PluralAttribute<?, ?, ?>) attr;
+                    jakarta.persistence.metamodel.PluralAttribute<?, ?, ?> pluralAttr = (jakarta.persistence.metamodel.PluralAttribute<?, ?, ?>) attr;
                     relatedClass = pluralAttr.getElementType().getJavaType();
                 } else {
                     // Get the attribute type for singular associations
                     relatedClass = attr.getJavaType();
                 }
-                
+
                 // Check if this related class has a direct relationship to the target
                 String nextLevelPath = findDirectRelationship(relatedClass, targetClass);
                 if (nextLevelPath != null) {
                     // Found a path: [current_attribute].[next_level_path]
                     return attr.getName() + "." + nextLevelPath;
                 }
-                
+
                 // If not found, try one level deeper (if we're not at max depth)
                 if (depth + 1 < maxDepth) {
                     String deeperPath = findIndirectRelationship(relatedClass, targetClass, depth + 1, maxDepth);
@@ -376,15 +395,16 @@ public class CriteriaQueryBuilder {
                 }
             }
         } catch (Exception e) {
-            log.debug("Error finding indirect relationship at depth {} from {} to {}: {}", 
-                depth, sourceClass.getSimpleName(), targetClass.getSimpleName(), e.getMessage());
+            log.debug("Error finding indirect relationship at depth {} from {} to {}: {}",
+                    depth, sourceClass.getSimpleName(), targetClass.getSimpleName(), e.getMessage());
         }
-        
+
         return null;
     }
 
     /**
      * Get the mapping between SQL-safe aliases and original field names
+     * 
      * @return The mapping of aliases to field names
      */
     public Map<String, String> getAliasToFieldNameMapping() {
