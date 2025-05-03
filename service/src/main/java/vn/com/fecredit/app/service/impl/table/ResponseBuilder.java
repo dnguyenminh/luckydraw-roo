@@ -185,34 +185,59 @@ public class ResponseBuilder {
 
         for (Tuple tuple : tuples) {
             TableRow row = new TableRow();
-            Map<String, Object> data = new HashMap<>();
+            // Initialize the data map here to prevent NullPointerException
+            row.setData(new HashMap<>());
 
             // Always include the viewId if available
             Object id = tuple.get("id");
             if (id != null) {
-                data.put("viewId", id.toString());
+                row.getData().put("viewId", id.toString());
             }
 
             // Process all elements in the tuple
             for (TupleElement<?> element : tuple.getElements()) {
                 String alias = element.getAlias();
-                Object value = tuple.get(alias);
-
                 // Use the original field name (with dots) if available in mapping
                 String fieldName = fieldAliasMapping.getOrDefault(alias, alias);
 
                 // Add the value to the row data
-                data.put(fieldName, value);
-
-                // For debugging
-                log.debug("Added field: {} (alias: {}) with value: {}", fieldName, alias, value);
+                addFieldToRow(row, tuple, fieldName);
             }
 
-            row.setData(data);
             rows.add(row);
         }
 
         return rows;
+    }
+
+    /**
+     * Maps field paths to proper column aliases for result processing
+     */
+    private String getColumnAlias(String fieldName) {
+        // Convert dots to underscores for consistent handling of aliases
+        return fieldName.replace('.', '_');
+    }
+
+    /**
+     * Adds a field from a tuple result to a row
+     */
+    private void addFieldToRow(TableRow row, Tuple tuple, String fieldName) {
+        try {
+            // Ensure the data map is initialized
+            if (row.getData() == null) {
+                row.setData(new HashMap<>());
+            }
+            
+            // Convert the field name to the expected alias format
+            String alias = getColumnAlias(fieldName);
+            Object value = tuple.get(alias);
+            
+            // Use original fieldName as the key in the row data
+            row.getData().put(fieldName, value);
+            log.debug("Added field: {} (alias: {}) with value: {}", fieldName, alias, value);
+        } catch (Exception e) {
+            log.warn("Error adding field {} from tuple: {}", fieldName, e.getMessage());
+        }
     }
 
     /**

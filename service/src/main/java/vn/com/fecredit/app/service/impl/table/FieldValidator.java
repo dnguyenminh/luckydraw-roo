@@ -23,11 +23,14 @@ public class FieldValidator {
 
     private final EntityManager entityManager;
     
-    // Cache for field existence checks
-    private final Map<String, Boolean> fieldExistenceCache = new ConcurrentHashMap<>();
-
+    // Optimized caching with expiring entries
+    private final Map<String, CacheEntry<Boolean>> fieldExistenceCache = new ConcurrentHashMap<>();
+    
+    // Cache timeout in milliseconds (30 minutes)
+    private static final long CACHE_TIMEOUT = 30 * 60 * 1000;
+    
     /**
-     * Checks if a class has a field with the given name (with caching)
+     * Checks if a class has a field with the given name (with improved caching)
      */
     public boolean hasField(Class<?> entityClass, String fieldName) {
         if (entityClass == null || fieldName == null) {
@@ -36,54 +39,87 @@ public class FieldValidator {
         
         String cacheKey = entityClass.getName() + ":" + fieldName;
         
-        return fieldExistenceCache.computeIfAbsent(cacheKey, key -> {
+        CacheEntry<Boolean> cacheEntry = fieldExistenceCache.get(cacheKey);
+        if (cacheEntry != null && !cacheEntry.isExpired()) {
+            return cacheEntry.getValue();
+        }
+        
+        boolean exists = checkFieldExists(entityClass, fieldName);
+        fieldExistenceCache.put(cacheKey, new CacheEntry<>(exists));
+        return exists;
+    }
+    
+    /**
+     * Checks if a field exists using multiple strategies
+     */
+    private boolean checkFieldExists(Class<?> entityClass, String fieldName) {
+        try {
+            // First try direct field access through JPA metamodel
             try {
-                // First try direct field access
-                try {
-                    entityManager.getMetamodel().entity(entityClass).getAttribute(fieldName);
-                    return true;
-                } catch (IllegalArgumentException e) {
-                    // Field not found directly, try alternatives
-                }
-                
-                // Try JavaBean property convention
-                String capitalizedField = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-                try {
-                    entityClass.getMethod("get" + capitalizedField);
-                    return true;
-                } catch (NoSuchMethodException e) {
-                    // Getter not found, continue
-                }
-                
-                try {
-                    entityClass.getMethod("is" + capitalizedField);
-                    return true;
-                } catch (NoSuchMethodException e) {
-                    // Boolean getter not found, continue
-                }
-                
-                // Try declared field
-                try {
-                    entityClass.getDeclaredField(fieldName);
-                    return true;
-                } catch (NoSuchFieldException e) {
-                    // Field not found, continue
-                }
-                
-                // Try case-insensitive match with entity's attributes
-                for (jakarta.persistence.metamodel.Attribute<?, ?> attr : 
-                        entityManager.getMetamodel().entity(entityClass).getAttributes()) {
-                    if (attr.getName().equalsIgnoreCase(fieldName)) {
-                        return true;
-                    }
-                }
-                
-                return false;
-            } catch (Exception e) {
-                log.debug("Error checking field existence: {}", e.getMessage());
-                return false;
+                entityManager.getMetamodel().entity(entityClass).getAttribute(fieldName);
+                return true;
+            } catch (IllegalArgumentException e) {
+                // Field not found directly, try alternatives
             }
-        });
+            
+            // Try Java reflection on declared fields
+            try {
+                entityClass.getDeclaredField(fieldName);
+                return true;
+            } catch (NoSuchFieldException e) {
+                // Field not found, continue with other methods
+            }
+            
+            // Try JavaBean property convention
+            String capitalizedField = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+            try {
+                entityClass.getMethod("get" + capitalizedField);
+                return true;
+            } catch (NoSuchMethodException e) {
+                // Getter not found, continue
+            }
+            
+            try {
+                entityClass.getMethod("is" + capitalizedField);
+                return true;
+            } catch (NoSuchMethodException e) {
+                // Boolean getter not found, continue
+            }
+            
+            // Try case-insensitive match with entity's attributes
+            for (jakarta.persistence.metamodel.Attribute<?, ?> attr : 
+                    entityManager.getMetamodel().entity(entityClass).getAttributes()) {
+                if (attr.getName().equalsIgnoreCase(fieldName)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        } catch (Exception e) {
+            log.debug("Error checking field existence: {}", e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Cache entry with expiration support
+     */
+    private static class CacheEntry<T> {
+        private final T value;
+        private final long timestamp;
+        
+        public CacheEntry(T value) {
+            this.value = value;
+            this.timestamp = System.currentTimeMillis();
+        }
+        
+        public T getValue() {
+            return value;
+        }
+        
+        public boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > CACHE_TIMEOUT;
+        }
     }
 
     /**

@@ -23,6 +23,11 @@ public class ColumnInfo {
     private String fieldName;
 
     /**
+     * Display name for the column
+     */
+    private String displayName;
+
+    /**
      * Field data type
      */
     private String fieldType;

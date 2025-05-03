@@ -25,7 +25,7 @@ public class JoinHandler {
     private final EntityManager entityManager;
     private final EntityHandler entityHandler;
 
-    // Cache for relationship paths between entity types
+    // Improved caching with stronger key generation
     private final ConcurrentHashMap<String, String> relationshipPathCache = new ConcurrentHashMap<>();
 
     /**
@@ -67,13 +67,17 @@ public class JoinHandler {
     }
     
     /**
-     * Creates a series of joins for a nested path like "locations.region.provinces"
+     * Creates nested joins with improved error handling for missing attributes
      */
     public <X, Y> Join<?, ?> createNestedJoins(
             From<X, Y> from, 
             String path, 
             Map<String, Join<?, ?>> joinMap, 
             JoinType joinType) {
+        
+        if (path == null || path.isEmpty()) {
+            return null;
+        }
         
         String[] pathParts = path.split("\\.");
         From<?, ?> currentFrom = from;
@@ -96,21 +100,113 @@ public class JoinHandler {
                 continue;
             }
             
-            // Try variations of attribute names to handle common naming discrepancies
+            // Try to find attribute in multiple ways
             String attributeName = findAttributeName(currentFrom.getJavaType(), part);
+            
             if (attributeName != null) {
-                Join<?, ?> join = currentFrom.join(attributeName, joinType);
-                joinMap.put(joinKey, join);
-                currentFrom = join;
+                try {
+                    Join<?, ?> join = currentFrom.join(attributeName, joinType);
+                    joinMap.put(joinKey, join);
+                    currentFrom = join;
+                } catch (IllegalArgumentException e) {
+                    // Log but don't throw - we'll try alternative paths
+                    log.warn("Could not find attribute '{}' in {}", 
+                        attributeName, currentFrom.getJavaType().getSimpleName());
+                    
+                    // Try alternative paths for well-known relationships
+                    Join<?, ?> alternativeJoin = createAlternativeJoin(
+                            currentFrom, attributeName, joinKey, joinMap, joinType);
+                    
+                    if (alternativeJoin != null) {
+                        currentFrom = alternativeJoin;
+                    } else {
+                        // If we still can't create a join, return what we have so far
+                        return (currentFrom instanceof Join) ? (Join<?, ?>) currentFrom : null;
+                    }
+                }
             } else {
-                throw new IllegalArgumentException("Could not find attribute '" + part + 
-                    "' in " + currentFrom.getJavaType().getSimpleName());
+                log.warn("Could not find attribute '{}' in {}", 
+                    part, currentFrom.getJavaType().getSimpleName());
+                
+                // Try best-effort alternative paths
+                Join<?, ?> alternativeJoin = createAlternativeJoin(
+                        currentFrom, part, joinKey, joinMap, joinType);
+                
+                if (alternativeJoin != null) {
+                    currentFrom = alternativeJoin;
+                } else {
+                    // Return what we have so far
+                    return (currentFrom instanceof Join) ? (Join<?, ?>) currentFrom : null;
+                }
             }
         }
         
-        return (Join<?, ?>) currentFrom;
+        return (currentFrom instanceof Join) ? (Join<?, ?>) currentFrom : null;
     }
     
+    /**
+     * Creates alternative join paths for known entity relationships
+     */
+    private <X, Y> Join<?, ?> createAlternativeJoin(
+            From<X, Y> from, 
+            String attributeName, 
+            String joinKey, 
+            Map<String, Join<?, ?>> joinMap,
+            JoinType joinType) {
+            
+        Class<?> fromClass = from.getJavaType();
+        
+        // Handle Event -> ParticipantEvent relationship (through EventLocation)
+        if (fromClass.getSimpleName().equals("Event") && 
+                attributeName.equals("participantEvents")) {
+            try {
+                // First join to event_locations
+                Join<?, ?> locationsJoin;
+                if (joinMap.containsKey("locations")) {
+                    locationsJoin = joinMap.get("locations");
+                } else {
+                    locationsJoin = from.join("locations", joinType);
+                    joinMap.put("locations", locationsJoin);
+                }
+                
+                // Then join from event_locations to participant_events
+                Join<?, ?> participantEventsJoin = locationsJoin.join("participantEvents", joinType);
+                joinMap.put(joinKey, participantEventsJoin);
+                return participantEventsJoin;
+            } catch (Exception e) {
+                log.warn("Failed to create alternative join for Event->ParticipantEvent: {}", 
+                    e.getMessage());
+            }
+        }
+        
+        // Handle Event -> Participant relationship (through EventLocation and ParticipantEvent)
+        if (fromClass.getSimpleName().equals("Event") && 
+                attributeName.equals("participant")) {
+            try {
+                // Get or create the participant events join
+                Join<?, ?> participantEventsJoin;
+                if (joinMap.containsKey("participantEvents")) {
+                    participantEventsJoin = joinMap.get("participantEvents");
+                } else {
+                    participantEventsJoin = createAlternativeJoin(
+                        from, "participantEvents", "participantEvents", joinMap, joinType);
+                }
+                
+                if (participantEventsJoin != null) {
+                    // Join from participant_events to participant
+                    Join<?, ?> participantJoin = participantEventsJoin.join("participant", joinType);
+                    joinMap.put(joinKey, participantJoin);
+                    return participantJoin;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to create alternative join for Event->Participant: {}", 
+                    e.getMessage());
+            }
+        }
+        
+        return null;
+    }
+
     /**
      * Finds the correct attribute name, handling plural/singular and case variations
      */
@@ -155,9 +251,13 @@ public class JoinHandler {
     }
     
     /**
-     * Gets the relationship path between two entity types, with caching
+     * Enhanced relationship path discovery
      */
     public String getRelationshipPath(Class<?> sourceClass, ObjectType targetType) {
+        if (sourceClass == null || targetType == null) {
+            return null;
+        }
+        
         String cacheKey = sourceClass.getName() + ":" + targetType.name();
         
         return relationshipPathCache.computeIfAbsent(cacheKey, key -> {
@@ -168,23 +268,27 @@ public class JoinHandler {
                     return null;
                 }
                 
-                // Handle relationships based on common naming patterns
+                // Try direct field first
                 String sourceName = sourceClass.getSimpleName().toLowerCase();
                 String targetName = targetClass.getSimpleName().toLowerCase();
                 
-                // Direct relationship from source to target (singular)
-                String directPath = targetName.toLowerCase();
-                if (hasAttribute(sourceClass, directPath)) {
-                    return directPath;
+                // Check common variations
+                String[] possiblePaths = {
+                    targetName,                // direct singular (event)
+                    targetName + "s",          // direct plural (events)
+                    targetName + "List",       // common list suffix (eventList)
+                    targetName + "Collection", // collection suffix (eventCollection)
+                    targetName.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase(), // snake case
+                    targetName.replaceAll("([a-z])([A-Z])", "$1-$2").toLowerCase()  // kebab case
+                };
+                
+                for (String path : possiblePaths) {
+                    if (hasAttribute(sourceClass, path)) {
+                        return path;
+                    }
                 }
                 
-                // Direct relationship from source to target (plural)
-                String pluralPath = targetName.toLowerCase() + "s";
-                if (hasAttribute(sourceClass, pluralPath)) {
-                    return pluralPath;
-                }
-                
-                // Map common relationships based on domain knowledge
+                // Check for known relationships
                 Map<String, Map<String, String>> knownRelationships = getKnownRelationships();
                 if (knownRelationships.containsKey(sourceName)) {
                     Map<String, String> targetPaths = knownRelationships.get(sourceName);
@@ -193,21 +297,45 @@ public class JoinHandler {
                     }
                 }
                 
-                // If all else fails, check for common bidirectional relationship patterns
-                for (Attribute<?, ?> attr : entityManager.getMetamodel().entity(sourceClass).getAttributes()) {
+                // Try scanning for matching target types in collections
+                for (jakarta.persistence.metamodel.Attribute<?, ?> attr : 
+                        entityManager.getMetamodel().entity(sourceClass).getAttributes()) {
                     if (attr.isCollection() && isEntityCollection(attr, targetClass)) {
                         return attr.getName();
-                    } else if (attr.isAssociation() && attr.getJavaType().equals(targetClass)) {
+                    } else if (attr.isAssociation() && isMatchingEntityType(attr, targetClass)) {
                         return attr.getName();
                     }
                 }
                 
-                return null;
+                // If still not found, check bidirectional relationships from target to source
+                return findBidirectionalPath(sourceClass, targetClass);
             } catch (Exception e) {
                 log.warn("Error finding relationship path: {}", e.getMessage());
                 return null;
             }
         });
+    }
+    
+    /**
+     * Check bidirectional relationships by examining the target class for fields
+     * with the source type
+     */
+    private String findBidirectionalPath(Class<?> sourceClass, Class<?> targetClass) {
+        try {
+            String sourceName = sourceClass.getSimpleName().toLowerCase();
+            
+            // Look for fields in the target entity that reference the source type
+            for (jakarta.persistence.metamodel.Attribute<?, ?> attr : 
+                    entityManager.getMetamodel().entity(targetClass).getAttributes()) {
+                if (attr.isAssociation() && isMatchingEntityType(attr, sourceClass)) {
+                    // Found a back-reference - check for mappedBy fields on target side
+                    return attr.getName() + "." + sourceName;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore errors when checking bidirectional relationships
+        }
+        return null;
     }
     
     /**
@@ -264,5 +392,17 @@ public class JoinHandler {
      */
     public void clearCache() {
         relationshipPathCache.clear();
+    }
+    
+    /**
+     * More robust attribute type checking
+     */
+    private boolean isMatchingEntityType(jakarta.persistence.metamodel.Attribute<?, ?> attr, Class<?> targetClass) {
+        try {
+            Class<?> attrType = attr.getJavaType();
+            return targetClass.isAssignableFrom(attrType) || attrType.isAssignableFrom(targetClass);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

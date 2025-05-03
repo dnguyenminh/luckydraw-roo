@@ -74,13 +74,15 @@ public class EntityHandler {
     }
     
     /**
-     * Determines the entity class name from ObjectType with package detection
+     * Improves package scanning for entity classes
      */
     private String determineEntityClassName(ObjectType objectType) {
+        // Add more potential packages and scan them in priority order
         String[] possiblePackages = {
             "vn.com.fecredit.app.entity",
             "vn.com.fecredit.app.domain",
-            "vn.com.fecredit.app.model"
+            "vn.com.fecredit.app.model",
+            "vn.com.fecredit.core.entity"
         };
         
         for (String pkg : possiblePackages) {

@@ -53,5 +53,25 @@ public enum FilterType {
     /**
      * Filter for values present in a specified string
      */
-    CONTAINS
+    CONTAINS,
+    
+    /**
+     * Filter for values starting with a specified string
+     */
+    STARTS_WITH,
+    
+    /**
+     * Filter for values ending with a specified string
+     */
+    ENDS_WITH,
+    
+    /**
+     * Filter for values that are null
+     */
+    IS_NULL,
+    
+    /**
+     * Filter for values that are not null
+     */
+    IS_NOT_NULL
 }

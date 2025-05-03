@@ -18,7 +18,6 @@ import jakarta.persistence.criteria.Selection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
-import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.SortRequest;
 import vn.com.fecredit.app.service.dto.SortType;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
@@ -114,7 +113,14 @@ public class QueryHandler {
             try {
                 Path<?> path = getPathForField(fieldName, root, joinMap);
                 if (path != null) {
-                    selections.add(path.alias(fieldName));
+                    // Convert dots to underscores in aliases for nested paths
+                    String alias = fieldName.replace('.', '_');
+                    selections.add(path.alias(alias));
+                    
+                    // Log the alias conversion for debugging
+                    if (!fieldName.equals(alias)) {
+                        log.debug("Converted field name '{}' to alias '{}' for selection", fieldName, alias);
+                    }
                 }
             } catch (Exception e) {
                 log.warn("Could not create selection for {}: {}", fieldName, e.getMessage());
