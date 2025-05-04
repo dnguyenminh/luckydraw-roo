@@ -291,7 +291,7 @@ public class PredicateHandler {
 
                     if (join == null) {
                         try {
-                            join = joinHandler.createNestedJoins(root, relationshipPath, joinMap, JoinType.LEFT);
+                            join = joinHandler.createNestedJoins(root, relationshipPath, joinMap, JoinType.INNER);
 
                             if (join == null) {
                                 log.warn("Failed to create join for path: {}", relationshipPath);
@@ -528,7 +528,7 @@ public class PredicateHandler {
                 String path = String.join(".", java.util.Arrays.copyOf(parts, parts.length - 1));
                 String finalField = parts[parts.length - 1];
 
-                Join<?, ?> join = joinHandler.createNestedJoins(root, path, joinMap, JoinType.LEFT);
+                Join<?, ?> join = joinHandler.createNestedJoins(root, path, joinMap, JoinType.INNER);
 
                 if (fieldValidator.hasField(join.getJavaType(), finalField)) {
                     return join.get(finalField);

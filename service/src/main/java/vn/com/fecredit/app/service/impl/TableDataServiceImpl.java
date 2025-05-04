@@ -115,14 +115,14 @@ public class TableDataServiceImpl implements TableDataService {
             if (objectType == null) {
                 return responseBuilder.createErrorResponse("Unsupported entity: null");
             }
-            
+
             // Verify that the object type is valid by checking if it exists in the enum
             try {
                 ObjectType.valueOf(objectType.name());
             } catch (IllegalArgumentException e) {
                 return responseBuilder.createErrorResponse("Unsupported entity: " + objectType);
             }
-            
+
             // Ensure we have a valid page size
             if (request.getSize() <= 0) {
                 request.setSize(10); // Set default page size
@@ -141,7 +141,7 @@ public class TableDataServiceImpl implements TableDataService {
 
             // Create query
             CriteriaQuery<Tuple> query = criteriaQueryBuilder.buildCriteriaQuery(request, rootEntityClass);
-            
+
             // If query is null, create a simple default query to retrieve just IDs
             if (query == null) {
                 log.warn("Failed to build query with provided parameters, creating simple default query");
@@ -164,7 +164,7 @@ public class TableDataServiceImpl implements TableDataService {
 
                 // Get paginated results (even if empty)
                 List<Tuple> results = executeQueryWithPagination(query, request);
-                
+
                 if (results == null) {
                     results = Collections.emptyList();
                     log.warn("Query execution returned null results, using empty list");
@@ -193,33 +193,33 @@ public class TableDataServiceImpl implements TableDataService {
     private List<Tuple> executeQueryWithPagination(CriteriaQuery<Tuple> query, TableFetchRequest request) {
         try {
             Pageable pageable = paginationHelper.createPageable(request);
-            
+
             // Ensure the query is properly using distinct to avoid duplicate results
             query.distinct(true);
-            
+
             // Validate pagination parameters
             int firstResult = (int) pageable.getOffset();
             int maxResults = pageable.getPageSize();
-            
+
             if (firstResult < 0) {
                 firstResult = 0;
                 log.warn("Negative first result detected, defaulting to 0");
             }
-            
+
             if (maxResults <= 0) {
                 maxResults = 10; // Default to 10 if max results is invalid
                 log.warn("Invalid max results detected, defaulting to 10");
             }
-            
+
             // Get a typed query and apply pagination
             TypedQuery<Tuple> typedQuery = entityManager.createQuery(query)
                     .setFirstResult(firstResult)
                     .setMaxResults(maxResults);
-            
+
             // Execute the query with timeout
             typedQuery.setHint("jakarta.persistence.query.timeout", 30000); // 30 seconds timeout
             List<Tuple> results = typedQuery.getResultList();
-            
+
             // Optional: Deduplicate by ID if needed
             if (request.getObjectType() != null && request.getObjectType() == ObjectType.Event) {
                 // For Event queries, deduplicate by event ID to match native query behavior
@@ -230,14 +230,14 @@ public class TableDataServiceImpl implements TableDataService {
                         uniqueById.put(id, tuple);
                     }
                 }
-                
+
                 List<Tuple> deduplicatedResults = new ArrayList<>(uniqueById.values());
-                log.info("After deduplication: {} results (was {})", 
+                log.info("After deduplication: {} results (was {})",
                         deduplicatedResults.size(), results.size());
-                        
+
                 return deduplicatedResults;
             }
-            
+
             log.info("Query executed successfully, returning {} results", results.size());
             return results;
         } catch (Exception e) {
@@ -249,7 +249,7 @@ public class TableDataServiceImpl implements TableDataService {
     /**
      * Counts the total number of records that match the criteria using the same
      * query structure
-     * 
+     *
      * @param originalQuery The data query whose structure should be used for
      *                      counting
      * @return The total count of matching records
@@ -427,7 +427,7 @@ public class TableDataServiceImpl implements TableDataService {
                     } else if (i == 0) {
                         currentPath = newRoot.get(pathElements[i]);
                     } else if (currentPath instanceof From) {
-                        Join<?, ?> newJoin = ((From<?, ?>) currentPath).join(pathElements[i], JoinType.LEFT);
+                        Join<?, ?> newJoin = ((From<?, ?>) currentPath).join(pathElements[i], JoinType.INNER);
                         joinMap.put(currentJoinKey.toString(), newJoin);
                         currentPath = newJoin;
                     }

@@ -114,7 +114,7 @@ public class CriteriaQueryBuilder {
                                 selections.add(path.alias(fieldName));
                             }
                         } catch (IllegalArgumentException e) {
-                            log.warn("Invalid field: {} for type {}", 
+                            log.warn("Invalid field: {} for type {}",
                                 fieldName, root.getJavaType().getSimpleName());
                         }
                     }
@@ -146,38 +146,38 @@ public class CriteriaQueryBuilder {
      * Add a selection for a nested path like "locations.region.name"
      */
     private void addNestedPathSelection(
-            Root<?> root, 
-            String fieldPath, 
-            List<Selection<?>> selections, 
+            Root<?> root,
+            String fieldPath,
+            List<Selection<?>> selections,
             Map<String, Join<?, ?>> joinMap) {
-        
+
         try {
             String[] parts = fieldPath.split("\\.");
             if (parts.length <= 1) {
                 return;
             }
-            
+
             // All parts except the last one constitute the join path
             String joinPath = String.join(".", Arrays.copyOf(parts, parts.length - 1));
             String finalAttribute = parts[parts.length - 1];
-            
+
             // Create joins for the path
-            Join<?, ?> join = joinHandler.createNestedJoins(root, joinPath, joinMap, JoinType.LEFT);
-            
+            Join<?, ?> join = joinHandler.createNestedJoins(root, joinPath, joinMap, JoinType.INNER);
+
             if (join != null) {
                 try {
                     // Get the attribute from the final join
                     Path<?> attributePath = join.get(finalAttribute);
-                    
+
                     // Convert dots to underscores in the alias
                     String alias = fieldPath.replace('.', '_');
-                    
+
                     // Use the converted alias for consistent access
                     selections.add(attributePath.alias(alias));
-                    
+
                     log.debug("Added nested path selection: {} with alias {}", fieldPath, alias);
                 } catch (IllegalArgumentException e) {
-                    log.warn("Invalid field: {} on join {}", 
+                    log.warn("Invalid field: {} on join {}",
                         finalAttribute, join.getJavaType().getSimpleName());
                 }
             } else {
@@ -194,8 +194,8 @@ public class CriteriaQueryBuilder {
     private boolean isPrimitiveOrStringField(Root<?> root, String fieldName) {
         try {
             Class<?> type = root.get(fieldName).getJavaType();
-            return type.isPrimitive() || 
-                   type == String.class || 
+            return type.isPrimitive() ||
+                   type == String.class ||
                    Number.class.isAssignableFrom(type) ||
                    type == Boolean.class ||
                    type == Character.class ||
@@ -242,7 +242,7 @@ public class CriteriaQueryBuilder {
                     if (sort.getField() != null) {
                         Path<?> path = root.get(sort.getField());
 
-                        if (sort.getSortType() != null && 
+                        if (sort.getSortType() != null &&
                             sort.getSortType() == vn.com.fecredit.app.service.dto.SortType.DESCENDING) {
                             orders.add(cb.desc(path));
                         } else {
@@ -250,7 +250,7 @@ public class CriteriaQueryBuilder {
                         }
                     }
                 } catch (IllegalArgumentException e) {
-                    log.warn("Invalid sort field: {} for type {}", 
+                    log.warn("Invalid sort field: {} for type {}",
                         sort.getField(), root.getJavaType().getSimpleName());
                 }
             });
