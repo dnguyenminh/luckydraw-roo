@@ -38,7 +38,7 @@
       </jdbc-additional-properties>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="H2-LuckyDraw" uuid="3e746114-e3e3-4459-bed7-7819374312b5">
+    <data-source source="LOCAL" name="H2_lucky_draw" uuid="7d48270c-bcfd-4b85-8106-413a8c38451d">
       <driver-ref>h2.unified</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.h2.Driver</jdbc-driver>

@@ -39,7 +39,7 @@ import vn.com.fecredit.app.entity.base.AbstractComplexPersistableEntity;
 @Table(name = "reward_events", indexes = {
     @Index(name = "idx_reward_location", columnList = "event_id, region_id"),
     @Index(name = "idx_reward", columnList = "reward_id"),
-    @Index(name = "idx_reward_status", columnList = "status")
+    @Index(name = "idx_reward_event_status", columnList = "status")
 })
 @Getter
 @Setter
@@ -49,7 +49,7 @@ import vn.com.fecredit.app.entity.base.AbstractComplexPersistableEntity;
 @ToString(callSuper = true, exclude = { "eventLocation",  "reward" })
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey> {
-    
+
     /**
      * The event location this reward allocation belongs to
      * Links to the specific physical location for an event

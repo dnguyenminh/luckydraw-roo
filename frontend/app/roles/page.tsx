@@ -7,15 +7,15 @@ export default function RolesPage() {
   return (
     <EntityListPage
       title="Roles"
-      entityType={ObjectType.Reward} // Use correct ObjectType key
+      entityType={ObjectType.Role} // Use correct ObjectType key
       breadcrumbPath="roles"
       description="Manage system roles and permissions"
-      statsCards={[
-        { label: 'Total Roles', value: 5 },
-        { label: 'Active Roles', value: 4, color: 'green' },
-        { label: 'Total Users', value: 15, color: 'yellow' },
-        { label: 'Permissions', value: 30, color: 'blue' }
-      ]}
+      // statsCards={[
+      //   { label: 'Total Roles', value: 5 },
+      //   { label: 'Active Roles', value: 4, color: 'green' },
+      //   { label: 'Total Users', value: 15, color: 'yellow' },
+      //   { label: 'Permissions', value: 30, color: 'blue' }
+      // ]}
       // tabs={[
       //   { id: 'all', label: 'All Roles' },
       //   { id: 'active', label: 'Active' },

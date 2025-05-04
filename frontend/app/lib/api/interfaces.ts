@@ -123,8 +123,9 @@ export interface TableFetchRequest {
 
 // Column information structure
 export interface ColumnInfo {
+    objectType: ObjectType;
     fieldName: string;
-    fieldType: string;
+    fieldType: FieldType;
     sortType: SortType;
     editable?: boolean;
 }

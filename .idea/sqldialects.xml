@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="SqlDialectMappings">
+    <file url="file://$PROJECT_DIR$/entity/src/test/resources/schema-h2.sql" dialect="H2" />
     <file url="file://$PROJECT_DIR$/repository/src/test/resources/setup-test-db.sql" dialect="PostgreSQL" />
     <file url="file://$PROJECT_DIR$/service/src/test/resources/schema.sql" dialect="H2" />
+    <file url="file://$PROJECT_DIR$/src/test/resources/data-h2-large.sql" dialect="H2" />
+    <file url="file://$PROJECT_DIR$/src/test/resources/data-h2.sql" dialect="H2" />
+    <file url="file://$PROJECT_DIR$/src/test/resources/schema-h2.sql" dialect="H2" />
   </component>
 </project>

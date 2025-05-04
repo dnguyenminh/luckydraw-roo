@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// import org.apache.poi.sl.usermodel.TextRun.FieldType;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Component;
 
@@ -17,7 +18,9 @@ import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.DataObject;
 import vn.com.fecredit.app.service.dto.DataObjectKey;
 import vn.com.fecredit.app.service.dto.FetchStatus;
+import vn.com.fecredit.app.service.dto.FieldType;
 import vn.com.fecredit.app.service.dto.ObjectType;
+import vn.com.fecredit.app.service.dto.SortType;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 import vn.com.fecredit.app.service.dto.TableFetchResponse;
 import vn.com.fecredit.app.service.dto.TableRow;
@@ -29,6 +32,7 @@ import vn.com.fecredit.app.service.dto.TableRow;
 @Slf4j
 @RequiredArgsConstructor
 public class ResponseBuilder {
+    private final ColumnInfoProvider columnInfoProvider;
 
     // private final RelatedTablesFactory relatedTablesFactory;
 
@@ -58,23 +62,23 @@ public class ResponseBuilder {
      * Create a response for scalar property queries
      */
     public TableFetchResponse buildResponse(
-            TableFetchRequest request, 
-            List<Tuple> tuples, 
-            Class<?> entityClass, 
-            long totalCount, 
+            TableFetchRequest request,
+            List<Tuple> tuples,
+            Class<?> entityClass,
+            long totalCount,
             String tableName) {
-        
+
         try {
             // Create field mapping for view columns if provided
             Map<String, String> fieldAliasMapping = new HashMap<>();
             Map<String, ColumnInfo> fieldNameMap = new HashMap<>();
-            
+
             // Populate field name map from view columns
             if (request.getViewColumns() != null) {
                 for (ColumnInfo col : request.getViewColumns()) {
                     // Add to field name map
                     fieldNameMap.put(col.getFieldName(), col);
-                    
+
                     // Map underscore version back to dot notation
                     String sqlSafeAlias = col.getFieldName().replace(".", "_");
                     fieldAliasMapping.put(sqlSafeAlias, col.getFieldName());
@@ -86,10 +90,13 @@ public class ResponseBuilder {
                     for (TupleElement<?> element : firstTuple.getElements()) {
                         String alias = element.getAlias();
                         Class<?> type = element.getJavaType();
-                        
+
                         // Create column info based on Java type
-                        String fieldType = determineFieldType(type);
-                        ColumnInfo columnInfo = new ColumnInfo(alias, fieldType, vn.com.fecredit.app.service.dto.SortType.NONE);
+                        FieldType fieldType = columnInfoProvider.determineFieldType(type);
+//                        String[] aliasParts = alias.split("_");
+//                        String fieldName = aliasParts[aliasParts.length - 1]; // Get the last part as field name
+//                        ObjectType objectType = aliasParts.length>1? aliasParts[aliasParts.length-2]: request.getObjectType();
+                        ColumnInfo columnInfo = new ColumnInfo(alias, fieldType, SortType.NONE);
                         fieldNameMap.put(alias, columnInfo);
                     }
                 }
@@ -108,12 +115,12 @@ public class ResponseBuilder {
             response.setPageSize(request.getSize());
             response.setTotalPage((int)(totalCount/Math.max(1, request.getSize()) + (totalCount % Math.max(1, request.getSize()) > 0 ? 1 : 0)));
             response.setFieldNameMap(fieldNameMap);  // Set the field name map in the response
-            
+
             // Set status based on context
             if (rows == null || rows.isEmpty()) {
                 // Check if this is a search with filters that might explain empty results
                 boolean isSearchWithFilters = request.getSearch() != null && !request.getSearch().isEmpty();
-                
+
                 if (totalCount > 0 && isSearchWithFilters) {
                     // Success with filters - total data exists but filters caused empty results
                     response.setStatus(FetchStatus.SUCCESS);
@@ -129,15 +136,15 @@ public class ResponseBuilder {
                 response.setStatus(FetchStatus.SUCCESS);
                 log.debug("Setting status to SUCCESS with {} data rows", rows.size());
             }
-            
+
             // Preserve original related linked objects if present
             if (request.getSearch() != null) {
                 response.setRelatedLinkedObjects(request.getSearch());
             }
-            
-            log.info("Built response with status: {}, rows: {}, total: {}", 
+
+            log.info("Built response with status: {}, rows: {}, total: {}",
                       response.getStatus(), rows != null ? rows.size() : 0, totalCount);
-            
+
             return response;
         } catch (Exception e) {
             log.error("Error building response: {}", e.getMessage(), e);
@@ -145,33 +152,33 @@ public class ResponseBuilder {
         }
     }
 
-    /**
-     * Determine field type name based on Java class
-     */
-    private String determineFieldType(Class<?> javaType) {
-        if (javaType == null) {
-            return "STRING";
-        }
-        
-        if (Number.class.isAssignableFrom(javaType) || 
-            javaType == int.class || 
-            javaType == long.class || 
-            javaType == double.class || 
-            javaType == float.class) {
-            return "NUMBER";
-        }
-        
-        if (java.util.Date.class.isAssignableFrom(javaType) || 
-            java.time.temporal.Temporal.class.isAssignableFrom(javaType)) {
-            return "DATETIME";
-        }
-        
-        if (Boolean.class.isAssignableFrom(javaType) || javaType == boolean.class) {
-            return "BOOLEAN";
-        }
-        
-        return "STRING";
-    }
+//    /**
+//     * Determine field type name based on Java class
+//     */
+//    private FieldType determineFieldType(Class<?> javaType) {
+//        if (javaType == null) {
+//            return FieldType.STRING;
+//        }
+//
+//        if (Number.class.isAssignableFrom(javaType) ||
+//            javaType == int.class ||
+//            javaType == long.class ||
+//            javaType == double.class ||
+//            javaType == float.class) {
+//            return FieldType.NUMBER;
+//        }
+//
+//        if (java.util.Date.class.isAssignableFrom(javaType) ||
+//            java.time.temporal.Temporal.class.isAssignableFrom(javaType)) {
+//            return FieldType.DATETIME;
+//        }
+//
+//        if (Boolean.class.isAssignableFrom(javaType) || javaType == boolean.class) {
+//            return FieldType.BOOLEAN;
+//        }
+//
+//        return FieldType.STRING;
+//    }
 
     /**
      * Convert tuple results to table rows, preserving the original field names when necessary
@@ -227,11 +234,11 @@ public class ResponseBuilder {
             if (row.getData() == null) {
                 row.setData(new HashMap<>());
             }
-            
+
             // Convert the field name to the expected alias format
             String alias = getColumnAlias(fieldName);
             Object value = tuple.get(alias);
-            
+
             // Use original fieldName as the key in the row data
             row.getData().put(fieldName, value);
             log.debug("Added field: {} (alias: {}) with value: {}", fieldName, alias, value);

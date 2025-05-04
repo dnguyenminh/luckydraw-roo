@@ -15,6 +15,7 @@ import jakarta.persistence.metamodel.EntityType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
+import vn.com.fecredit.app.service.dto.FieldType;
 import vn.com.fecredit.app.service.dto.ObjectType;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
 
@@ -25,7 +26,7 @@ public class ColumnInfoProvider {
 
     private final EntityManager entityManager;
     private final EntityHandler entityHandler;
-    
+
     // Add expiration to caches with 1-hour timeout
     private final Map<Class<?>, CachedValue<Map<String, ColumnInfo>>> columnInfoCache = new ConcurrentHashMap<>();
     private final Map<ObjectType, CachedValue<Map<String, ColumnInfo>>> objectTypeColumnInfoCache = new ConcurrentHashMap<>();
@@ -37,55 +38,85 @@ public class ColumnInfoProvider {
         if (entityClass == null) {
             return new HashMap<>();
         }
-        
+
         CachedValue<Map<String, ColumnInfo>> cached = columnInfoCache.get(entityClass);
         if (cached != null && !cached.isExpired()) {
             return cached.getValue();
         }
-        
+
         Map<String, ColumnInfo> columns = buildColumnInfo(entityClass);
         columnInfoCache.put(entityClass, new CachedValue<>(columns, 1, TimeUnit.HOURS));
         return columns;
     }
-    
+
+    /**
+     * Determine field type name based on Java class
+     */
+    public FieldType determineFieldType(Class<?> javaType) {
+        if (javaType == null) {
+            return FieldType.STRING;
+        }
+
+        if (Number.class.isAssignableFrom(javaType) ||
+            javaType == int.class ||
+            javaType == long.class ||
+            javaType == double.class ||
+            javaType == float.class) {
+            return FieldType.NUMBER;
+        }
+
+        if (java.util.Date.class.isAssignableFrom(javaType) ||
+            java.time.temporal.Temporal.class.isAssignableFrom(javaType)) {
+            return FieldType.DATETIME;
+        }
+
+        if (Boolean.class.isAssignableFrom(javaType) || javaType == boolean.class) {
+            return FieldType.BOOLEAN;
+        }
+
+        return FieldType.STRING;
+    }
+
     /**
      * Build column info with optimized processing and fewer exceptions
      */
     private Map<String, ColumnInfo> buildColumnInfo(Class<?> entityClass) {
         Map<String, ColumnInfo> columns = new HashMap<>();
-        
+
         try {
             // Get entity metadata from JPA
             EntityType<?> entityType = entityManager.getMetamodel().entity(entityClass);
-            
+
             // Process each attribute
             for (Attribute<?, ?> attribute : entityType.getAttributes()) {
                 String fieldName = attribute.getName();
                 String displayName = getDisplayName(entityClass, fieldName);
-                
+
                 columns.put(fieldName, ColumnInfo.builder()
                     .fieldName(fieldName)
                     .displayName(displayName)
+                    .fieldType(determineFieldType(attribute.getJavaType()))
                     .build());
             }
         } catch (Exception e) {
-            log.warn("Error getting column info from JPA metamodel for {}: {}", 
+            log.warn("Error getting column info from JPA metamodel for {}: {}",
                 entityClass.getName(), e.getMessage());
-                
+
             // Fall back to reflection without exceptions
             for (Field field : entityClass.getDeclaredFields()) {
                 if (field.isSynthetic()) continue; // Skip synthetic fields
-                
+
                 String fieldName = field.getName();
                 String displayName = getDisplayName(entityClass, fieldName);
-                
+
                 columns.put(fieldName, ColumnInfo.builder()
                     .fieldName(fieldName)
                     .displayName(displayName)
+                    .fieldType(determineFieldType(field.getType()))
                     .build());
             }
         }
-        
+
         return columns;
     }
 
@@ -108,6 +139,9 @@ public class ColumnInfoProvider {
 
             if (entityClass != null) {
                 columns = getColumnInfo(entityClass);
+                columns.forEach((key, columnInfo) -> {
+                    columnInfo.setObjectType(objectType);
+                });
             }
         } catch (Exception e) {
             log.warn("Error getting column info for object type {}: {}", objectType, e.getMessage());
@@ -123,16 +157,16 @@ public class ColumnInfoProvider {
     private static class CachedValue<T> {
         private final T value;
         private final long expirationTime;
-        
+
         public CachedValue(T value, long duration, TimeUnit unit) {
             this.value = value;
             this.expirationTime = System.currentTimeMillis() + unit.toMillis(duration);
         }
-        
+
         public T getValue() {
             return value;
         }
-        
+
         public boolean isExpired() {
             return System.currentTimeMillis() > expirationTime;
         }

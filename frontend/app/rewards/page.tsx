@@ -10,12 +10,12 @@ export default function RewardsPage() {
       entityType={ObjectType.Reward} // Use correct ObjectType key
       breadcrumbPath="rewards"
       description="Overview of rewards distribution and claims"
-      statsCards={[
-        { label: 'Total Rewards', value: 12 },
-        { label: 'Available Rewards', value: 10, color: 'green' },
-        { label: 'Depleted Rewards', value: 2, color: 'yellow' },
-        { label: 'Total Claims', value: 285, color: 'blue' }
-      ]}
+      // statsCards={[
+      //   { label: 'Total Rewards', value: 12 },
+      //   { label: 'Available Rewards', value: 10, color: 'green' },
+      //   { label: 'Depleted Rewards', value: 2, color: 'yellow' },
+      //   { label: 'Total Claims', value: 285, color: 'blue' }
+      // ]}
       // tabs={[
       //   { id: 'all', label: 'All Rewards' },
       //   { id: 'available', label: 'Available' },

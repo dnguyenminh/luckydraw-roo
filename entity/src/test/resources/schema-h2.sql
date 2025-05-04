@@ -1,26 +1,24 @@
--- Specific schema for H2 database (test environment)
+-- Drop tables in correct order
+DROP TABLE IF EXISTS spin_histories CASCADE;
+DROP TABLE IF EXISTS golden_hours CASCADE;
+DROP TABLE IF EXISTS reward_events CASCADE;
+DROP TABLE IF EXISTS rewards CASCADE;
+DROP TABLE IF EXISTS participant_events CASCADE;
+DROP TABLE IF EXISTS participants CASCADE;
+DROP TABLE IF EXISTS event_locations CASCADE;
+DROP TABLE IF EXISTS region_province CASCADE;
+DROP TABLE IF EXISTS provinces CASCADE;
+DROP TABLE IF EXISTS events CASCADE;
+DROP TABLE IF EXISTS regions CASCADE;
+DROP TABLE IF EXISTS role_permissions CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS permissions CASCADE;
+DROP TABLE IF EXISTS roles CASCADE;
+DROP TABLE IF EXISTS configurations CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
 
--- Drop tables if they exist to avoid conflicts
-DROP TABLE IF EXISTS spin_histories;
-DROP TABLE IF EXISTS golden_hours;
-DROP TABLE IF EXISTS rewards;
-DROP TABLE IF EXISTS participant_events;
-DROP TABLE IF EXISTS participants;
-DROP TABLE IF EXISTS event_locations;
-DROP TABLE IF EXISTS provinces;
-DROP TABLE IF EXISTS events;
-DROP TABLE IF EXISTS regions;
-DROP TABLE IF EXISTS role_permissions;
-DROP TABLE IF EXISTS user_roles;
-DROP TABLE IF EXISTS blacklisted_tokens;
-DROP TABLE IF EXISTS permissions;
-DROP TABLE IF EXISTS roles;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS configurations;
-DROP TABLE IF EXISTS audit_logs;
-
--- Create tables for entities
-CREATE TABLE regions (
+-- Create base tables first
+CREATE TABLE IF NOT EXISTS regions (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
@@ -33,7 +31,7 @@ CREATE TABLE regions (
     version BIGINT DEFAULT 0
 );
 
-CREATE TABLE provinces (
+CREATE TABLE IF NOT EXISTS provinces (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
@@ -41,14 +39,12 @@ CREATE TABLE provinces (
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
-    code VARCHAR(50) NOT NULL,
+    code VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
     version BIGINT DEFAULT 0
-    -- Removed region_id foreign key
 );
 
--- Create many-to-many relationship table
-CREATE TABLE region_province (
+CREATE TABLE IF NOT EXISTS region_province (
     province_id BIGINT NOT NULL,
     region_id BIGINT NOT NULL,
     PRIMARY KEY (province_id, region_id),
@@ -56,7 +52,7 @@ CREATE TABLE region_province (
     FOREIGN KEY (region_id) REFERENCES regions(id)
 );
 
-CREATE TABLE events (
+CREATE TABLE IF NOT EXISTS events (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
@@ -71,32 +67,83 @@ CREATE TABLE events (
     version BIGINT DEFAULT 0
 );
 
--- Create event_locations table with compound primary key
 CREATE TABLE IF NOT EXISTS event_locations (
     event_id BIGINT NOT NULL,
     region_id BIGINT NOT NULL,
     province_id BIGINT NOT NULL,
-    created_by VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP NOT NULL,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL,
     code VARCHAR(50) NOT NULL UNIQUE,
     description TEXT,
-    max_spin INT,
+    max_spin INT NOT NULL DEFAULT 100,
     quantity INT CHECK (quantity >= 0),
     win_probability DECIMAL(5,4),
     daily_spin_dist_rate DOUBLE DEFAULT 0,
     remaining_today_spin DOUBLE DEFAULT 0,
     version BIGINT DEFAULT 0,
     PRIMARY KEY (event_id, region_id),
-    CONSTRAINT fk_event_locations_event FOREIGN KEY (event_id) REFERENCES events(id),
-    CONSTRAINT fk_event_locations_region FOREIGN KEY (region_id) REFERENCES regions(id),
-    CONSTRAINT fk_event_locations_province FOREIGN KEY (province_id) REFERENCES provinces(id)
+    FOREIGN KEY (event_id) REFERENCES events(id),
+    FOREIGN KEY (region_id) REFERENCES regions(id),
+    FOREIGN KEY (province_id) REFERENCES provinces(id)
 );
 
-CREATE TABLE participants (
+CREATE TABLE IF NOT EXISTS golden_hours (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_by VARCHAR(255),
+    updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    multiplier DECIMAL(5,2) DEFAULT 1.0,
+    max_rewards INT,
+    claimed_rewards INT DEFAULT 0,
+    version BIGINT DEFAULT 0,
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
+);
+
+CREATE TABLE IF NOT EXISTS rewards (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_by VARCHAR(255),
+    updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) NOT NULL,
+    description VARCHAR(255),
+    prize_value DECIMAL(10,2) DEFAULT 0,
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    version BIGINT DEFAULT 0,
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
+);
+
+CREATE TABLE IF NOT EXISTS reward_events (
+    event_id BIGINT NOT NULL,
+    region_id BIGINT NOT NULL,
+    reward_id BIGINT NOT NULL,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_by VARCHAR(255),
+    updated_at TIMESTAMP,
+    status VARCHAR(50) NOT NULL,
+    quantity INT NOT NULL DEFAULT 0,
+    today_quantity INT NOT NULL DEFAULT 0,
+    version BIGINT DEFAULT 0,
+    PRIMARY KEY (event_id, region_id, reward_id),
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id),
+    FOREIGN KEY (reward_id) REFERENCES rewards(id)
+);
+
+CREATE TABLE IF NOT EXISTS participants (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
@@ -113,11 +160,10 @@ CREATE TABLE participants (
     FOREIGN KEY (province_id) REFERENCES provinces(id)
 );
 
--- Create participant_events table with compound key structure
 CREATE TABLE IF NOT EXISTS participant_events (
+    participant_id BIGINT NOT NULL,
     event_id BIGINT NOT NULL,
     region_id BIGINT NOT NULL,
-    participant_id BIGINT NOT NULL,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
@@ -125,79 +171,63 @@ CREATE TABLE IF NOT EXISTS participant_events (
     status VARCHAR(50) NOT NULL,
     spins_remaining INT DEFAULT 0,
     version BIGINT DEFAULT 0,
-    PRIMARY KEY (event_id, region_id, participant_id),
-    CONSTRAINT fk_participant_events_event_location FOREIGN KEY (event_id, region_id)
-        REFERENCES event_locations(event_id, region_id),
-    CONSTRAINT fk_participant_events_participant FOREIGN KEY (participant_id)
-        REFERENCES participants(id)
+    PRIMARY KEY (participant_id, event_id, region_id),
+    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id),
+    FOREIGN KEY (participant_id) REFERENCES participants(id)
 );
 
--- Update rewards table to reference the compound key of event_locations
-CREATE TABLE rewards (
+CREATE TABLE IF NOT EXISTS spin_histories (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    code VARCHAR(50) NOT NULL,
-    description VARCHAR(255),
-    prize_value DECIMAL(10,2) DEFAULT 0,
-    probability DECIMAL(5,4) DEFAULT 0,
-    quantity INT DEFAULT 0,
-    event_id BIGINT NOT NULL,
-    region_id BIGINT NOT NULL,
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
-);
-
--- Update golden_hours table to reference the compound key of event_locations
-CREATE TABLE golden_hours (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    created_by VARCHAR(255),
-    created_at TIMESTAMP,
-    updated_by VARCHAR(255),
-    updated_at TIMESTAMP,
-    status VARCHAR(50) NOT NULL,
-    event_id BIGINT NOT NULL,
-    region_id BIGINT NOT NULL,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP NOT NULL,
-    multiplier DECIMAL(5,2) DEFAULT 1.0,
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id, region_id) REFERENCES event_locations(event_id, region_id)
-);
-
--- Update spin_histories table to reference compound keys in participant_events and rewards
-CREATE TABLE spin_histories (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    created_by VARCHAR(255),
-    created_at TIMESTAMP,
-    updated_by VARCHAR(255),
-    updated_at TIMESTAMP,
-    status VARCHAR(50) NOT NULL,
-    event_id BIGINT NOT NULL,
-    region_id BIGINT NOT NULL,
-    participant_id BIGINT NOT NULL,
     spin_time TIMESTAMP NOT NULL,
-    reward_id BIGINT,
+    event_id BIGINT NOT NULL,
+    participant_id BIGINT NOT NULL,
+    participant_event_id BIGINT NOT NULL,
+    participant_region_id BIGINT NOT NULL,
     reward_event_id BIGINT,
     reward_region_id BIGINT,
-    win BOOLEAN DEFAULT false,
+    reward_id BIGINT,
+    golden_hour_id BIGINT,
+    win BOOLEAN DEFAULT FALSE,
+    wheel_position DOUBLE,
+    multiplier DECIMAL(5,2) DEFAULT 1.0,
+    server_seed VARCHAR(100),
+    client_seed VARCHAR(100),
     version BIGINT DEFAULT 0,
-    FOREIGN KEY (event_id, region_id, participant_id) REFERENCES participant_events(event_id, region_id, participant_id),
-    FOREIGN KEY (reward_id) REFERENCES rewards(id)
+    FOREIGN KEY (event_id) REFERENCES events(id),
+    FOREIGN KEY (participant_id, participant_event_id, participant_region_id) 
+        REFERENCES participant_events(participant_id, event_id, region_id),
+    FOREIGN KEY (reward_event_id, reward_region_id, reward_id) 
+        REFERENCES reward_events(event_id, region_id, reward_id),
+    FOREIGN KEY (golden_hour_id) REFERENCES golden_hours(id)
 );
 
-CREATE TABLE roles (
+-- Create indexes to exactly match entity's @Table annotation
+CREATE INDEX IF NOT EXISTS idx_spin_participant_event ON spin_histories(participant_id, participant_region_id, participant_event_id);
+CREATE INDEX IF NOT EXISTS idx_spin_reward_event ON spin_histories(reward_event_id, reward_region_id, reward_id);
+CREATE INDEX IF NOT EXISTS idx_spin_reward ON spin_histories(reward_id);
+CREATE INDEX IF NOT EXISTS idx_spin_golden_hour ON spin_histories(golden_hour_id);
+CREATE INDEX IF NOT EXISTS idx_spin_time ON spin_histories(spin_time);
+CREATE INDEX IF NOT EXISTS idx_spin_status ON spin_histories(status);
+CREATE INDEX IF NOT EXISTS idx_spin_event ON spin_histories(event_id);
+
+-- Create indexes for golden hours
+CREATE INDEX IF NOT EXISTS idx_golden_hour_time ON golden_hours(start_time, end_time);
+CREATE INDEX IF NOT EXISTS idx_golden_hour_location ON golden_hours(event_id, region_id);
+
+-- Create necessary tables for authentication and authorization
+CREATE TABLE IF NOT EXISTS roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
     updated_by VARCHAR(255),
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
-    role_type VARCHAR(50) NOT NULL,
+    role_type VARCHAR(50) NOT NULL UNIQUE,
     description VARCHAR(255),
     display_order INT DEFAULT 0,
     version BIGINT DEFAULT 0
@@ -211,9 +241,17 @@ CREATE TABLE IF NOT EXISTS permissions (
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
     name VARCHAR(255) NOT NULL UNIQUE,
-    permission_type VARCHAR(50), -- Changed from 'type' to 'permission_type'
+    type VARCHAR(50),
     description VARCHAR(255),
     version BIGINT DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id BIGINT NOT NULL,
+    permission_id BIGINT NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    FOREIGN KEY (role_id) REFERENCES roles(id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id)
 );
 
 CREATE TABLE IF NOT EXISTS users (
@@ -229,41 +267,10 @@ CREATE TABLE IF NOT EXISTS users (
     full_name VARCHAR(255),
     role_id BIGINT,
     version BIGINT DEFAULT 0,
-    CONSTRAINT fk_user_role FOREIGN KEY (role_id) REFERENCES roles(id)
-);
-
-CREATE TABLE user_roles (
-    user_id BIGINT NOT NULL,
-    role_id BIGINT NOT NULL,
-    PRIMARY KEY (user_id, role_id),
-    FOREIGN KEY (user_id) REFERENCES users(id),
     FOREIGN KEY (role_id) REFERENCES roles(id)
 );
 
-CREATE TABLE role_permissions (
-    role_id BIGINT NOT NULL,
-    permission_id BIGINT NOT NULL,
-    PRIMARY KEY (role_id, permission_id),
-    FOREIGN KEY (role_id) REFERENCES roles(id),
-    FOREIGN KEY (permission_id) REFERENCES permissions(id)
-);
-
-CREATE TABLE blacklisted_tokens (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    created_by VARCHAR(255),
-    created_at TIMESTAMP,
-    updated_by VARCHAR(255),
-    updated_at TIMESTAMP,
-    status VARCHAR(50) NOT NULL,
-    token VARCHAR(1000) NOT NULL,
-    token_type VARCHAR(50) NOT NULL,
-    expiration_time TIMESTAMP NOT NULL,
-    user_id BIGINT,
-    version BIGINT DEFAULT 0,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-
-CREATE TABLE configurations (
+CREATE TABLE IF NOT EXISTS configurations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
@@ -276,7 +283,7 @@ CREATE TABLE configurations (
     version BIGINT DEFAULT 0
 );
 
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     created_by VARCHAR(255),
     created_at TIMESTAMP,
@@ -284,38 +291,13 @@ CREATE TABLE audit_logs (
     updated_at TIMESTAMP,
     status VARCHAR(50) NOT NULL,
     object_type VARCHAR(100) NOT NULL,
-    object_id VARCHAR(255),
+    object_id VARCHAR(255) NOT NULL,
     property_path VARCHAR(255),
-    old_value VARCHAR(1000),
-    new_value VARCHAR(1000),
-    value_type VARCHAR(100),
+    old_value TEXT,
+    new_value TEXT,
+    value_type VARCHAR(255),
     update_time TIMESTAMP NOT NULL,
     context VARCHAR(255),
     action_type VARCHAR(50) NOT NULL,
     version BIGINT DEFAULT 0
 );
-
--- Create indexes for better performance
-CREATE INDEX idx_event_location_event ON event_locations(event_id);
-CREATE INDEX idx_event_location_region ON event_locations(region_id);
-CREATE INDEX idx_participant_province ON participants(province_id);
-CREATE INDEX idx_participant_event ON participant_events(event_id);
-CREATE INDEX idx_participant_region ON participant_events(region_id);
-CREATE INDEX idx_participant_person ON participant_events(participant_id);
-CREATE INDEX idx_reward_event ON rewards(event_id);
-CREATE INDEX idx_reward_region ON rewards(region_id);
-CREATE INDEX idx_golden_hour_event ON golden_hours(event_id);
-CREATE INDEX idx_golden_hour_region ON golden_hours(region_id);
-CREATE INDEX idx_spin_history_event ON spin_histories(event_id);
-CREATE INDEX idx_spin_history_region ON spin_histories(region_id);
-CREATE INDEX idx_spin_history_participant ON spin_histories(participant_id);
-CREATE INDEX idx_spin_history_reward ON spin_histories(reward_id);
-CREATE INDEX idx_blacklisted_token_user ON blacklisted_tokens(user_id);
-CREATE INDEX idx_audit_log_object_type ON audit_logs(object_type);
-CREATE INDEX idx_audit_log_object_id ON audit_logs(object_id);
-CREATE INDEX idx_audit_log_update_time ON audit_logs(update_time);
-CREATE INDEX idx_audit_log_action_type ON audit_logs(action_type);
-CREATE INDEX idx_audit_log_status ON audit_logs(status);
-CREATE INDEX idx_region_province_region ON region_province(region_id);
-CREATE INDEX idx_region_province_province ON region_province(province_id);
-CREATE INDEX idx_event_location_province ON event_locations(province_id);

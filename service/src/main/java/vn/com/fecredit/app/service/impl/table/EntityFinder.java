@@ -27,7 +27,7 @@ public class EntityFinder {
 
     /**
      * Find the entity class based on entity name or object type
-     * 
+     *
      * @param entityName The entity name (can be null)
      * @param objectType The object type (can be null)
      * @return The entity class, or null if not found
@@ -69,7 +69,7 @@ public class EntityFinder {
 
     /**
      * Get the table name for an entity class
-     * 
+     *
      * @param entityClass The entity class
      * @return The table name
      */
@@ -92,10 +92,10 @@ public class EntityFinder {
         log.debug("Using default table name: {}", tableName);
         return tableName;
     }
-    
+
     /**
      * Find primary key fields for an entity class
-     * 
+     *
      * @param entityClass The entity class to analyze
      * @return List of field names that are part of the primary key
      */
@@ -130,7 +130,7 @@ public class EntityFinder {
                 log.debug("No primary key fields found, defaulting to 'id'");
             }
         } catch (Exception e) {
-            log.warn("Error finding primary key fields for class {}: {}", 
+            log.warn("Error finding primary key fields for class {}: {}",
                 entityClass.getName(), e.getMessage());
             pkFields.add("id"); // Default to 'id' on error
         }
@@ -153,39 +153,39 @@ public class EntityFinder {
         return fields;
     }
 
-    /**
-     * Get default columns for an entity class
-     * 
-     * @param entityClass The entity class to analyze
-     * @return Map of field names to column info
-     */
-    public Map<String, ColumnInfo> getDefaultColumns(Class<?> entityClass) {
-        Map<String, ColumnInfo> columns = new HashMap<>();
-
-        try {
-            List<Field> fields = getAllFields(entityClass);
-            List<String> pkFields = findPrimaryKeyFields(entityClass);
-
-            for (Field field : fields) {
-                // Skip static and transient fields
-                if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) ||
-                    java.lang.reflect.Modifier.isTransient(field.getModifiers())) {
-                    continue;
-                }
-
-                // Create column info
-                ColumnInfo columnInfo = ColumnInfo.builder()
-                    .fieldName(field.getName())
-                    .fieldType(field.getType().getSimpleName())
-                    .editable(!pkFields.contains(field.getName())) // Primary key fields are not editable
-                    .build();
-
-                columns.put(field.getName(), columnInfo);
-            }
-        } catch (Exception e) {
-            log.error("Error getting default columns for {}: {}", entityClass.getName(), e.getMessage());
-        }
-
-        return columns;
-    }
+//    /**
+//     * Get default columns for an entity class
+//     *
+//     * @param entityClass The entity class to analyze
+//     * @return Map of field names to column info
+//     */
+//    public Map<String, ColumnInfo> getDefaultColumns(Class<?> entityClass) {
+//        Map<String, ColumnInfo> columns = new HashMap<>();
+//
+//        try {
+//            List<Field> fields = getAllFields(entityClass);
+//            List<String> pkFields = findPrimaryKeyFields(entityClass);
+//
+//            for (Field field : fields) {
+//                // Skip static and transient fields
+//                if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) ||
+//                    java.lang.reflect.Modifier.isTransient(field.getModifiers())) {
+//                    continue;
+//                }
+//
+//                // Create column info
+//                ColumnInfo columnInfo = ColumnInfo.builder()
+//                    .fieldName(field.getName())
+//                    .fieldType(field.getType().getSimpleName())
+//                    .editable(!pkFields.contains(field.getName())) // Primary key fields are not editable
+//                    .build();
+//
+//                columns.put(field.getName(), columnInfo);
+//            }
+//        } catch (Exception e) {
+//            log.error("Error getting default columns for {}: {}", entityClass.getName(), e.getMessage());
+//        }
+//
+//        return columns;
+//    }
 }

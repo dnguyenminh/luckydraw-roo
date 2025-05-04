@@ -10,12 +10,12 @@ export default function UsersPage() {
       entityType={ObjectType.User} // Use correct ObjectType key
       breadcrumbPath="users"
       description="Manage system users and access control"
-      statsCards={[
-        { label: 'Total Users', value: 15 },
-        { label: 'Active Users', value: 12, color: 'green' },
-        { label: 'Inactive Users', value: 3, color: 'yellow' },
-        { label: 'Roles', value: 5, color: 'blue' }
-      ]}
+      // statsCards={[
+      //   { label: 'Total Users', value: 15 },
+      //   { label: 'Active Users', value: 12, color: 'green' },
+      //   { label: 'Inactive Users', value: 3, color: 'yellow' },
+      //   { label: 'Roles', value: 5, color: 'blue' }
+      // ]}
       // tabs={[
       //   { id: 'all', label: 'All Users' },
       //   { id: 'active', label: 'Active' },

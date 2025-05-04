@@ -43,6 +43,7 @@ import vn.com.fecredit.app.service.TableDataService;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.DataObject;
 import vn.com.fecredit.app.service.dto.FetchStatus;
+import vn.com.fecredit.app.service.dto.FieldType;
 import vn.com.fecredit.app.service.dto.FilterRequest;
 import vn.com.fecredit.app.service.dto.FilterType;
 import vn.com.fecredit.app.service.dto.ObjectType;
@@ -79,20 +80,10 @@ public class TableDataServiceIntegrationTest {
     public static void setupDatabase(@Autowired DataSource dataSource) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             // First, execute the schema creation script directly
-            ScriptUtils.executeSqlScript(
-                connection,
-                new EncodedResource(new ClassPathResource("/schema.sql"), "UTF-8"),
-                false, true,
-                "--", ";",
-                "/*", "*/");
+            ScriptUtils.executeSqlScript(connection, new EncodedResource(new ClassPathResource("/schema.sql"), "UTF-8"), false, true, "--", ";", "/*", "*/");
 
             // Then execute the data script
-            ScriptUtils.executeSqlScript(
-                connection,
-                new EncodedResource(new ClassPathResource("/data-test.sql"), "UTF-8"),
-                false, true,
-                "--", ";",
-                "/*", "*/");
+            ScriptUtils.executeSqlScript(connection, new EncodedResource(new ClassPathResource("/data-test.sql"), "UTF-8"), false, true, "--", ";", "/*", "*/");
         } catch (Exception e) {
             e.printStackTrace();
             throw e;
@@ -111,11 +102,7 @@ public class TableDataServiceIntegrationTest {
     @Test
     void testFetchSimpleData() {
         // Create a simple fetch request
-        TableFetchRequest request = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(10)
-            .build();
+        TableFetchRequest request = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(10).build();
 
         // Log debug info
         log.info("Starting testFetchSimpleData test case");
@@ -124,37 +111,28 @@ public class TableDataServiceIntegrationTest {
         TableFetchResponse response = tableDataService.fetchData(request);
 
         // Debug logging
-        log.info("Response received: status={}, message={}, rowCount={}",
-            response.getStatus(),
-            response.getMessage(),
-            response.getRows() != null ? response.getRows().size() : 0);
+        log.info("Response received: status={}, message={}, rowCount={}", response.getStatus(), response.getMessage(), response.getRows() != null ? response.getRows().size() : 0);
 
         // 1. Basic validation
         assertNotNull(response, "Response should not be null");
 
         // 2. Status validation
-        assertTrue(
-            response.getStatus() == FetchStatus.SUCCESS
-                || response.getStatus() == FetchStatus.NO_DATA,
-            "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus());
+        assertTrue(response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA, "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus());
 
         // 3. Full response structure validation based on status
         if (response.getStatus() == FetchStatus.SUCCESS) {
             // A. Table metadata validation
             assertEquals("users", response.getTableName(), "Table name should be 'users'");
             assertNotNull(response.getFieldNameMap(), "Field name map should not be null");
-            assertTrue(response.getFieldNameMap().containsKey("username"),
-                "Field name map should contain username field");
+            assertTrue(response.getFieldNameMap().containsKey("username"), "Field name map should contain username field");
 
             // B. Pagination information validation
             assertNotNull(response.getTotalElements(), "Total elements should not be null");
 
             // Verify total elements count is correct by doing a direct database count
             long expectedCount = countUsers();
-            assertEquals(expectedCount, response.getTotalElements(),
-                "Total elements should match the actual number of users in the database");
-            log.info("Total elements check: expected={}, actual={}", expectedCount,
-                response.getTotalElements());
+            assertEquals(expectedCount, response.getTotalElements(), "Total elements should match the actual number of users in the database");
+            log.info("Total elements check: expected={}, actual={}", expectedCount, response.getTotalElements());
 
             assertNotNull(response.getCurrentPage(), "Current page should not be null");
             assertEquals(0, response.getCurrentPage(), "Current page should be 0");
@@ -163,25 +141,18 @@ public class TableDataServiceIntegrationTest {
 
             // B.1 Total page validation - verify total page calculation is correct
             assertNotNull(response.getTotalPage(), "Total page count should not be null");
-            long expectedTotalPages = (response.getTotalElements() + response.getPageSize() - 1)
-                / response.getPageSize();
-            assertEquals(expectedTotalPages, response.getTotalPage().longValue(),
-                "Total pages should be ceil(totalElements/pageSize)");
-            log.info("Total elements: {}, Page size: {}, Expected total pages: {}, Actual total pages: {}",
-                response.getTotalElements(), response.getPageSize(),
-                expectedTotalPages, response.getTotalPage());
+            long expectedTotalPages = (response.getTotalElements() + response.getPageSize() - 1) / response.getPageSize();
+            assertEquals(expectedTotalPages, response.getTotalPage().longValue(), "Total pages should be ceil(totalElements/pageSize)");
+            log.info("Total elements: {}, Page size: {}, Expected total pages: {}, Actual total pages: {}", response.getTotalElements(), response.getPageSize(), expectedTotalPages, response.getTotalPage());
 
             // C. Request information validation
             assertNotNull(response.getOriginalRequest(), "Original request should not be null");
-            assertEquals(request.getObjectType(), response.getOriginalRequest().getObjectType(),
-                "Original request should have same object type");
-            assertEquals(request.getPage(), response.getOriginalRequest().getPage(),
-                "Original request should have same page number");
+            assertEquals(request.getObjectType(), response.getOriginalRequest().getObjectType(), "Original request should have same object type");
+            assertEquals(request.getPage(), response.getOriginalRequest().getPage(), "Original request should have same page number");
 
             // D. Row data validation
             assertNotNull(response.getRows(), "Rows should not be null");
-            assertTrue(response.getTotalElements() >= response.getRows().size(),
-                "Total elements should be greater than or equal to rows count");
+            assertTrue(response.getTotalElements() >= response.getRows().size(), "Total elements should be greater than or equal to rows count");
 
             if (!response.getRows().isEmpty()) {
                 TableRow firstRow = response.getRows().get(0);
@@ -197,17 +168,12 @@ public class TableDataServiceIntegrationTest {
                 assertTrue(userData.containsKey("status"), "User data should contain status");
 
                 // Log the first user data for information
-                log.info("First user: id={}, username={}, email={}",
-                    userData.get("id"),
-                    userData.get("username"),
-                    userData.get("email"));
+                log.info("First user: id={}, username={}, email={}", userData.get("id"), userData.get("username"), userData.get("email"));
             }
         } else if (response.getStatus() == FetchStatus.NO_DATA) {
             // E. NO_DATA response validation
-            assertEquals(0, response.getTotalElements() == null ? 0 : response.getTotalElements(),
-                "Total elements should be 0 for NO_DATA response");
-            assertTrue(response.getRows() == null || response.getRows().isEmpty(),
-                "Rows should be null or empty for NO_DATA response");
+            assertEquals(0, response.getTotalElements() == null ? 0 : response.getTotalElements(), "Total elements should be 0 for NO_DATA response");
+            assertTrue(response.getRows() == null || response.getRows().isEmpty(), "Rows should be null or empty for NO_DATA response");
         }
 
         // 4. Additional validations for special cases
@@ -217,12 +183,9 @@ public class TableDataServiceIntegrationTest {
             for (TableRow row : response.getRows()) {
                 if (row instanceof TabTableRow) {
                     TabTableRow tabRow = (TabTableRow) row;
-                    assertNotNull(tabRow.getRelatedTables(),
-                        "Related tables should not be null for TabTableRow");
-                    log.info("Found TabTableRow with {} related tables",
-                        tabRow.getRelatedTables().size());
-                    tabRow.getRelatedTables()
-                        .forEach(table -> log.info("  Related table: {}", table));
+                    assertNotNull(tabRow.getRelatedTables(), "Related tables should not be null for TabTableRow");
+                    log.info("Found TabTableRow with {} related tables", tabRow.getRelatedTables().size());
+                    tabRow.getRelatedTables().forEach(table -> log.info("  Related table: {}", table));
                 }
             }
         }
@@ -234,12 +197,7 @@ public class TableDataServiceIntegrationTest {
         // Use a direct string value instead of an enum conversion, as the database
         // values are strings
         FilterRequest statusFilter = new FilterRequest("status", FilterType.EQUALS, "INACTIVE", null);
-        TableFetchRequest request = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(20)
-            .filters(Collections.singletonList(statusFilter))
-            .build();
+        TableFetchRequest request = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(20).filters(Collections.singletonList(statusFilter)).build();
 
         // Act
         TableFetchResponse response = tableDataService.fetchData(request);
@@ -249,28 +207,18 @@ public class TableDataServiceIntegrationTest {
 
         // If we're getting ERROR status, log the error message
         if (response.getStatus() == FetchStatus.ERROR) {
-            log.error("Error in fetchUsers_WithStatusFilter_ShouldReturnFilteredUsers: {}",
-                response.getMessage());
+            log.error("Error in fetchUsers_WithStatusFilter_ShouldReturnFilteredUsers: {}", response.getMessage());
         }
 
         // Check for both SUCCESS and NO_DATA as acceptable outcomes
-        assertTrue(
-            response.getStatus() == FetchStatus.SUCCESS
-                || response.getStatus() == FetchStatus.NO_DATA,
-            "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus() +
-                (response.getMessage() != null ? ": " + response.getMessage() : ""));
+        assertTrue(response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA, "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus() + (response.getMessage() != null ? ": " + response.getMessage() : ""));
     }
 
     @Test
     void fetchUsers_WithSorting_ShouldReturnSortedUsers() {
         // Arrange
         SortRequest sortRequest = new SortRequest("username", SortType.DESCENDING);
-        TableFetchRequest request = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(20)
-            .sorts(Collections.singletonList(sortRequest))
-            .build();
+        TableFetchRequest request = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(20).sorts(Collections.singletonList(sortRequest)).build();
 
         // Act
         TableFetchResponse response = tableDataService.fetchData(request);
@@ -291,66 +239,45 @@ public class TableDataServiceIntegrationTest {
 
         for (int pageSize : pageSizes) {
             // First page
-            TableFetchRequest firstPageRequest = TableFetchRequest.builder()
-                .objectType(ObjectType.User)
-                .page(0)
-                .size(pageSize)
-                .build();
+            TableFetchRequest firstPageRequest = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(pageSize).build();
 
             TableFetchResponse firstPageResponse = tableDataService.fetchData(firstPageRequest);
 
             // Verify the total elements is consistent across different page sizes
-            assertEquals(expectedTotalUsers, firstPageResponse.getTotalElements(),
-                "Total elements should be consistent regardless of page size");
+            assertEquals(expectedTotalUsers, firstPageResponse.getTotalElements(), "Total elements should be consistent regardless of page size");
 
             // Verify total pages calculation is correct
             int expectedTotalPages = (int) Math.ceil((double) expectedTotalUsers / pageSize);
-            assertEquals(expectedTotalPages, firstPageResponse.getTotalPage(),
-                "Total pages calculation should be correct for page size " + pageSize);
+            assertEquals(expectedTotalPages, firstPageResponse.getTotalPage(), "Total pages calculation should be correct for page size " + pageSize);
 
             // Verify first page has correct number of items
             int expectedFirstPageSize = (int) Math.min(pageSize, expectedTotalUsers);
-            assertEquals(expectedFirstPageSize, firstPageResponse.getRows().size(),
-                "First page should have the correct number of items");
+            assertEquals(expectedFirstPageSize, firstPageResponse.getRows().size(), "First page should have the correct number of items");
 
             // If there's more than one page, check the second page too
             if (expectedTotalPages > 1) {
-                TableFetchRequest secondPageRequest = TableFetchRequest.builder()
-                    .objectType(ObjectType.User)
-                    .page(1)
-                    .size(pageSize)
-                    .build();
+                TableFetchRequest secondPageRequest = TableFetchRequest.builder().objectType(ObjectType.User).page(1).size(pageSize).build();
 
                 TableFetchResponse secondPageResponse = tableDataService.fetchData(secondPageRequest);
 
                 // Same total elements and pages
-                assertEquals(expectedTotalUsers, secondPageResponse.getTotalElements(),
-                    "Total elements should be the same on second page");
-                assertEquals(expectedTotalPages, secondPageResponse.getTotalPage(),
-                    "Total pages should be the same on second page");
+                assertEquals(expectedTotalUsers, secondPageResponse.getTotalElements(), "Total elements should be the same on second page");
+                assertEquals(expectedTotalPages, secondPageResponse.getTotalPage(), "Total pages should be the same on second page");
 
                 // Verify second page has correct number of items
-                int expectedSecondPageSize = (int) Math.min(pageSize,
-                    Math.max(0, expectedTotalUsers - pageSize));
-                assertEquals(expectedSecondPageSize, secondPageResponse.getRows().size(),
-                    "Second page should have the correct number of items");
+                int expectedSecondPageSize = (int) Math.min(pageSize, Math.max(0, expectedTotalUsers - pageSize));
+                assertEquals(expectedSecondPageSize, secondPageResponse.getRows().size(), "Second page should have the correct number of items");
 
                 // Verify different page has different data
                 if (!firstPageResponse.getRows().isEmpty() && !secondPageResponse.getRows().isEmpty()) {
-                    String firstPageFirstUsername = (String) firstPageResponse.getRows().get(0)
-                        .getData()
-                        .get("username");
-                    String secondPageFirstUsername = (String) secondPageResponse.getRows().get(0)
-                        .getData()
-                        .get("username");
-                    assertNotEquals(firstPageFirstUsername, secondPageFirstUsername,
-                        "First user on first page should be different from first user on second page");
+                    String firstPageFirstUsername = (String) firstPageResponse.getRows().get(0).getData().get("username");
+                    String secondPageFirstUsername = (String) secondPageResponse.getRows().get(0).getData().get("username");
+                    assertNotEquals(firstPageFirstUsername, secondPageFirstUsername, "First user on first page should be different from first user on second page");
                 }
             }
 
             // Log summary for this page size
-            log.info("Page size {} - Total: {}, Pages: {}, First page size: {}",
-                pageSize, expectedTotalUsers, expectedTotalPages, expectedFirstPageSize);
+            log.info("Page size {} - Total: {}, Pages: {}, First page size: {}", pageSize, expectedTotalUsers, expectedTotalPages, expectedFirstPageSize);
         }
     }
 
@@ -374,22 +301,14 @@ public class TableDataServiceIntegrationTest {
         searchMap.put(ObjectType.Role, roleSearch);
 
         // Create request with search criteria
-        TableFetchRequest request = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(10)
-            .search(searchMap)
-            .build();
+        TableFetchRequest request = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(10).search(searchMap).build();
 
         // Execute the request
         log.info("Starting testFetchDataWithRelatedLinkedObjects test case");
         TableFetchResponse response = tableDataService.fetchData(request);
 
         // Debug logging
-        log.info("Response received: status={}, relatedLinkedObjects={}",
-            response.getStatus(),
-            response.getRelatedLinkedObjects() != null ? response.getRelatedLinkedObjects().size()
-                : "null");
+        log.info("Response received: status={}, relatedLinkedObjects={}", response.getStatus(), response.getRelatedLinkedObjects() != null ? response.getRelatedLinkedObjects().size() : "null");
 
         // Verify the response has related linked objects
         assertNotNull(response, "Response should not be null");
@@ -397,12 +316,10 @@ public class TableDataServiceIntegrationTest {
 
         // Users should have related roles - check for ObjectType.Role key instead of
         // "roles" string
-        assertFalse(response.getRelatedLinkedObjects().isEmpty(),
-            "Related linked objects should not be empty");
+        assertFalse(response.getRelatedLinkedObjects().isEmpty(), "Related linked objects should not be empty");
 
         // Verify that expected related objects are present using ObjectType.Role as key
-        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role),
-            "Related linked objects should include roles data");
+        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role), "Related linked objects should include roles data");
 
         // If we have roles data, verify it has content
         if (response.getRelatedLinkedObjects().containsKey(ObjectType.Role)) {
@@ -412,28 +329,15 @@ public class TableDataServiceIntegrationTest {
         }
 
         // Log detailed information about found related objects for debugging
-        response.getRelatedLinkedObjects()
-            .forEach((key, value) -> log.info(
-                "Found related object: key={}, valueType={}, valueContent={}",
-                key,
-                value != null ? value.getClass().getName() : "null",
-                value));
+        response.getRelatedLinkedObjects().forEach((key, value) -> log.info("Found related object: key={}, valueType={}, valueContent={}", key, value != null ? value.getClass().getName() : "null", value));
     }
 
     @Test
     void testCachingMechanismForColumnInfoGeneration() {
         // Create a request for the same object type twice
-        TableFetchRequest firstRequest = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(10)
-            .build();
+        TableFetchRequest firstRequest = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(10).build();
 
-        TableFetchRequest secondRequest = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(10)
-            .build();
+        TableFetchRequest secondRequest = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(10).build();
 
         // Execute the first request
         log.info("Executing first request to populate cache");
@@ -454,8 +358,7 @@ public class TableDataServiceIntegrationTest {
         log.info("First field name map hash: {}", System.identityHashCode(firstFieldNameMap));
         log.info("Second field name map hash: {}", System.identityHashCode(secondResponse.getFieldNameMap()));
 
-        assertEquals(firstFieldNameMap.size(), secondResponse.getFieldNameMap().size(),
-            "Both responses should have the same number of columns");
+        assertEquals(firstFieldNameMap.size(), secondResponse.getFieldNameMap().size(), "Both responses should have the same number of columns");
 
         // Check key fields are present in both responses
         assertTrue(firstFieldNameMap.containsKey("id"), "Should have id field");
@@ -463,12 +366,8 @@ public class TableDataServiceIntegrationTest {
 
         // They should have the same field definitions
         for (String key : firstFieldNameMap.keySet()) {
-            assertTrue(secondResponse.getFieldNameMap().containsKey(key),
-                "Second response should contain field: " + key);
-            assertEquals(
-                firstFieldNameMap.get(key).getFieldType(),
-                secondResponse.getFieldNameMap().get(key).getFieldType(),
-                "Field types should match for: " + key);
+            assertTrue(secondResponse.getFieldNameMap().containsKey(key), "Second response should contain field: " + key);
+            assertEquals(firstFieldNameMap.get(key).getFieldType(), secondResponse.getFieldNameMap().get(key).getFieldType(), "Field types should match for: " + key);
         }
     }
 
@@ -522,14 +421,7 @@ public class TableDataServiceIntegrationTest {
         filters.add(new FilterRequest("status", FilterType.EQUALS, "ACTIVE", null));
 
         // Create complex request with multiple search criteria
-        TableFetchRequest request = TableFetchRequest.builder()
-            .objectType(ObjectType.User)
-            .page(0)
-            .size(10)
-            .search(searchMap)
-            .sorts(sorts)
-            .filters(filters)
-            .build();
+        TableFetchRequest request = TableFetchRequest.builder().objectType(ObjectType.User).page(0).size(10).search(searchMap).sorts(sorts).filters(filters).build();
 
         // Log for debugging
         log.info("Starting testFetchDataWithComplexSearch test case");
@@ -539,43 +431,30 @@ public class TableDataServiceIntegrationTest {
         TableFetchResponse response = tableDataService.fetchData(request);
 
         // Debug logging
-        log.info("Response received: status={}, rows={}, relatedLinkedObjects={}",
-            response.getStatus(),
-            response.getRows() != null ? response.getRows().size() : "null",
-            response.getRelatedLinkedObjects() != null ? response.getRelatedLinkedObjects().size()
-                : "null");
+        log.info("Response received: status={}, rows={}, relatedLinkedObjects={}", response.getStatus(), response.getRows() != null ? response.getRows().size() : "null", response.getRelatedLinkedObjects() != null ? response.getRelatedLinkedObjects().size() : "null");
 
         // Basic assertions
         assertNotNull(response, "Response should not be null");
 
         // Either SUCCESS or NO_DATA are acceptable outcomes
-        assertTrue(
-            response.getStatus() == FetchStatus.SUCCESS
-                || response.getStatus() == FetchStatus.NO_DATA,
-            "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus());
+        assertTrue(response.getStatus() == FetchStatus.SUCCESS || response.getStatus() == FetchStatus.NO_DATA, "Response status should be either SUCCESS or NO_DATA but was " + response.getStatus());
 
         // Verify that related linked objects contains our search criteria
         assertNotNull(response.getRelatedLinkedObjects(), "Related linked objects should not be null");
         assertFalse(response.getRelatedLinkedObjects().isEmpty(), "Related linked objects should not be empty");
-        assertEquals(2, response.getRelatedLinkedObjects().size(),
-            "Related linked objects should contain both Role and Permission entries");
+        assertEquals(2, response.getRelatedLinkedObjects().size(), "Related linked objects should contain both Role and Permission entries");
 
         // Check if Role search data is preserved
-        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role),
-            "Related linked objects should include Role data");
+        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role), "Related linked objects should include Role data");
         DataObject returnedRoleData = response.getRelatedLinkedObjects().get(ObjectType.Role);
         assertNotNull(returnedRoleData, "Role data should not be null");
-        assertEquals(adminRole.getRoleType().toString(), returnedRoleData.getData().getData().get("roleType"),
-            "Role search criteria should be preserved");
+        assertEquals(adminRole.getRoleType().toString(), returnedRoleData.getData().getData().get("roleType"), "Role search criteria should be preserved");
 
         // Check if Permission search data is preserved
-        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Permission),
-            "Related linked objects should include Permission data");
+        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Permission), "Related linked objects should include Permission data");
         DataObject returnedPermissionData = response.getRelatedLinkedObjects().get(ObjectType.Permission);
         assertNotNull(returnedPermissionData, "Permission data should not be null");
-        assertEquals(createUsersPermission.getName().name(),
-            returnedPermissionData.getData().getData().get("name"),
-            "Permission search criteria should be preserved");
+        assertEquals(createUsersPermission.getName().name(), returnedPermissionData.getData().getData().get("name"), "Permission search criteria should be preserved");
     }
 
     /**
@@ -583,13 +462,7 @@ public class TableDataServiceIntegrationTest {
      */
     private Role findAdminRole() {
         try {
-            return entityManager.createQuery(
-                    "SELECT r FROM Role r WHERE r.roleType = 'ROLE_ADMIN'", Role.class)
-                .setMaxResults(1)
-                .getResultList()
-                .stream()
-                .findFirst()
-                .orElse(null);
+            return entityManager.createQuery("SELECT r FROM Role r WHERE r.roleType = 'ROLE_ADMIN'", Role.class).setMaxResults(1).getResultList().stream().findFirst().orElse(null);
         } catch (Exception e) {
             log.error("Error finding admin role: {}", e.getMessage());
             return null;
@@ -601,13 +474,7 @@ public class TableDataServiceIntegrationTest {
      */
     private Permission findCreateUsersPermission() {
         try {
-            return entityManager.createQuery(
-                    "SELECT p FROM Permission p WHERE p.name = 'CREATE_USER'", Permission.class)
-                .setMaxResults(1)
-                .getResultList()
-                .stream()
-                .findFirst()
-                .orElse(null);
+            return entityManager.createQuery("SELECT p FROM Permission p WHERE p.name = 'CREATE_USER'", Permission.class).setMaxResults(1).getResultList().stream().findFirst().orElse(null);
         } catch (Exception e) {
             log.error("Error finding CREATE_USER permission: {}", e.getMessage());
             return null;
@@ -656,9 +523,7 @@ public class TableDataServiceIntegrationTest {
         request.setSize(10);
 
         // First verify that we have participants with ACTIVE status in the database
-        long activeParticipantsCount = (long) entityManager.createQuery(
-                "SELECT COUNT(p) FROM Participant p WHERE p.status = 'ACTIVE'")
-                .getSingleResult();
+        long activeParticipantsCount = (long) entityManager.createQuery("SELECT COUNT(p) FROM Participant p WHERE p.status = 'ACTIVE'").getSingleResult();
         log.info("Active participants in database: {}", activeParticipantsCount);
 
         // If there are no ACTIVE participants, we should skip this test
@@ -678,11 +543,7 @@ public class TableDataServiceIntegrationTest {
 
         // Add debugging info - execute a simple JPA query first to verify filter syntax
         try {
-            List<?> directQueryResult = entityManager.createQuery(
-                    "SELECT p FROM Participant p WHERE p.status = :status")
-                    .setParameter("status", "ACTIVE")
-                    .setMaxResults(5)
-                    .getResultList();
+            List<?> directQueryResult = entityManager.createQuery("SELECT p FROM Participant p WHERE p.status = :status").setParameter("status", "ACTIVE").setMaxResults(5).getResultList();
             log.info("Direct JPA query returned {} results", directQueryResult.size());
         } catch (Exception e) {
             log.error("Direct JPA query failed: {}", e.getMessage());
@@ -703,7 +564,7 @@ public class TableDataServiceIntegrationTest {
 
         // Assert
         assertNotNull(response, "Response should not be null");
-        
+
         // Try running without filters just to compare
         TableFetchRequest noFilterRequest = new TableFetchRequest();
         noFilterRequest.setObjectType(ObjectType.Participant);
@@ -711,29 +572,26 @@ public class TableDataServiceIntegrationTest {
         noFilterRequest.setSize(10);
         TableFetchResponse noFilterResponse = tableDataService.fetchScalarProperties(noFilterRequest);
         log.info("Response without filters status: {}", noFilterResponse.getStatus());
-        
+
         // If response is ERROR, we need to inspect what's happening
         if (response.getStatus() == FetchStatus.ERROR) {
             log.error("Error response: {}", response.getMessage());
-            
+
             // Check if there's a specific failure with the filter by comparing with no-filter response
             if (noFilterResponse.getStatus() == FetchStatus.SUCCESS) {
                 log.error("Query works without filters but fails with filters - possible filter issue");
             } else {
                 log.error("Query fails even without filters - possible general issue");
             }
-            
+
             // Since this test is failing, let's inspect the database structure
             try {
-                Object result = entityManager.createNativeQuery(
-                        "SELECT column_name FROM information_schema.columns " +
-                        "WHERE table_name = 'participants' AND column_name = 'status'")
-                        .getResultList();
-                log.info("Database has status column in participants table: {}", !((List<?>)result).isEmpty());
+                Object result = entityManager.createNativeQuery("SELECT column_name FROM information_schema.columns " + "WHERE table_name = 'participants' AND column_name = 'status'").getResultList();
+                log.info("Database has status column in participants table: {}", !((List<?>) result).isEmpty());
             } catch (Exception e) {
                 log.error("Error checking database structure: {}", e.getMessage());
             }
-            
+
             // We'll skip the equality assertion for now to get more diagnostic info
             log.warn("Test would normally fail here with status ERROR, but continuing for diagnostics");
         } else {
@@ -746,8 +604,7 @@ public class TableDataServiceIntegrationTest {
                 for (TableRow row : rows) {
                     Map<String, Object> data = row.getData();
                     if (data.containsKey("status")) {
-                        assertEquals("ACTIVE", data.get("status").toString(),
-                                "All participants should have ACTIVE status");
+                        assertEquals("ACTIVE", data.get("status").toString(), "All participants should have ACTIVE status");
                     } else {
                         log.warn("Row doesn't contain status field: {}", data.keySet());
                     }
@@ -766,9 +623,9 @@ public class TableDataServiceIntegrationTest {
 
         // Specify only certain columns to include
         List<ColumnInfo> viewColumns = new ArrayList<>();
-        viewColumns.add(new ColumnInfo("id", "NUMBER", SortType.NONE));
-        viewColumns.add(new ColumnInfo("username", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("email", "STRING", SortType.NONE));
+        viewColumns.add(new ColumnInfo("id", FieldType.NUMBER, SortType.NONE));
+        viewColumns.add(new ColumnInfo("username", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("email", FieldType.STRING, SortType.NONE));
         request.setViewColumns(viewColumns);
 
         // Act
@@ -805,9 +662,9 @@ public class TableDataServiceIntegrationTest {
 
         // Include fields from joined entities
         List<ColumnInfo> viewColumns = new ArrayList<>();
-        viewColumns.add(new ColumnInfo("id", "NUMBER", SortType.NONE));
-        viewColumns.add(new ColumnInfo("fullName", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("user.username", "STRING", SortType.NONE)); // Join to User entity
+        viewColumns.add(new ColumnInfo("id", FieldType.NUMBER, SortType.NONE));
+        viewColumns.add(new ColumnInfo("fullName", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("user.username", FieldType.STRING, SortType.NONE)); // Join to User entity
         request.setViewColumns(viewColumns);
 
         // Act
@@ -894,8 +751,7 @@ public class TableDataServiceIntegrationTest {
         // Assert
         assertNotNull(response, "Response should not be null");
         assertEquals(FetchStatus.ERROR, response.getStatus(), "Status should be ERROR");
-        assertTrue(response.getMessage().contains("Unsupported entity"),
-            "Error message should mention unsupported entity");
+        assertTrue(response.getMessage().contains("Unsupported entity"), "Error message should mention unsupported entity");
     }
 
     @Test
@@ -929,8 +785,7 @@ public class TableDataServiceIntegrationTest {
                 if (usernameObj != null) {
                     String username = usernameObj.toString();
                     if (previousUsername != null) {
-                        assertTrue(username.compareTo(previousUsername) >= 0,
-                            "Rows should be ordered by username ascending");
+                        assertTrue(username.compareTo(previousUsername) >= 0, "Rows should be ordered by username ascending");
                     }
                     previousUsername = username;
                 }
@@ -960,10 +815,10 @@ public class TableDataServiceIntegrationTest {
 
         // Add view columns to include related fields
         List<ColumnInfo> viewColumns = new ArrayList<>();
-        viewColumns.add(new ColumnInfo("id", "NUMBER", SortType.NONE));
-        viewColumns.add(new ColumnInfo("username", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("email", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("role.roleType", "STRING", SortType.NONE));
+        viewColumns.add(new ColumnInfo("id", FieldType.NUMBER, SortType.NONE));
+        viewColumns.add(new ColumnInfo("username", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("email", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("role.roleType", FieldType.STRING, SortType.NONE));
         request.setViewColumns(viewColumns);
 
         // Act
@@ -975,8 +830,7 @@ public class TableDataServiceIntegrationTest {
 
         // Verify that the search criteria was applied
         assertNotNull(response.getRelatedLinkedObjects(), "Related linked objects should not be null");
-        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role),
-            "Related linked objects should include Role");
+        assertTrue(response.getRelatedLinkedObjects().containsKey(ObjectType.Role), "Related linked objects should include Role");
 
         // If there are rows, check that they match the search criteria
         if (!response.getRows().isEmpty()) {
@@ -986,15 +840,13 @@ public class TableDataServiceIntegrationTest {
 
             // Verify the correct role data is present if joined fields are included
             if (data.containsKey("role.roleType")) {
-                assertEquals(adminRole.getRoleType(), data.get("role.roleType"),
-                    "Row should have the admin role type");
+                assertEquals(adminRole.getRoleType(), data.get("role.roleType"), "Row should have the admin role type");
             }
 
             // Check that all rows have the expected columns after filtering
             for (TableRow row : response.getRows()) {
                 assertTrue(row.getData().containsKey("id"), "All rows should contain id field");
-                assertTrue(row.getData().containsKey("username"),
-                    "All rows should contain username field");
+                assertTrue(row.getData().containsKey("username"), "All rows should contain username field");
                 assertTrue(row.getData().containsKey("email"), "All rows should contain email field");
             }
         }
@@ -1013,8 +865,7 @@ public class TableDataServiceIntegrationTest {
         Map<String, Object> eventLocationCriteria = new HashMap<>();
         eventLocationCriteria.put("status", "ACTIVE");
 //        eventLocationCriteria.put("maxSpin", 10);
-        searchMap.put(ObjectType.EventLocation,
-            createSearchDataObject(ObjectType.EventLocation, eventLocationCriteria));
+        searchMap.put(ObjectType.EventLocation, createSearchDataObject(ObjectType.EventLocation, eventLocationCriteria));
 
         // Province is a parent entity for Region
         Map<String, Object> provinceCriteria = new HashMap<>();
@@ -1031,14 +882,12 @@ public class TableDataServiceIntegrationTest {
         Map<String, Object> participantEventCriteria = new HashMap<>();
         participantEventCriteria.put("status", "ACTIVE");
         participantEventCriteria.put("joinDate", java.time.LocalDateTime.now());
-        searchMap.put(ObjectType.ParticipantEvent,
-            createSearchDataObject(ObjectType.ParticipantEvent, participantEventCriteria));
+        searchMap.put(ObjectType.ParticipantEvent, createSearchDataObject(ObjectType.ParticipantEvent, participantEventCriteria));
 
         // Participant is related to Event indirectly
         Map<String, Object> participantCriteria = new HashMap<>();
         participantCriteria.put("status", "ACTIVE");
-        searchMap.put(ObjectType.Participant,
-            createSearchDataObject(ObjectType.Participant, participantCriteria));
+        searchMap.put(ObjectType.Participant, createSearchDataObject(ObjectType.Participant, participantCriteria));
 
         // Create request with Event as root and search criteria
         TableFetchRequest request = new TableFetchRequest();
@@ -1052,19 +901,19 @@ public class TableDataServiceIntegrationTest {
         List<ColumnInfo> viewColumns = new ArrayList<>();
 
         // Event entity direct properties
-        viewColumns.add(new ColumnInfo("id", "NUMBER", SortType.NONE));
-        viewColumns.add(new ColumnInfo("name", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("description", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("startTime", "DATETIME", SortType.NONE)); // Correct field name is
+        viewColumns.add(new ColumnInfo("id", FieldType.NUMBER, SortType.NONE));
+        viewColumns.add(new ColumnInfo("name", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("description", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("startTime", FieldType.DATETIME, SortType.NONE)); // Correct field name is
         // startTime not startDate
-        viewColumns.add(new ColumnInfo("endTime", "DATETIME", SortType.NONE)); // Correct field name is endTime
+        viewColumns.add(new ColumnInfo("endTime", FieldType.DATETIME, SortType.NONE)); // Correct field name is endTime
         // not endDate
-        viewColumns.add(new ColumnInfo("status", "STRING", SortType.NONE));
+        viewColumns.add(new ColumnInfo("status", FieldType.STRING, SortType.NONE));
 
         // Use actual "locations" relationship name from Event entity, not
         // "eventLocations"
-        viewColumns.add(new ColumnInfo("locations.region.name", "STRING", SortType.NONE));
-        viewColumns.add(new ColumnInfo("locations.region.code", "STRING", SortType.NONE));
+        viewColumns.add(new ColumnInfo("locations.region.name", FieldType.STRING, SortType.NONE));
+        viewColumns.add(new ColumnInfo("locations.region.code", FieldType.STRING, SortType.NONE));
         request.setViewColumns(viewColumns);
 
         // Execute direct native query first to get expected data
@@ -1107,8 +956,7 @@ public class TableDataServiceIntegrationTest {
             """;
 
         log.info("Executing native query: {}", nativeQuery);
-        @SuppressWarnings("unchecked")
-        List<Object[]> nativeResults = entityManager.createNativeQuery(nativeQuery).getResultList();
+        @SuppressWarnings("unchecked") List<Object[]> nativeResults = entityManager.createNativeQuery(nativeQuery).getResultList();
         int nativeResultCount = nativeResults.size();
         int nativeColumnCount = nativeResults.isEmpty() ? 0 : nativeResults.get(0).length;
 
@@ -1135,22 +983,17 @@ public class TableDataServiceIntegrationTest {
         int serviceResultCount = response.getRows() != null ? response.getRows().size() : 0;
         int serviceColumnCount = !response.getRows().isEmpty() ? response.getRows().get(0).getData().size() : 0;
 
-        log.info("Results comparison - response.getTotalElements: {} rows, Service: {} rows", response.getTotalElements(),
-            response.getPageSize()*response.getCurrentPage()+ serviceResultCount);
+        log.info("Results comparison - response.getTotalElements: {} rows, Service: {} rows", response.getTotalElements(), response.getPageSize() * response.getCurrentPage() + serviceResultCount);
 
 
-        log.info("Results comparison - Native: {} rows, Service: {} rows", nativeResultCount,
-            serviceResultCount);
-        log.info("Column comparison - Native: {} columns, Service: {} columns", nativeColumnCount,
-            serviceColumnCount);
+        log.info("Results comparison - Native: {} rows, Service: {} rows", nativeResultCount, serviceResultCount);
+        log.info("Column comparison - Native: {} columns, Service: {} columns", nativeColumnCount, serviceColumnCount);
 
         // Validate row counts must match exactly
         if (nativeResultCount > 0 && serviceResultCount == 0) {
             log.warn("⚠️ Service returned no results but native query found {} rows. Skipping assertion due to possible Hibernate error.", nativeResultCount);
         } else {
-            assertEquals(nativeResultCount, serviceResultCount,
-                "Service results count (" + serviceResultCount +
-                    ") must match native query results count (" + nativeResultCount + ")");
+            assertEquals(nativeResultCount, serviceResultCount, "Service results count (" + serviceResultCount + ") must match native query results count (" + nativeResultCount + ")");
         }
 
         // Log discrepancy details if there's a significant difference
@@ -1158,15 +1001,11 @@ public class TableDataServiceIntegrationTest {
             log.warn("⚠️ Service returned no results but native query found {} rows", nativeResultCount);
 
             // Check which tables have data
-            Object eventCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM events")
-                .getSingleResult();
-            Object locationCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM event_locations")
-                .getSingleResult();
-            Object regionCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM regions")
-                .getSingleResult();
+            Object eventCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM events").getSingleResult();
+            Object locationCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM event_locations").getSingleResult();
+            Object regionCount = entityManager.createNativeQuery("SELECT COUNT(*) FROM regions").getSingleResult();
 
-            log.info("Table counts - Event: {}, EventLocation: {}, Region: {}",
-                eventCount, locationCount, regionCount);
+            log.info("Table counts - Event: {}, EventLocation: {}, Region: {}", eventCount, locationCount, regionCount);
 
             // Try a simpler query that might match
             String simpleQuery = "SELECT COUNT(*) FROM events WHERE status != 'DELETED'";
@@ -1183,17 +1022,12 @@ public class TableDataServiceIntegrationTest {
             Object[] nativeFirstRow = nativeResults.get(0);
             TableRow serviceFirstRow = response.getRows().get(0);
 
-            log.info("Native first row - ID: {}, Name: {}, Status: {}",
-                nativeFirstRow[0], nativeFirstRow[1], nativeFirstRow[3]);
-            log.info("Service first row - ID: {}, Name: {}, Status: {}",
-                serviceFirstRow.getData().get("id"),
-                serviceFirstRow.getData().get("name"),
-                serviceFirstRow.getData().get("status"));
+            log.info("Native first row - ID: {}, Name: {}, Status: {}", nativeFirstRow[0], nativeFirstRow[1], nativeFirstRow[3]);
+            log.info("Service first row - ID: {}, Name: {}, Status: {}", serviceFirstRow.getData().get("id"), serviceFirstRow.getData().get("name"), serviceFirstRow.getData().get("status"));
 
             // Compare event IDs (important identifier that should match)
             if (nativeFirstRow[0] != null && serviceFirstRow.getData().get("id") != null) {
-                boolean idsMatch = nativeFirstRow[0].toString().equals(
-                    serviceFirstRow.getData().get("id").toString());
+                boolean idsMatch = nativeFirstRow[0].toString().equals(serviceFirstRow.getData().get("id").toString());
                 log.info("IDs match: {}", idsMatch);
             }
         }
@@ -1214,23 +1048,18 @@ public class TableDataServiceIntegrationTest {
             assertTrue(firstRow.getData().containsKey("name"), "Row should contain name field");
 
             // Verify that the specific view columns for joined entities are present
-            assertTrue(firstRow.getData().containsKey("locations.region.name"),
-                "Row should contain locations.region.name field as specified in viewColumns");
-            assertTrue(firstRow.getData().containsKey("locations.region.code"),
-                "Row should contain locations.region.code field as specified in viewColumns");
+            assertTrue(firstRow.getData().containsKey("locations.region.name"), "Row should contain locations.region.name field as specified in viewColumns");
+            assertTrue(firstRow.getData().containsKey("locations.region.code"), "Row should contain locations.region.code field as specified in viewColumns");
 
             // Verify that all fields in the result match exactly the columns requested
             Set<String> actualFieldNames = new HashSet<>(firstRow.getData().keySet());
             actualFieldNames.remove("viewId"); // viewId is special and always included
 
             // Create a set of expected field names from viewColumns
-            Set<String> expectedFieldNames = viewColumns.stream()
-                .map(ColumnInfo::getFieldName)
-                .collect(Collectors.toSet());
+            Set<String> expectedFieldNames = viewColumns.stream().map(ColumnInfo::getFieldName).collect(Collectors.toSet());
 
             // Compare sets
-            assertEquals(expectedFieldNames, actualFieldNames,
-                "Fields in the result should exactly match the requested view columns");
+            assertEquals(expectedFieldNames, actualFieldNames, "Fields in the result should exactly match the requested view columns");
 
             // Log the field values for debugging
             log.info("locations.region.name value: {}", firstRow.getData().get("locations.region.name"));

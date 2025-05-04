@@ -10,12 +10,12 @@ export default function SpinHistoryPage() {
       entityType={ObjectType.SpinHistory} // Use correct ObjectType key
       breadcrumbPath="spin-history"
       description="Overview of all customer spins and rewards"
-      statsCards={[
-        { label: 'Total Spins', value: 45762 },
-        { label: 'Winning Spins', value: 12348, color: 'green' },
-        { label: 'Win Rate', value: '27.0%', color: 'yellow' },
-        { label: 'Claim Rate', value: '84.2%', color: 'blue' }
-      ]}
+      // statsCards={[
+      //   { label: 'Total Spins', value: 45762 },
+      //   { label: 'Winning Spins', value: 12348, color: 'green' },
+      //   { label: 'Win Rate', value: '27.0%', color: 'yellow' },
+      //   { label: 'Claim Rate', value: '84.2%', color: 'blue' }
+      // ]}
       // tabs={[
       //   { id: 'all', label: 'All Spins' },
       //   { id: 'winners', label: 'Winners' },

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.stereotype.Component;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -17,6 +18,7 @@ import jakarta.persistence.criteria.Root;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
+import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.DataObject;
 import vn.com.fecredit.app.service.dto.FilterRequest;
 import vn.com.fecredit.app.service.dto.FilterType;
@@ -36,16 +38,16 @@ public class PredicateHandler {
      * Adds default filters to exclude deleted records where possible
      */
     public void addDefaultFilters(
-            CriteriaBuilder cb,
-            Root<?> root,
-            List<Predicate> predicates) {
+        CriteriaBuilder cb,
+        Root<?> root,
+        List<Predicate> predicates) {
         try {
             // Check if this entity has a status field
             if (fieldValidator.hasField(root.getJavaType(), "status")) {
                 // Default filter: status != DELETED
                 predicates.add(cb.notEqual(
-                        root.get("status"),
-                        CommonStatus.DELETED.name())); // Use string name for compatibility
+                    root.get("status"),
+                    CommonStatus.DELETED.name())); // Use string name for compatibility
             }
         } catch (Exception e) {
             log.debug("Could not add default status filter: {}", e.getMessage());
@@ -56,17 +58,19 @@ public class PredicateHandler {
      * Applies filters from the request to the criteria query
      */
     public void applyFilters(
-            TableFetchRequest request,
-            List<Predicate> predicates,
-            CriteriaBuilder cb,
-            Root<?> root) {
+        TableFetchRequest request,
+        List<Predicate> predicates,
+        CriteriaBuilder cb,
+        Root<?> root) {
 
         if (request == null || request.getFilters() == null || request.getFilters().isEmpty()) {
             return;
         }
 
         Map<String, Join<?, ?>> joinMap = new HashMap<>();
-
+        Map<String, ColumnInfo> columnTypeMap = request.getViewColumns()
+            .stream()
+            .collect(Collectors.toMap(ColumnInfo::getFieldName, viewCol -> viewCol));
         for (FilterRequest filter : request.getFilters()) {
             try {
                 String fieldName = filter.getField();
@@ -78,7 +82,11 @@ public class PredicateHandler {
 
                 // Handle potentially nested paths
                 Path<?> path = getPathForField(fieldName, root, joinMap);
-
+                Class<?> fieldType = path.getJavaType();
+                ColumnInfo columnInfo = columnTypeMap.get(path.getAlias());
+                if (columnInfo != null) {
+                    columnInfo.setObjectType(ObjectType.valueOf(fieldType.getSimpleName()));
+                }
                 if (path != null) {
                     // Handle filter types with appropriate methods
                     switch (type) {
@@ -90,19 +98,19 @@ public class PredicateHandler {
                             break;
                         case GREATER_THAN:
                             addComparisonPredicate(cb, predicates, path, filter.getMinValue(),
-                                    ComparisonType.GREATER_THAN);
+                                ComparisonType.GREATER_THAN);
                             break;
                         case GREATER_THAN_OR_EQUALS:
                             addComparisonPredicate(cb, predicates, path, filter.getMinValue(),
-                                    ComparisonType.GREATER_THAN_OR_EQUAL);
+                                ComparisonType.GREATER_THAN_OR_EQUAL);
                             break;
                         case LESS_THAN:
                             addComparisonPredicate(cb, predicates, path, filter.getMinValue(),
-                                    ComparisonType.LESS_THAN);
+                                ComparisonType.LESS_THAN);
                             break;
                         case LESS_THAN_OR_EQUALS:
                             addComparisonPredicate(cb, predicates, path, filter.getMinValue(),
-                                    ComparisonType.LESS_THAN_OR_EQUAL);
+                                ComparisonType.LESS_THAN_OR_EQUAL);
                             break;
                         case CONTAINS:
                             addLikePredicate(cb, predicates, path, filter.getMinValue(), LikeType.CONTAINS);
@@ -151,13 +159,13 @@ public class PredicateHandler {
     /**
      * Safely adds a comparison predicate that handles types properly
      */
-    @SuppressWarnings({ "unchecked" })
+    @SuppressWarnings({"unchecked"})
     private <Y extends Comparable<? super Y>> void addComparisonPredicate(
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            Path<?> path,
-            Object value,
-            ComparisonType comparisonType) {
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        Path<?> path,
+        Object value,
+        ComparisonType comparisonType) {
 
         if (value == null) {
             return; // Skip null comparisons
@@ -213,13 +221,13 @@ public class PredicateHandler {
     /**
      * Adds a between predicate that properly handles types
      */
-    @SuppressWarnings({ "unchecked" })
+    @SuppressWarnings({"unchecked"})
     private <Y extends Comparable<? super Y>> void addBetweenPredicate(
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            Path<?> path,
-            Object minValue,
-            Object maxValue) {
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        Path<?> path,
+        Object minValue,
+        Object maxValue) {
 
         if (minValue == null || maxValue == null) {
             return; // Skip if either bound is null
@@ -231,7 +239,7 @@ public class PredicateHandler {
             Object convertedMaxValue = fieldValidator.convertValue(maxValue, fieldType);
 
             if (convertedMinValue != null && convertedMaxValue != null &&
-                    Comparable.class.isAssignableFrom(fieldType)) {
+                Comparable.class.isAssignableFrom(fieldType)) {
                 Path<Y> typedPath = (Path<Y>) path;
                 Y typedMinValue = (Y) convertedMinValue;
                 Y typedMaxValue = (Y) convertedMaxValue;
@@ -248,10 +256,10 @@ public class PredicateHandler {
      */
     @SuppressWarnings("unchecked")
     public void applySearch(
-            TableFetchRequest request,
-            List<Predicate> predicates,
-            CriteriaBuilder cb,
-            Root<?> root) {
+        TableFetchRequest request,
+        List<Predicate> predicates,
+        CriteriaBuilder cb,
+        Root<?> root) {
 
         if (request == null || request.getSearch() == null || request.getSearch().isEmpty()) {
             return;
@@ -291,7 +299,7 @@ public class PredicateHandler {
                             }
                         } catch (Exception e) {
                             log.warn("Failed to create join for path {}: {}",
-                                    relationshipPath, e.getMessage());
+                                relationshipPath, e.getMessage());
                             continue;
                         }
                     }
@@ -301,7 +309,7 @@ public class PredicateHandler {
                     }
                 } else {
                     log.warn("No relationship path found from {} to {}",
-                            root.getJavaType().getSimpleName(), objectType);
+                        root.getJavaType().getSimpleName(), objectType);
                 }
             } catch (Exception e) {
                 log.warn("Error applying search for object type {}: {}", objectType, e.getMessage());
@@ -313,10 +321,10 @@ public class PredicateHandler {
      * Applies search criteria to the root entity
      */
     private void applySearchToRoot(
-            Root<?> root,
-            DataObject dataObject,
-            List<Predicate> predicates,
-            CriteriaBuilder cb) {
+        Root<?> root,
+        DataObject dataObject,
+        List<Predicate> predicates,
+        CriteriaBuilder cb) {
 
         if (dataObject == null || dataObject.getData() == null) {
             return;
@@ -338,7 +346,7 @@ public class PredicateHandler {
                 addEqualsPredicate(cb, predicates, path, value);
             } else {
                 log.warn("Invalid search field: {} for type {}",
-                        fieldName, root.getJavaType().getSimpleName());
+                    fieldName, root.getJavaType().getSimpleName());
             }
         }
     }
@@ -347,10 +355,10 @@ public class PredicateHandler {
      * Applies search criteria to a joined entity
      */
     private void applySearchToJoin(
-            Join<?, ?> join,
-            DataObject dataObject,
-            List<Predicate> predicates,
-            CriteriaBuilder cb) {
+        Join<?, ?> join,
+        DataObject dataObject,
+        List<Predicate> predicates,
+        CriteriaBuilder cb) {
 
         if (dataObject == null || dataObject.getData() == null) {
             return;
@@ -372,7 +380,7 @@ public class PredicateHandler {
                 addEqualsPredicate(cb, predicates, path, value);
             } else {
                 log.warn("Invalid search field: {} for type {}",
-                        fieldName, join.getJavaType().getSimpleName());
+                    fieldName, join.getJavaType().getSimpleName());
             }
         }
     }
@@ -381,10 +389,10 @@ public class PredicateHandler {
      * Adds an EQUALS predicate for a field and value
      */
     private void addEqualsPredicate(
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            Path<?> path,
-            Object value) {
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        Path<?> path,
+        Object value) {
 
         try {
             if (value == null) {
@@ -396,7 +404,7 @@ public class PredicateHandler {
             Object convertedValue = fieldValidator.convertValue(value, fieldType);
 
             if (convertedValue instanceof String &&
-                    CommonStatus.class.isAssignableFrom(fieldType)) {
+                CommonStatus.class.isAssignableFrom(fieldType)) {
                 // Handle enum conversion for status fields
                 try {
                     CommonStatus status = CommonStatus.valueOf(convertedValue.toString());
@@ -418,10 +426,10 @@ public class PredicateHandler {
      * Adds a NOT_EQUALS predicate for a field and value
      */
     private void addNotEqualsPredicate(
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            Path<?> path,
-            Object value) {
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        Path<?> path,
+        Object value) {
 
         try {
             if (value == null) {
@@ -443,11 +451,11 @@ public class PredicateHandler {
      * Adds a LIKE predicate for a field and value
      */
     private void addLikePredicate(
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            Path<?> path,
-            Object value,
-            LikeType likeType) {
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        Path<?> path,
+        Object value,
+        LikeType likeType) {
 
         try {
             if (value == null || !String.class.equals(path.getJavaType())) {
@@ -477,10 +485,10 @@ public class PredicateHandler {
      * Adds an IN predicate for a field and value
      */
     private void addInPredicate(
-            CriteriaBuilder cb,
-            List<Predicate> predicates,
-            Path<?> path,
-            Object value) {
+        CriteriaBuilder cb,
+        List<Predicate> predicates,
+        Path<?> path,
+        Object value) {
 
         try {
             if (value == null) {
@@ -489,8 +497,8 @@ public class PredicateHandler {
 
             Class<?> fieldType = path.getJavaType();
             List<Object> convertedValues = Arrays.stream(value.toString().split(","))
-                    .map(v -> fieldValidator.convertValue(v, fieldType))
-                    .collect(Collectors.toList());
+                .map(v -> fieldValidator.convertValue(v, fieldType))
+                .collect(Collectors.toList());
 
             predicates.add(path.in(convertedValues));
 
@@ -512,7 +520,7 @@ public class PredicateHandler {
                     return root.get(parts[0]);
                 } else {
                     log.warn("Invalid field: {} for type {}",
-                            parts[0], root.getJavaType().getSimpleName());
+                        parts[0], root.getJavaType().getSimpleName());
                     return null;
                 }
             } else {
@@ -526,7 +534,7 @@ public class PredicateHandler {
                     return join.get(finalField);
                 } else {
                     log.warn("Invalid field: {} for type {}",
-                            finalField, join.getJavaType().getSimpleName());
+                        finalField, join.getJavaType().getSimpleName());
                     return null;
                 }
             }

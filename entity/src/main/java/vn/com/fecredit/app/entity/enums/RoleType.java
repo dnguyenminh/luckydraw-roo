@@ -28,5 +28,10 @@ public enum RoleType {
     /**
      * Guest role with minimal access for unauthenticated users
      */
-    ROLE_GUEST
+    ROLE_GUEST,
+
+    /**
+     * Operator role with permissions to manage specific system operations
+     */
+    ROLE_OPERATOR
 }

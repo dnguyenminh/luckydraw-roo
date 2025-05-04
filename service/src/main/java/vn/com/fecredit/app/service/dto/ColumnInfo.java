@@ -3,12 +3,14 @@ package vn.com.fecredit.app.service.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 /**
  * Column metadata information for UI rendering
  */
 @Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,7 +32,7 @@ public class ColumnInfo {
     /**
      * Field data type
      */
-    private String fieldType;
+    private FieldType fieldType;
 
     /**
      * Sort type for the column
@@ -46,7 +48,7 @@ public class ColumnInfo {
     /**
      * Constructor without editable flag (defaults to true)
      */
-    public ColumnInfo(String fieldName, String fieldType, SortType sortType) {
+    public ColumnInfo(String fieldName, FieldType fieldType, SortType sortType) {
         this.fieldName = fieldName;
         this.fieldType = fieldType;
         this.sortType = sortType;
@@ -56,7 +58,7 @@ public class ColumnInfo {
     /**
      * Static factory method to create a non-editable column
      */
-    public static ColumnInfo createNonEditable(String fieldName, String fieldType, SortType sortType) {
+    public static ColumnInfo createNonEditable(String fieldName, FieldType fieldType, SortType sortType) {
         return ColumnInfo.builder()
                 .fieldName(fieldName)
                 .fieldType(fieldType)
