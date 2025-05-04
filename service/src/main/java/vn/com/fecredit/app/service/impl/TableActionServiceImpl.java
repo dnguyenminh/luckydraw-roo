@@ -273,6 +273,7 @@ public class TableActionServiceImpl implements TableActionService {
             }
 
             Path extractingFilePath = tempDir.resolve(extractingFilename);
+            Files.createFile(extractingFilePath);
             Path completeFilePath = tempDir.resolve(completeFilename);
             Path failedFilePath = tempDir.resolve(failedFilename);
 

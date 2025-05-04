@@ -267,25 +267,36 @@ const pollForFileCompletion = async (
     maxAttempts = 30, 
     initialDelay = 2000
 ): Promise<boolean> => {
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    let attempt = 1;
+    // Use while loop instead of for loop to support indefinite polling
+    while (maxAttempts === -1 || attempt <= maxAttempts) {
         try {
             updateNotification(
                 notificationId, 
                 'Export in progress', 
-                `Waiting for file to be ready... (attempt ${attempt}/${maxAttempts})`, 
+                maxAttempts === -1 
+                    ? `Waiting for file to be ready... (attempt ${attempt})` 
+                    : `Waiting for file to be ready... (attempt ${attempt}/${maxAttempts})`, 
                 'info'
             );
             
             // Wait before checking
             await new Promise(resolve => setTimeout(resolve, initialDelay));
             
-            // Check file status with a HEAD request
-            // We don't need to modify the url here as it now comes in with the correct base URL
-            const response = await fetch(url, { method: 'HEAD' });
+            // Check file status with a HEAD request first to avoid partial downloads
+            const headResponse = await fetch(url, { method: 'HEAD' });
+            console.log(`HEAD request status: ${headResponse.status}`);
             
-            // If file is ready
-            if (response.ok) {
-                // Trigger download
+            // Log headers for debugging without using iterator spread
+            const headerMap: Record<string, string> = {};
+            headResponse.headers.forEach((value, key) => {
+                headerMap[key] = value;
+            });
+            console.log('Response headers:', headerMap);
+            
+            // If file is ready (status 200) or we received something other than 202
+            if (headResponse.status === 200 || (headResponse.status !== 202 && headResponse.headers.get('Content-Disposition'))) {
+                // Make a GET request for the actual file
                 const downloadSuccess = await triggerFileDownload(url, fileName);
                 
                 if (downloadSuccess) {
@@ -297,10 +308,23 @@ const pollForFileCompletion = async (
                 }
             }
             
-            // If still processing, continue polling
-            if (response.status === 202) {
-                // Increase delay with each attempt (exponential backoff)
-                initialDelay = Math.min(initialDelay * 1.5, 10000); // Cap at 10 seconds
+            // If still processing (202 status), continue polling
+            if (headResponse.status === 202) {
+                // Check for Retry-After header and use it if present
+                const retryAfterHeader = headResponse.headers.get('Retry-After');
+                let retryDelay: number;
+                
+                if (retryAfterHeader) {
+                    // The Retry-After header value is in seconds, convert to milliseconds
+                    retryDelay = parseInt(retryAfterHeader, 10) * 1000;
+                    console.log(`Server requested retry after ${retryDelay}ms`);
+                } else {
+                    // If no Retry-After header, use exponential backoff
+                    retryDelay = Math.min(initialDelay * 1.5, 10000);
+                }
+                
+                initialDelay = retryDelay;
+                attempt++; // Increment attempt counter
                 continue;
             }
             
@@ -308,16 +332,17 @@ const pollForFileCompletion = async (
             updateNotification(
                 notificationId, 
                 'Export failed', 
-                `Server returned status ${response.status}`, 
+                `Server returned status ${headResponse.status}`, 
                 'error'
             );
             return false;
         } catch (error) {
             console.error('Error polling for file:', error);
+            attempt++; // Increment attempt counter even on error
         }
     }
     
-    // If we've exceeded max attempts
+    // Only reach here if maxAttempts is not -1 and we've exceeded it
     updateNotification(notificationId, 'Export timed out', 'File took too long to prepare', 'error');
     return false;
 };
@@ -328,39 +353,92 @@ const pollForFileCompletion = async (
 const triggerFileDownload = async (url: string, fileName: string): Promise<boolean> => {
     return new Promise(resolve => {
         try {
-            // Use fetch to get the file directly instead of relying on link click events
-            fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    // Create URL for the blob
-                    const blobUrl = window.URL.createObjectURL(blob);
-                    
-                    // Create and trigger download
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = fileName;
-                    link.style.display = 'none';
-                    document.body.appendChild(link);
-                    
-                    // Trigger the download
-                    link.click();
-                    
-                    // Clean up
-                    setTimeout(() => {
-                        window.URL.revokeObjectURL(blobUrl);
-                        document.body.removeChild(link);
-                        resolve(true);
-                    }, 100);
-                })
-                .catch(error => {
-                    console.error('Download error:', error);
-                    resolve(false);
+            console.log(`Attempting to download file from: ${url}`);
+            
+            // Use fetch with GET method and proper headers
+            fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream'
+                }
+            })
+            .then(response => {
+                console.log(`GET request status: ${response.status}`);
+                
+                // Log headers for debugging without using iterator spread
+                const headerMap: Record<string, string> = {};
+                response.headers.forEach((value, key) => {
+                    headerMap[key] = value;
                 });
+                console.log('Response headers:', headerMap);
+                
+                // Check if we have a real file response
+                const contentType = response.headers.get('Content-Type');
+                const contentDisposition = response.headers.get('Content-Disposition');
+                const contentLength = response.headers.get('Content-Length');
+                
+                console.log('Content-Type:', contentType);
+                console.log('Content-Disposition:', contentDisposition);
+                console.log('Content-Length:', contentLength);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                // If we still got a 202, we're not ready
+                if (response.status === 202) {
+                    console.log('File still not ready (202 status)');
+                    return null;
+                }
+                
+                // Ensure we have valid content
+                if (contentLength && parseInt(contentLength, 10) <= 0) {
+                    console.error('Empty response received');
+                    throw new Error('Server returned empty file');
+                }
+                
+                return response.blob();
+            })
+            .then(blob => {
+                // If polling returned null (still not ready), return false
+                if (!blob) {
+                    resolve(false);
+                    return;
+                }
+                
+                console.log(`Received blob of type: ${blob.type}, size: ${blob.size} bytes`);
+                
+                // Safety check - don't try to download empty files
+                if (blob.size <= 0) {
+                    console.error('Empty blob received');
+                    resolve(false);
+                    return;
+                }
+                
+                // Create URL for the blob
+                const blobUrl = window.URL.createObjectURL(blob);
+                
+                // Create and trigger download
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = fileName;
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                
+                // Trigger the download
+                link.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    window.URL.revokeObjectURL(blobUrl);
+                    document.body.removeChild(link);
+                    resolve(true);
+                }, 100);
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                resolve(false);
+            });
         } catch (error) {
             console.error('Error triggering download:', error);
             resolve(false);
@@ -396,9 +474,10 @@ const createNotification = (title: string, message: string, type: 'info' | 'succ
     notification.style.borderRadius = '4px';
     notification.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
     notification.style.backgroundColor = type === 'info' ? '#007acc' : 
-                                         type === 'success' ? '#28a745' : 
-                                         '#dc3545';
+                                        type === 'success' ? '#28a745' : 
+                                        '#dc3545';
     notification.style.color = 'white';
+    notification.style.position = 'relative'; // For positioning close button
     
     // Add title and message
     notification.innerHTML = `

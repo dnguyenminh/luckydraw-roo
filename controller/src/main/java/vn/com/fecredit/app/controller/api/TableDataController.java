@@ -220,7 +220,12 @@ public class TableDataController {
                 headers.add("Cache-Control", "no-cache, no-store, must-revalidate");
                 headers.add("Pragma", "no-cache");
                 headers.add("Expires", "0");
-
+                try {
+                    Files.delete(completedPath);
+                    log.info("Deleted completed export file: {}", completedPath);
+                } catch (IOException e) {
+                    log.error("Error deleting completed export file: {}", e.getMessage());
+                }
                 return ResponseEntity.ok()
                     .headers(headers)
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -280,7 +285,7 @@ public class TableDataController {
      * For security, this maps between tokens and allowed files
      *
      * @param filename The file to be downloaded
-     * @param token The authentication token
+     * @param token    The authentication token
      * @return true if the token is valid for downloading this file
      */
     private boolean validateFileToken(String filename, String token) {
