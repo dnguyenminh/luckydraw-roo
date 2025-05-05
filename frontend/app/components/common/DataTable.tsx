@@ -24,6 +24,15 @@ import {
   exportTableData 
 } from '@/app/lib/api/tableActionService';
 
+// Import the new components
+import ConfirmDialog from './DataTable/components/ConfirmDialog';
+import ExpandableDetail from './DataTable/components/ExpandableDetail';
+import DataTableRow from './DataTable/components/DataTableRow';
+import TableHeader from './DataTable/components/TableHeader';
+
+// Import the filter components
+import DataTableColumnFilter from './DataTable/components/filters/DataTableColumnFilter';
+
 // Page size options
 const PAGE_SIZE_OPTIONS = [10, 20, 30, 50, 100, 500, 1000];
 
@@ -1314,6 +1323,11 @@ export default function DataTable({
     data, detailView, detailViewMode, editingRowId, effectiveColumns, entityType, handleCancelEdit, handleSaveEdit, search
   ]);
 
+  // Helper for rendering cell values
+  const renderCellValue = useCallback((value: any, row: TableRow, column: ColumnDef) => {
+    return safeRenderValue(value);
+  }, []);
+
   return (
     <div className="w-full relative flex flex-col">
       <div className="mb-4 flex flex-wrap justify-between items-center gap-3 w-full">
@@ -1334,7 +1348,9 @@ export default function DataTable({
 
           {columnsWithActiveFilters.length > 0 && (
             <div className="flex flex-wrap gap-1 items-center">
-              <span className="text-sm text-gray-400">Filters:</span>
+              <span className="text-sm text-gray-400">
+                Filters:
+              </span>
               {columnsWithActiveFilters.map(columnKey => {
                 const column = effectiveColumns.find(col => col.key === columnKey);
                 if (!column) return null;
@@ -1434,156 +1450,22 @@ export default function DataTable({
 
       <div className="bg-[#1e1e1e] border border-[#3c3c3c] rounded-md overflow-hidden relative w-full flex-grow flex flex-col">
         <div className="overflow-x-auto w-full flex-1">
-          <table
-            className="w-full relative table-auto"
-            aria-busy={isLoading}
-            role="grid"
-          >
-            {effectiveColumns && effectiveColumns.length > 0 && (
-              <thead className="bg-[#2d2d2d] text-white font-medium sticky top-0 z-[10]">
-                <tr>
-                  {showDetailView && (
-                    <th className="w-10 p-3 whitespace-nowrap" scope="col"></th>
-                  )}
-                  {effectiveColumns.map((column) => (
-                    <th
-                      key={column.key}
-                      className="text-left p-3 relative"
-                      scope="col"
-                      style={{ width: column.key === 'viewId' ? '80px' : 'auto' }}
-                    >
-                      <div className="flex items-start">
-                        <button
-                          className={`flex-grow flex flex-wrap items-center mr-5 ${column.sortable ? 'cursor-pointer hover:text-[#007acc]' : ''} ${sortField === column.key ? 'text-[#007acc]' : ''}`}
-                          onClick={() => column.sortable && handleSortClick(column.key)}
-                          disabled={!column.sortable}
-                          aria-sort={sortField === column.key ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
-                          aria-label={`Sort by ${column.header}`}
-                        >
-                          <span className="break-words hyphens-auto pr-1">{column.header}</span>
-                          {sortField === column.key && (
-                            <span className="inline-flex items-center">
-                              {sortDirection === 'asc' ?
-                                <ChevronUp className="h-4 w-4" /> :
-                                <ChevronDown className="h-4 w-4" />
-                              }
-                            </span>
-                          )}
-                        </button>
-                        {column.filterable && (
-                          <button
-                            className={`absolute right-3 top-3 p-1 rounded-full hover:bg-[#3c3c3c] ${activeFilters[column.key]?.active ? 'text-[#007acc]' : 'text-gray-400'}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenFilterColumn(openFilterColumn === column.key ? null : column.key);
-                            }}
-                            aria-label={`Filter by ${column.header}`}
-                          >
-                            <Filter size={14} />
-                          </button>
-                        )}
-                      </div>
-                      {openFilterColumn === column.key && (
-                        <ColumnFilter
-                          column={column}
-                          filterState={activeFilters[column.key] || {
-                            field: column.key,
-                            operator: column.fieldType === 'BOOLEAN' ? 'equals' :
-                              ['NUMBER', 'DATE', 'DATETIME', 'TIME'].includes(column.fieldType) ?
-                                NumericFilterOperator.EQUALS : TextFilterOperator.CONTAINS,
-                            value: null,
-                            active: false
-                          }}
-                          onChange={(filterState) => handleFilterChange(column.key, filterState)}
-                          onClose={() => setOpenFilterColumn(null)}
-                        />
-                      )}
-                    </th>
-                  ))}
-                  {showDefaultActions && (
-                    <th className="text-right p-3 whitespace-nowrap" scope="col" style={{ width: '150px' }}>
-                      <div className="flex items-center justify-between">
-                        <span>Actions</span>
-                        <button
-                          onClick={handleAddNewRow}
-                          className="flex items-center justify-center p-1 bg-green-700 text-white rounded hover:bg-green-800"
-                          title="Add new row"
-                          disabled={isAddingNewRow || editingRowId !== null}
-                          aria-label="Add new row"
-                        >
-                          <Plus size={16} />
-                        </button>
-                      </div>
-                    </th>
-                  )}
-                </tr>
-              </thead>
-            )}
+          <table className="w-full relative table-auto" aria-busy={isLoading} role="grid">
+            <TableHeader
+              columns={effectiveColumns}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSort={handleSortClick}
+              filters={activeFilters}
+              openFilterColumn={openFilterColumn}
+              onFilterChange={handleFilterChange}
+              onFilterOpen={setOpenFilterColumn}
+              showDetailView={showDetailView}
+              showActions={showDefaultActions}
+              onAddNew={isAddingNewRow || editingRowId !== null ? undefined : handleAddNewRow}
+            />
+
             <tbody className="divide-y divide-[#3c3c3c]">
-              {isAddingNewRow && newRowData && (
-                <tr className="bg-[#2a2d2e] relative z-[200]">
-                  {showDetailView && (
-                    <td className="w-10 p-3">
-                      <CollapseIcon className="h-4 w-4 text-[#007acc]" />
-                    </td>
-                  )}
-                  {effectiveColumns.map((column) => (
-                    <td key={column.key} className="p-3 break-words">
-                      {column.render
-                        ? column.render(newRowData.data?.column.key, newRowData)
-                        : safeRenderValue(newRowData.data?.column.key)}
-                    </td>
-                  ))}
-                  {showDefaultActions && (
-                    <td className="p-3 text-right">
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          className="flex items-center text-xs px-2 py-1 rounded bg-red-800 text-red-100"
-                          onClick={() => setIsAddingNewRow(false)}
-                          aria-label="Cancel adding new row"
-                        >
-                          <X size={14} className="mr-1" />
-                          <span>Cancel</span>
-                        </button>
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              )}
-
-              {isAddingNewRow && newRowData && (
-                <tr className="relative z-[200]">
-                  <td
-                    colSpan={effectiveColumns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)}
-                    className="p-0 bg-[#252525] border-t border-[#3c3c3c]"
-                  >
-                    <div className="p-4 relative" ref={detailContainerRef}>
-                      <EntityDetailTabs
-                        tableRow={newRowData as TabTableRow}
-                        entityType={entityType}
-                        tableInfo={data}
-                        search={search}
-                        isEditing={true}
-                        isNewRow={true}
-                        onCancelEdit={() => setIsAddingNewRow(false)}
-                        onSaveEdit={(editedData) => {
-                          if (onSave) {
-                            onSave(null, editedData).then(result => {
-                              if (result) {
-                                setIsAddingNewRow(false);
-                                loadData({ isForceReload: true });
-                              }
-                            });
-                          }
-                        }}
-                        columns={effectiveColumns}
-                        excludedStatusOptions={['DELETE']}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              )}
-
               {isLoading ? (
                 <tr>
                   <td
@@ -1597,77 +1479,25 @@ export default function DataTable({
               ) : hasData ? (
                 data.rows.map((row, idx) => (
                   <Fragment key={row.data?.viewId || `row_${idx}`}>
-                    <tr
-                      className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} 
-                        ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} 
-                        ${expandedRowId === row.data?.viewId ? 'bg-[#2a2d2e]' : ''}
-                        ${editingRowId === row.data?.viewId ? 'relative z-[200]' : ''}`}
-                      onClick={() => handleRowClick(row.data?.viewId)}
-                      role="row"
-                    >
-                      {editingRowId === row.data?.viewId && (
-                        <td
-                          className="absolute inset-0 bg-transparent z-[150]"
-                          colSpan={1}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          style={{ pointerEvents: 'all' }}
-                        />
-                      )}
-
-                      {showDetailView && (
-                        <td className="w-10 p-3">
-                          {expandedRowId === row.data?.viewId ? (
-                            <CollapseIcon className="h-4 w-4 text-[#007acc]" />
-                          ) : (
-                            <ExpandIcon className="h-4 w-4 text-gray-400" />
-                          )}
-                        </td>
-                      )}
-                      {effectiveColumns.map((column) => (
-                        <td key={column.key} className="p-3 break-words" role="cell">
-                          {column.render
-                            ? column.render(row.data[column.key], row)
-                            : safeRenderValue(row.data[column.key])}
-                        </td>
-                      ))}
-                      {showDefaultActions && (
-                        <td className="p-3 text-right" role="cell">
-                          <div className="flex justify-end space-x-2">
-                            {effectiveActions && effectiveActions.map((action) => (
-                              <button
-                                key={action.label}
-                                className={`flex items-center text-xs px-2 py-1 rounded ${
-                                  action.color === 'blue' ? 'bg-blue-800 text-blue-100' :
-                                  action.color === 'red' ? 'bg-red-800 text-red-100' :
-                                  action.color === 'green' ? 'bg-green-800 text-green-100' :
-                                  action.color === 'yellow' ? 'bg-yellow-800 text-yellow-100' :
-                                  'bg-[#3c3c3c] text-white'
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (editingRowId !== null || isAddingNewRow) {
-                                    return;
-                                  }
-                                  action.onClick(row);
-                                  if (action.showDetail) {
-                                    handleRowClick(row.data?.viewId, true);
-                                  }
-                                }}
-                                disabled={editingRowId !== null || isAddingNewRow}
-                                aria-label={`${action.label} row ${row.data?.viewId}`}
-                              >
-                                {action.iconLeft}
-                                <span className="mx-1">{action.label}</span>
-                                {action.iconRight}
-                              </button>
-                            ))}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
+                    {/* Use the renamed DataTableRow component */}
+                    <DataTableRow
+                      row={row}
+                      index={idx}
+                      columns={effectiveColumns}
+                      isExpanded={expandedRowId === row.data?.viewId}
+                      isEditing={editingRowId === row.data?.viewId}
+                      actions={effectiveActions}
+                      showDetailView={showDetailView}
+                      showActions={showDefaultActions}
+                      onRowClick={handleRowClick}
+                      onActionClick={(action, rowData) => {
+                        action.onClick(rowData);
+                        if (action.showDetail) {
+                          handleRowClick(rowData.data?.viewId, true);
+                        }
+                      }}
+                      renderValue={renderCellValue}
+                    />
 
                     {isDefinedNumber(row.data?.viewId) && expandedRowId === row.data.viewId && (
                       <tr className={editingRowId === row.data?.viewId ? 'relative z-[200]' : ''}>
@@ -1676,13 +1506,13 @@ export default function DataTable({
                           className="p-0 bg-[#252525] border-t border-[#3c3c3c]"
                           role="row"
                         >
-                          <div
-                            className="p-4 relative"
-                            ref={editingRowId === row.data?.viewId ? detailContainerRef : null}
-                            style={{ zIndex: 200 }}
-                          >
-                            {renderRowDetail(row as TabTableRow)}
-                          </div>
+                          <ExpandableDetail
+                            row={row as TabTableRow}
+                            isEditing={editingRowId === row.data?.viewId}
+                            columns={effectiveColumns}
+                            renderContent={renderRowDetail}
+                            ref={editingRowId === row.data?.viewId ? detailContainerRef : undefined}
+                          />
                         </td>
                       </tr>
                     )}
@@ -1700,6 +1530,7 @@ export default function DataTable({
               )}
             </tbody>
           </table>
+          
           {hasData && (
             <div className="border-t border-[#3c3c3c] w-full">
               <Pagination
@@ -1712,104 +1543,39 @@ export default function DataTable({
         </div>
       </div>
 
-      {showBlockingOverlay && (
-        <>
-          <div
-            className="fixed inset-0 bg-black bg-opacity-40 z-[100]"
-            role="presentation"
-            aria-hidden="true"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <div
-            className="sr-only"
-            tabIndex={0}
-            aria-hidden="true"
-            onFocus={() => {
-              if (detailContainerRef.current) {
-                const firstInput = detailContainerRef.current.querySelector(
-                  'input, select, textarea, button:not([disabled])'
-                ) as HTMLElement;
-                if (firstInput) firstInput.focus();
-              }
-            }}
-          />
-        </>
-      )}
+      {/* ...existing code for confirmation dialogs... */}
+      <ConfirmDialog
+        isOpen={isEditConfirmOpen}
+        title="Confirm Cancel"
+        message="Are you sure you want to cancel? All unsaved changes will be lost."
+        confirmLabel="Yes, discard changes"
+        cancelLabel="No, continue editing"
+        onConfirm={() => handleConfirmation(true)}
+        onCancel={() => handleConfirmation(false)}
+        confirmButtonClass="bg-red-700 text-white rounded hover:bg-red-800"
+      />
 
-      {isEditConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[300] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="cancel-confirm-title">
-          <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 id="cancel-confirm-title" className="text-lg font-medium mb-4">Confirm Cancel</h3>
-            <p className="mb-6">Are you sure you want to cancel? All unsaved changes will be lost.</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                className="px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
-                onClick={() => handleConfirmation(false)}
-                aria-label="Continue editing"
-              >
-                No, continue editing
-              </button>
-              <button
-                className="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800"
-                onClick={() => handleConfirmation(true)}
-                aria-label="Discard changes"
-              >
-                Yes, discard changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={isSaveConfirmOpen}
+        title="Confirm Save"
+        message="Are you sure you want to save these changes?"
+        confirmLabel="Yes, save changes"
+        cancelLabel="No, continue editing"
+        onConfirm={() => handleConfirmation(true)}
+        onCancel={() => handleConfirmation(false)}
+        confirmButtonClass="bg-green-700 text-white rounded hover:bg-green-800"
+      />
 
-      {isSaveConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[300] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="save-confirm-title">
-          <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 id="save-confirm-title" className="text-lg font-medium mb-4">Confirm Save</h3>
-            <p className="mb-6">Are you sure you want to save these changes?</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                className="px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
-                onClick={() => handleConfirmation(false)}
-                aria-label="Continue editing"
-              >
-                No, continue editing
-              </button>
-              <button
-                className="px-4 py-2 bg-green-700 text-white rounded hover:bg-green-800"
-                onClick={() => handleConfirmation(true)}
-                aria-label="Save changes"
-              >
-                Yes, save changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isDeleteConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-[300] flex items-center justify-center" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
-          <div className="bg-[#2d2d2d] p-6 rounded-lg shadow-lg max-w-md w-full">
-            <h3 id="delete-confirm-title" className="text-lg font-medium mb-4">Confirm Delete</h3>
-            <p className="mb-6">Are you sure you want to delete this record? This action cannot be undone.</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                className="px-4 py-2 bg-[#3c3c3c] text-white rounded hover:bg-[#4c4c4c]"
-                onClick={() => handleConfirmation(false)}
-                aria-label="Cancel delete"
-              >
-                No, cancel
-              </button>
-              <button
-                className="px-4 py-2 bg-red-700 text-white rounded hover:bg-red-800"
-                onClick={() => handleConfirmation(true)}
-                aria-label="Confirm delete"
-              >
-                Yes, delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        title="Confirm Delete"
+        message="Are you sure you want to delete this record? This action cannot be undone."
+        confirmLabel="Yes, delete"
+        cancelLabel="No, cancel"
+        onConfirm={() => handleConfirmation(true)}
+        onCancel={() => handleConfirmation(false)}
+        confirmButtonClass="bg-red-700 text-white rounded hover:bg-red-800"
+      />
     </div>
   );
 }

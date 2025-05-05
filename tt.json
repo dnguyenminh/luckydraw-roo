@@ -1,0 +1,112 @@
+{
+    "page": 0,
+    "size": 20,
+    "sorts": [],
+    "filters": [],
+    "search": {
+        "Event": {
+            "objectType": "Event",
+            "key": "",
+            "fieldNameMap": {
+                "createdAt": {
+                    "fieldName": "createdAt",
+                    "fieldType": "DATETIME",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "code": {
+                    "fieldName": "code",
+                    "fieldType": "STRING",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "updatedBy": {
+                    "fieldName": "updatedBy",
+                    "fieldType": "STRING",
+                    "sortType": "NONE",
+                    "editable": false
+                },
+                "createdBy": {
+                    "fieldName": "createdBy",
+                    "fieldType": "STRING",
+                    "sortType": "NONE",
+                    "editable": false
+                },
+                "name": {
+                    "fieldName": "name",
+                    "fieldType": "STRING",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "description": {
+                    "fieldName": "description",
+                    "fieldType": "STRING",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "startTime": {
+                    "fieldName": "startTime",
+                    "fieldType": "DATETIME",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "endTime": {
+                    "fieldName": "endTime",
+                    "fieldType": "DATETIME",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "id": {
+                    "fieldName": "id",
+                    "fieldType": "NUMBER",
+                    "sortType": "DESCENDING",
+                    "editable": false
+                },
+                "version": {
+                    "fieldName": "version",
+                    "fieldType": "NUMBER",
+                    "sortType": "NONE",
+                    "editable": false
+                },
+                "status": {
+                    "fieldName": "status",
+                    "fieldType": "STRING",
+                    "sortType": "NONE",
+                    "editable": true
+                },
+                "updatedAt": {
+                    "fieldName": "updatedAt",
+                    "fieldType": "DATETIME",
+                    "sortType": "NONE",
+                    "editable": true
+                }
+            },
+            "description": "",
+            "data": {
+                "data": {
+                    "code": "SPRING_FEST",
+                    "updatedBy": "admin",
+                    "description": "Spring promotional event",
+                    "active": false,
+                    "version": 0,
+                    "currentServerTime": "2025-04-19T09:51:34.2953929",
+                    "createdAt": "2023-01-15T00:00:00",
+                    "createdBy": "admin",
+                    "name": "Spring Celebration",
+                    "startTime": "2023-03-01T00:00:00",
+                    "endTime": "2023-05-31T23:59:59",
+                    "id": 3,
+                    "status": "ACTIVE",
+                    "updatedAt": "2023-01-15T00:00:00"
+                },
+                "tableInfo": null,
+                "relatedTables": [
+                    "EventLocation",
+                    "ParticipantEvent"
+                ]
+            }
+        }
+    },
+    "objectType": "EventLocation",
+    "entityName": "EventLocation"
+}
