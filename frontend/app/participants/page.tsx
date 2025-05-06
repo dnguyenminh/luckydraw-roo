@@ -2,27 +2,28 @@
 
 import EntityListPage from '@/app/components/common/EntityListPage';
 import { ObjectType } from '../lib/api/interfaces';
-import { ActionDef } from '@/app/components/common/DataTable';
+import { ActionDef } from '@/app/components/common/datatable/utils/tableUtils';
 import { Download, Upload } from 'lucide-react';
 
 export default function ParticipantsPage() {
-  // Define row-level actions for the DataTable
+  // Define table-level actions for the DataTable
   const tableActions: ActionDef[] = [
     {
       label: "Export",
-      onClick: () => {}, // This is intentionally empty as the actual export will be handled by DataTable
+      // No need to define onClick here, it will be handled by DataTable
       color: "blue",
       iconLeft: <Download size={14} />,
-      showDetail: false,
-      isTableAction: true // This will be our marker that this is a table-level action, not a row-level action
+      isTableAction: true
     },
     {
       label: "Import",
-      onClick: () => {}, // This is intentionally empty as the actual import will be handled by DataTable
+      onClick: () => {
+        console.log("Import functionality to be implemented");
+        // Add import implementation here
+      },
       color: "green",
       iconLeft: <Upload size={14} />,
-      showDetail: false,
-      isTableAction: true // This will be our marker that this is a table-level action, not a row-level action
+      isTableAction: true
     }
   ];
 
@@ -33,7 +34,7 @@ export default function ParticipantsPage() {
       breadcrumbPath="participants"
       description="Overview of participation and engagement"
       showSearchBox={true}
-      actions={tableActions} // Pass the table actions to EntityListPage
+      actions={tableActions}
     />
   );
 }
