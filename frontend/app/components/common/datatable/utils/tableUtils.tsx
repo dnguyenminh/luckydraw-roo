@@ -14,7 +14,7 @@ export interface ColumnDef {
 
 export interface ActionDef {
   label: string;
-  onClick: (row: TableRow) => void;
+  onClick: (row: TableRow | null) => void;
   color?: 'blue' | 'red' | 'green' | 'yellow' | 'gray';
   iconLeft?: ReactNode;
   iconRight?: ReactNode;
