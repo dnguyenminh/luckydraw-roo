@@ -39,32 +39,32 @@ interface DataTableProps {
 }
 
 export default function DataTable({
-                                      data,
-                                      columns,
-                                      actions,
-                                      detailView,
-                                      detailViewMode = 'auto',
-                                      entityType,
-                                      addItemButton,
-                                      filterOptions,
-                                      urlStatePrefix,
-                                      emptyMessage = 'No data found.',
-                                      onPageChange,
-                                      onSortChange,
-                                      onSearchChange,
-                                      onFilterChange,
-                                      fetchData,
-                                      showDetailView = true,
-                                      activeTab,
-                                      statusField = 'status',
-                                      search,
-                                      showSearchBox = false,
-                                      onEdit,
-                                      onDelete,
-                                      showDefaultActions = true,
-                                      onSave,
-                                      onAdd,
-                                  }: DataTableProps) {
+    data,
+    columns,
+    actions,
+    detailView,
+    detailViewMode = 'auto',
+    entityType,
+    addItemButton,
+    filterOptions,
+    urlStatePrefix,
+    emptyMessage = 'No data found.',
+    onPageChange,
+    onSortChange,
+    onSearchChange,
+    onFilterChange,
+    fetchData,
+    showDetailView = true,
+    activeTab,
+    statusField = 'status',
+    search,
+    showSearchBox = false,
+    onEdit,
+    onDelete,
+    showDefaultActions = true,
+    onSave,
+    onAdd,
+}: DataTableProps) {
     const {
         data: tableData,
         pagination,
@@ -147,8 +147,8 @@ export default function DataTable({
                 handleAddNewRow={handleAddNewRow}
             />
             <div className="bg-[#1e1e1e] border border-[#3c3c3c] rounded-md overflow-hidden relative w-full flex-grow flex flex-col">
-                <div className="overflow-x-auto w-full flex-1">
-                    <table className="w-full relative table-auto" aria-busy={isLoading} role="grid">
+                <div className="overflow-x-auto w-full flex-1" style={{ maxWidth: '100%' }}>
+                    <table className="w-full relative table-auto min-w-full table-fixed" aria-busy={isLoading} role="grid" style={{ width: '100%', tableLayout: 'fixed' }}>
                         <TableHeader
                             columns={effectiveColumns}
                             sortField={sortField}

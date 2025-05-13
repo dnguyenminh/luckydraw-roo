@@ -85,7 +85,7 @@ public class Participant extends AbstractSimplePersistableEntity<Long> {
      * Used for auditing and preventing abuse
      */
     @Column(name = "last_adding_spin")
-    private int lastAddingSpin;
+    private Integer lastAddingSpin;
 
     /**
      * Province where the participant is located
@@ -130,6 +130,36 @@ public class Participant extends AbstractSimplePersistableEntity<Long> {
                 .filter(pe -> pe.getEventLocation().getEvent().equals(event))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Add a participant event to this participant with proper bidirectional relationship
+     *
+     * @param participantEvent the participant event to add
+     * @return the added participant event
+     */
+    public ParticipantEvent addParticipantEvent(ParticipantEvent participantEvent) {
+        if (participantEvent != null && !this.participantEvents.contains(participantEvent)) {
+            this.participantEvents.add(participantEvent);
+            participantEvent.setParticipant(this);
+        }
+        return participantEvent;
+    }
+
+    /**
+     * Remove a participant event from this participant with proper bidirectional relationship
+     *
+     * @param participantEvent the participant event to remove
+     * @return true if the participant event was removed
+     */
+    public boolean removeParticipantEvent(ParticipantEvent participantEvent) {
+        if (participantEvent != null && this.participantEvents.remove(participantEvent)) {
+            if (participantEvent.getParticipant() == this) {
+                participantEvent.setParticipant(null);
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override

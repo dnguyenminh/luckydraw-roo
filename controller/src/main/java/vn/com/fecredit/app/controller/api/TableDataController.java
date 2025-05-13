@@ -6,7 +6,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.config.FileStorageProperties;
@@ -37,10 +35,11 @@ import vn.com.fecredit.app.service.dto.UploadFile;
 /**
  * REST controller for handling table data operations.
  * This controller provides API endpoints for fetching table data
- * and performing actions like add, update, delete, export, and import.
+ * and performing actions like add, update, delete, and export.
+ * Import functionality has been moved to ChunkedUploadController.
  */
 @RestController
-@RequestMapping("/api/table-data")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
 public class TableDataController {
@@ -89,7 +88,7 @@ public class TableDataController {
     /**
      * Path-based endpoint for fetching entity data
      */
-    @PostMapping("/fetch/{entityName}")
+    @PostMapping("/table-data/fetch/{entityName}")
     public ResponseEntity<TableFetchResponse> fetchEntityData(@RequestBody TableFetchRequest request) {
 
         log.debug("REST request to fetch {} data: {}", request.getObjectType(), request);
@@ -109,7 +108,7 @@ public class TableDataController {
     /**
      * Process table actions like add, update, delete, export, and import
      */
-    @PostMapping("/action/{entityName}")
+    @PostMapping("/table-data/action/{entityName}")
     public ResponseEntity<TableActionResponse> processAction(@RequestBody TableActionRequest request) {
         log.debug("REST request to process action {}: {}", request.getAction(), request);
 
@@ -152,7 +151,7 @@ public class TableDataController {
      * Download exported file using a token
      * Supports both GET (for actual download) and HEAD (for status check) requests
      */
-    @RequestMapping(value = "/download/{filename}", method = {RequestMethod.GET, RequestMethod.HEAD})
+    @RequestMapping(value = "/table-data/download/{filename}", method = {RequestMethod.GET, RequestMethod.HEAD})
     public ResponseEntity<ByteArrayResource> downloadFile(
         @PathVariable String filename,
         @RequestParam(name = "token", required = true) String token,

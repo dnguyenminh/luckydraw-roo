@@ -36,21 +36,19 @@ class RoleRepositoryTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase();
+        // cleanDatabase();
         createTestData();
     }
 
-    private void cleanDatabase() {
-        // Remove this line as the table doesn't exist anymore
-        // entityManager.createNativeQuery("DELETE FROM user_roles").executeUpdate();
-        
-        // Keep the other delete statements
-        entityManager.createNativeQuery("DELETE FROM role_permissions").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM users").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM permissions").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM roles").executeUpdate();
-        entityManager.flush();
-    }
+    // private void cleanDatabase() {
+    //     // Delete in the correct order to respect foreign key constraints
+    //     entityManager.createNativeQuery("DELETE FROM blacklisted_tokens").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM role_permissions").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM users").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM permissions").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM roles").executeUpdate();
+    //     entityManager.flush();
+    // }
 
     private void createTestData() {
         // Create permissions

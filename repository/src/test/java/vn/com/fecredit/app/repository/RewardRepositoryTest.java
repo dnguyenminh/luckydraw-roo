@@ -24,31 +24,47 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
 
     @Autowired
     private RewardRepository rewardRepository;
-    
+
     @PersistenceContext
     private EntityManager entityManager;
-    
+
     private final LocalDateTime now = LocalDateTime.now();
     private Region region;
     private Event event;
     private EventLocation eventLocation;
     private Reward activeReward, inactiveReward;
-    
+
     @BeforeEach
     void setUp() {
-        cleanDatabase();
+        // cleanDatabase();
         createTestData();
     }
-    
-    private void cleanDatabase() {
-        entityManager.createNativeQuery("DELETE FROM reward_events").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM rewards").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM event_locations").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM events").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();
-        entityManager.flush();
-    }
-    
+
+    // private void cleanDatabase() {
+    //     try {
+    //         // Disable foreign key checks temporarily
+    //         entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY FALSE").executeUpdate();
+
+    //         // Delete data from all tables in reverse order of dependencies
+    //         entityManager.createNativeQuery("DELETE FROM spin_histories").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM golden_hours").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM reward_events").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM rewards").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM participant_events").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM event_locations").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM events").executeUpdate();
+    //         entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();
+
+    //         // Re-enable foreign key checks
+    //         entityManager.createNativeQuery("SET REFERENTIAL_INTEGRITY TRUE").executeUpdate();
+
+    //         entityManager.flush();
+    //     } catch (Exception e) {
+    //         System.err.println("Error cleaning database: " + e.getMessage());
+    //         e.printStackTrace();
+    //     }
+    // }
+
     private void createTestData() {
         // Create region
         region = Region.builder()
@@ -64,7 +80,7 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .updatedBy("test-user")
             .build();
         entityManager.persist(region);
-        
+
         // Create event
         event = Event.builder()
             .name("Test Event")
@@ -80,7 +96,7 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .locations(new HashSet<>())
             .build();
         entityManager.persist(event);
-        
+
         // Create event location with composite key
         EventLocationKey locationKey = EventLocationKey.of(event.getId(), region.getId());
         eventLocation = EventLocation.builder()
@@ -98,7 +114,7 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
         eventLocation.setUpdatedAt(now);
         entityManager.persist(eventLocation);
         entityManager.flush();
-        
+
         // Create active reward
         activeReward = Reward.builder()
             .name("Active Reward")
@@ -112,7 +128,7 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .updatedBy("test-user")
             .build();
         entityManager.persist(activeReward);
-        
+
         // Create inactive reward
         inactiveReward = Reward.builder()
             .name("Inactive Reward")
@@ -127,7 +143,7 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .build();
         entityManager.persist(inactiveReward);
         entityManager.flush();
-        
+
         // Use native SQL to insert RewardEvents directly to avoid JPA issues
         entityManager.createNativeQuery(
             "INSERT INTO reward_events (event_id, region_id, reward_id, created_at, created_by, " +
@@ -162,25 +178,25 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
             .setParameter(10, 2)
             .setParameter(11, 0L)
             .executeUpdate();
-        
+
         entityManager.flush();
         entityManager.clear();
     }
-    
+
     @Test
     void testFindByStatus() {
         List<Reward> activeRewards = rewardRepository.findByStatus(CommonStatus.ACTIVE);
         List<Reward> inactiveRewards = rewardRepository.findByStatus(CommonStatus.INACTIVE);
-        
+
         assertThat(activeRewards).isNotEmpty();
         assertThat(activeRewards.size()).isEqualTo(1);
         assertThat(activeRewards.get(0).getCode()).isEqualTo("ACTIVE-RWD");
-        
+
         assertThat(inactiveRewards).isNotEmpty();
         assertThat(inactiveRewards.size()).isEqualTo(1);
         assertThat(inactiveRewards.get(0).getCode()).isEqualTo("INACTIVE-RWD");
     }
-    
+
     @Test
     void testFindByCode() {
         Reward reward = rewardRepository.findByCode("ACTIVE-RWD").orElse(null);
@@ -188,12 +204,12 @@ class RewardRepositoryTest extends AbstractRepositoryTest {
         assertThat(reward.getName()).isEqualTo("Active Reward");
         assertThat(reward.getStatus()).isEqualTo(CommonStatus.ACTIVE);
     }
-    
+
     @Test
     void testExistsByCode() {
         boolean exists = rewardRepository.existsByCode("ACTIVE-RWD");
         boolean notExists = rewardRepository.existsByCode("NONEXISTENT");
-        
+
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
     }

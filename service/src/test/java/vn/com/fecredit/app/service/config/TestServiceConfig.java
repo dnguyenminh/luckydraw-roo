@@ -4,7 +4,6 @@ import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,7 +18,6 @@ import vn.com.fecredit.app.service.validator.TableFetchRequestValidator;
 public class TestServiceConfig {
 
     @Bean
-    @Primary
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
@@ -28,12 +26,6 @@ public class TestServiceConfig {
     @Primary
     public UserDetailsService userDetailsService() {
         return Mockito.mock(UserDetailsService.class);
-    }
-    
-    @Bean
-    @Primary
-    public AuthenticationManager authenticationManager() {
-        return Mockito.mock(AuthenticationManager.class);
     }
     
     @Bean

@@ -25,7 +25,7 @@ import lombok.experimental.SuperBuilder;
  * This class extends AbstractPersistableEntity by adding standard audit fields
  * that automatically record when and by whom entities are created and modified.
  * </p>
- * 
+ *
  * <p>
  * The default no-argument constructor is provided by Lombok's {@code @NoArgsConstructor}
  * annotation and is required for JPA entity instantiation during the persistence
@@ -70,20 +70,6 @@ public abstract class AbstractAuditEntity<T extends Serializable> {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    /**
-     * Hook method for additional pre-persist actions in subclasses
-     */
-    public void doPrePersist() {
-        // Do nothing by default, subclasses can override
-    }
-
-    /**
-     * Hook method for additional pre-update actions in subclasses
-     */
-    public void doPreUpdate() {
-        // Do nothing by default, subclasses can override
-    }
 
     /**
      * Set created at timestamp

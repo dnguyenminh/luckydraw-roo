@@ -27,6 +27,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.AutoConfigureTestEnti
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
@@ -71,6 +72,7 @@ public class TableDataServiceIntegrationTest {
     @Configuration
     static class TestSecurityConfig {
         @Bean
+        @Primary
         public org.springframework.security.authentication.AuthenticationManager authenticationManager() {
             return Mockito.mock(org.springframework.security.authentication.AuthenticationManager.class);
         }
@@ -881,7 +883,6 @@ public class TableDataServiceIntegrationTest {
         // ParticipantEvent is the join entity between Event and Participant
         Map<String, Object> participantEventCriteria = new HashMap<>();
         participantEventCriteria.put("status", "ACTIVE");
-        participantEventCriteria.put("joinDate", java.time.LocalDateTime.now());
         searchMap.put(ObjectType.ParticipantEvent, createSearchDataObject(ObjectType.ParticipantEvent, participantEventCriteria));
 
         // Participant is related to Event indirectly
@@ -952,6 +953,11 @@ public class TableDataServiceIntegrationTest {
                  on p3_0.id = r1_0.province_id
             where
                 e1_0.status!='DELETED'
+                and l1_0.status='ACTIVE'
+                and p1_0.status='ACTIVE'
+                and p2_0.status='ACTIVE'
+                and p3_0.status='ACTIVE'
+                and r1_1.status='ACTIVE'
             offset 0 rows fetch first 20 rows only
             """;
 

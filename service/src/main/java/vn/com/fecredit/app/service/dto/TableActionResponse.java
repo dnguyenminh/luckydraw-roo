@@ -1,61 +1,86 @@
 package vn.com.fecredit.app.service.dto;
 
-import lombok.AllArgsConstructor;
+import java.util.List;
+
+import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 /**
- * Response object for table action operations
+ * Response object for table actions (add, update, delete, etc.)
  */
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+@Builder
 public class TableActionResponse {
-
     /**
-     * The original request that produced this response
+     * Original request that generated this response
      */
     private TableActionRequest originalRequest;
-
+    
     /**
-     * Status of the action
+     * Status of the response
      */
     private FetchStatus status;
-
+    
     /**
-     * Message describing the result
+     * Message describing the result of the action
      */
     private String message;
-
+    
     /**
-     * Result data if applicable
+     * Whether the action was successful
+     */
+    private boolean success;
+    
+    /**
+     * Data returned from the action (e.g. the added/updated record)
      */
     private TableRow data;
-
+    
     /**
-     * File result for export operations
+     * File to download (for export actions)
      */
     private UploadFile downloadFile;
+    
+    /**
+     * List of errors that occurred during processing
+     */
+    private List<Object> errors;
 
     /**
-     * Static factory method for creating success responses
+     * Create a success response
      */
     public static TableActionResponse success(TableActionRequest request, String message, TableRow data) {
-        return new TableActionResponse(request, FetchStatus.SUCCESS, message, data, null);
+        return TableActionResponse.builder()
+                .originalRequest(request)
+                .status(FetchStatus.SUCCESS)
+                .success(true)
+                .message(message)
+                .data(data)
+                .build();
     }
 
     /**
-     * Static factory method for creating export responses with a file
+     * Create an error response
      */
-    public static TableActionResponse withFile(TableActionRequest request, UploadFile file) {
-        request.setUploadFile(null);
-        return new TableActionResponse(request, FetchStatus.SUCCESS, "Export completed successfully", null, file);
+    public static TableActionResponse error(TableActionRequest request, String message) {
+        return TableActionResponse.builder()
+                .originalRequest(request)
+                .status(FetchStatus.ERROR)
+                .success(false)
+                .message(message)
+                .build();
     }
-
+    
     /**
-     * Static factory method for creating error responses
+     * Create an error response with specific errors
      */
-    public static TableActionResponse error(TableActionRequest request, String errorMessage) {
-        return new TableActionResponse(request, FetchStatus.ERROR, errorMessage, null, null);
+    public static TableActionResponse error(TableActionRequest request, String message, List<Object> errors) {
+        return TableActionResponse.builder()
+                .originalRequest(request)
+                .status(FetchStatus.ERROR)
+                .success(false)
+                .message(message)
+                .errors(errors)
+                .build();
     }
 }

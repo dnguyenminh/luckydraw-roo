@@ -33,7 +33,17 @@ java {
     withSourcesJar()
 }
 
+// Task to copy the data-h2.sql file from entity module to repository test resources
+task copyEntityDataSql(type: Copy) {
+    from "${project(':entity').projectDir}/src/test/resources/data-h2.sql"
+    into "${projectDir}/src/test/resources"
+    // Make the processTestResources task depend on this copy task
+    processTestResources.dependsOn it
+}
+
+// Ensure the test task runs after copying the data SQL file
 test {
+    dependsOn copyEntityDataSql
     useJUnitPlatform()
 
     // Enhanced test logging

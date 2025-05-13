@@ -36,7 +36,8 @@ class ParticipantRepositoryTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        // Clear previous data
+        // Clear previous data - delete dependent records first to avoid foreign key constraints
+        entityManager.createNativeQuery("DELETE FROM participant_events").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM participants").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM provinces").executeUpdate();
         entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();

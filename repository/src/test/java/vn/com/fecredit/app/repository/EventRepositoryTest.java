@@ -18,7 +18,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
-import vn.com.fecredit.app.entity.EventLocationKey;
 import vn.com.fecredit.app.entity.Region;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
 
@@ -44,125 +43,132 @@ class EventRepositoryTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase();
         createTestData();
     }
 
-    private void cleanDatabase() {
-        entityManager.createNativeQuery("DELETE FROM event_locations").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM events").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();
-        entityManager.flush();
-    }
-
     private void createTestData() {
-        Region region = Region.builder()
-            .name("Test Region")
-            .code("TEST-REGION")
-            .status(CommonStatus.ACTIVE)
-            .provinces(new HashSet<>())
-            .eventLocations(new HashSet<>())
-            .build();
-        region.setCreatedBy("test-user");
-        region.setUpdatedBy("test-user");
-        region.setCreatedAt(now);
-        region.setUpdatedAt(now);
-        entityManager.persist(region);
+        // Always create a new region with unique code for testing
+        String uniqueCode = "TEST-REGION-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+        Region region1 = Region.builder()
+                .name("Test Region 1 " + uniqueCode)
+                .code(uniqueCode + "-1")
+                .status(CommonStatus.ACTIVE)
+                .provinces(new HashSet<>())
+                .eventLocations(new HashSet<>())
+                .build();
+        region1.setCreatedBy("test-user");
+        region1.setUpdatedBy("test-user");
+        region1.setCreatedAt(now);
+        region1.setUpdatedAt(now);
+        region1.setVersion(0L);
+        region1 = regionRepository.save(region1);
 
-        // Create active event
-        activeEvent = createAndSaveEvent(
-            "ACTIVE-EVENT",
-            "Active Event",
-            now.minusHours(1),
-            now.plusHours(23),
-            CommonStatus.ACTIVE);
+        // Create a second region for testing with multiple regions
+        Region region2 = Region.builder()
+                .name("Test Region 2 " + uniqueCode)
+                .code(uniqueCode + "-2")
+                .status(CommonStatus.ACTIVE)
+                .provinces(new HashSet<>())
+                .eventLocations(new HashSet<>())
+                .build();
+        region2.setCreatedBy("test-user");
+        region2.setUpdatedBy("test-user");
+        region2.setCreatedAt(now);
+        region2.setUpdatedAt(now);
+        region2.setVersion(0L);
+        region2 = regionRepository.save(region2);
 
-        // Create inactive event
-        inactiveEvent = createAndSaveEvent(
-            "INACTIVE-EVENT",
-            "Inactive Event",
-            now.minusHours(5),
-            now.plusHours(5),
-            CommonStatus.INACTIVE);
+        // Create a third region for testing with multiple regions
+        Region region3 = Region.builder()
+                .name("Test Region 3 " + uniqueCode)
+                .code(uniqueCode + "-3")
+                .status(CommonStatus.ACTIVE)
+                .provinces(new HashSet<>())
+                .eventLocations(new HashSet<>())
+                .build();
+        region3.setCreatedBy("test-user");
+        region3.setUpdatedBy("test-user");
+        region3.setCreatedAt(now);
+        region3.setUpdatedAt(now);
+        region3.setVersion(0L);
+        region3 = regionRepository.save(region3);
 
-        // Create upcoming event
-        upcomingEvent = createAndSaveEvent(
-            "UPCOMING-EVENT",
-            "Upcoming Event",
-            now.plusHours(1),
-            now.plusHours(25),
-            CommonStatus.ACTIVE);
+        // Create active event with unique code
+        activeEvent = Event.builder()
+                .code("ACTIVE-EVENT-" + java.util.UUID.randomUUID().toString().substring(0, 8))
+                .name("Active Event")
+                .startTime(now.minusHours(1))
+                .endTime(now.plusHours(23))
+                .status(CommonStatus.ACTIVE)
+                .version(0L)
+                .locations(new HashSet<>())
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("test-user")
+                .updatedBy("test-user")
+                .build();
+        activeEvent = eventRepository.save(activeEvent);
 
-        // Add locations to events
-        addEventLocation(activeEvent);
-        addEventLocation(inactiveEvent);
-        addEventLocation(upcomingEvent);
+        // Create inactive event with unique code
+        inactiveEvent = Event.builder()
+                .code("INACTIVE-EVENT-" + java.util.UUID.randomUUID().toString().substring(0, 8))
+                .name("Inactive Event")
+                .startTime(now.minusHours(5))
+                .endTime(now.plusHours(5))
+                .status(CommonStatus.INACTIVE)
+                .version(0L)
+                .locations(new HashSet<>())
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("test-user")
+                .updatedBy("test-user")
+                .build();
+        inactiveEvent = eventRepository.save(inactiveEvent);
+
+        // Create upcoming event with unique code
+        upcomingEvent = Event.builder()
+                .code("UPCOMING-EVENT-" + java.util.UUID.randomUUID().toString().substring(0, 8))
+                .name("Upcoming Event")
+                .startTime(now.plusHours(1))
+                .endTime(now.plusHours(25))
+                .status(CommonStatus.ACTIVE)
+                .version(0L)
+                .locations(new HashSet<>())
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("test-user")
+                .updatedBy("test-user")
+                .build();
+        upcomingEvent = eventRepository.save(upcomingEvent);
+
+        // Add locations to events with different regions
+        addEventLocationWithRegion(activeEvent, region1);
+        addEventLocationWithRegion(inactiveEvent, region2);
+        addEventLocationWithRegion(upcomingEvent, region3);
 
         entityManager.flush();
         entityManager.clear();
     }
 
-    private Event createAndSaveEvent(String code, String name,
-                                     LocalDateTime startTime, LocalDateTime endTime, CommonStatus status) {
-        Event event = Event.builder()
-            .code(code)
-            .name(name)
-            .startTime(startTime)
-            .endTime(endTime)
-            .status(status)
-            .version(0L)
-            .locations(new HashSet<>())
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
-
-        return entityManager.merge(event);
-    }
-
-    private void addEventLocation(Event event) {
-        // Create a region if needed
-        if (testRegion == null) {
-            testRegion = new Region();
-            testRegion.setName("Test Region");
-            testRegion.setCode("TEST_REGION");
-            testRegion.setStatus(CommonStatus.ACTIVE);
-            // Add required audit fields
-            LocalDateTime now = LocalDateTime.now();
-            testRegion.setCreatedBy("test-user");
-            testRegion.setCreatedAt(now);
-            testRegion.setUpdatedBy("test-user");
-            testRegion.setUpdatedAt(now);
-            testRegion = regionRepository.save(testRegion);
-        }
-
+    private void addEventLocationWithRegion(Event event, Region region) {
         // Create EventLocation
-        EventLocation eventLocation = new EventLocation();
-        eventLocation.setEvent(event);
-        eventLocation.setRegion(testRegion);
-
-        // Important: Match location status with event status to avoid validation errors
-        eventLocation.setStatus(event.getStatus());
-
-        eventLocation.setDescription("Test Location");
-        eventLocation.setMaxSpin(100);
-        eventLocation.setTodaySpin(50);
-        eventLocation.setDailySpinDistributingRate(0.5);
-
-        // Add required audit fields
         LocalDateTime now = LocalDateTime.now();
-        eventLocation.setCreatedBy("test-user");
-        eventLocation.setCreatedAt(now);
-        eventLocation.setUpdatedBy("test-user");
-        eventLocation.setUpdatedAt(now);
-
-        // IMPORTANT: Manually create and set the composite key with non-null values
-        EventLocationKey key = new EventLocationKey();
-        key.setEventId(event.getId());
-        key.setRegionId(testRegion.getId());
-        eventLocation.setId(key);
-
+        String userName = "test-user";
+        EventLocation eventLocation = EventLocation.builder()
+                .event(event)
+                .region(region)
+                .status(event.getStatus())
+                .description("Test Location for " + event.getName())
+                .maxSpin(100)
+                .todaySpin(50)
+                .dailySpinDistributingRate(0.5)
+                .createdBy(userName)
+                .createdAt(now)
+                .updatedBy(userName)
+                .updatedAt(now)
+                .build();
+        event.addLocation(eventLocation);
+        region.addEventLocation(eventLocation);
         // Save the entity with its properly initialized key
         eventLocationRepository.save(eventLocation);
     }
@@ -182,7 +188,7 @@ class EventRepositoryTest extends AbstractRepositoryTest {
     void findByCodeAndStatus_ShouldFilterByStatus() {
         // When
         Optional<Event> result = eventRepository.findByCodeAndStatus(
-            inactiveEvent.getCode(), CommonStatus.INACTIVE);
+                inactiveEvent.getCode(), CommonStatus.INACTIVE);
 
         // Then
         assertThat(result).isPresent();
@@ -190,7 +196,7 @@ class EventRepositoryTest extends AbstractRepositoryTest {
 
         // When searching with wrong status
         result = eventRepository.findByCodeAndStatus(
-            inactiveEvent.getCode(), CommonStatus.ACTIVE);
+                inactiveEvent.getCode(), CommonStatus.ACTIVE);
 
         // Then
         assertThat(result).isEmpty();
@@ -220,7 +226,7 @@ class EventRepositoryTest extends AbstractRepositoryTest {
     void findAll_WithPagination_ShouldReturnPagedResults() {
         // When
         Page<Event> result = eventRepository.findAll(
-            PageRequest.of(0, 2, Sort.by("startTime").ascending()));
+                PageRequest.of(0, 2, Sort.by("startTime").ascending()));
 
         // Then
         assertThat(result.getContent()).hasSize(2);
@@ -252,17 +258,17 @@ class EventRepositoryTest extends AbstractRepositoryTest {
     void createAndUpdateEvent_ShouldPersistChanges() {
         // Given
         Event newEvent = Event.builder()
-            .code("NEW-EVENT")
-            .name("New Test Event")
-            .startTime(now.plusDays(1))
-            .endTime(now.plusDays(2))
-            .status(CommonStatus.ACTIVE)
-            // Add required audit fields to prevent not-null constraint violations
-            .createdAt(now)
-            .updatedAt(now)
-            .createdBy("test-user")
-            .updatedBy("test-user")
-            .build();
+                .code("NEW-EVENT")
+                .name("New Test Event")
+                .startTime(now.plusDays(1))
+                .endTime(now.plusDays(2))
+                .status(CommonStatus.ACTIVE)
+                // Add required audit fields to prevent not-null constraint violations
+                .createdAt(now)
+                .updatedAt(now)
+                .createdBy("test-user")
+                .updatedBy("test-user")
+                .build();
 
         // When - create
         Event saved = eventRepository.save(newEvent);

@@ -1,4 +1,5 @@
--- Test data for controller module tests
+-- Test data insertion script for controller tests
+-- Using the same data as repository tests for consistency
 
 -- Clear existing data
 DELETE FROM spin_histories;
@@ -29,7 +30,7 @@ VALUES
 (5, 'ROLE_GUEST', 'Guest user with read-only access', 5, 'INACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Insert permissions (using correct enum values)
-INSERT INTO permissions (id, name, type, description, status, created_by, created_at, updated_by, updated_at, version)
+INSERT INTO permissions (id, name, permission_type, description, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
 (1, 'CREATE_USER', 'WRITE', 'Create new user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
 (2, 'READ_USER', 'READ', 'View user accounts', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
@@ -90,100 +91,98 @@ VALUES
 (4, 'WINTER2023', 'Winter Wonderland 2023', 'End of year celebration', '2023-12-01 00:00:00', '2023-12-31 23:59:59', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
 -- Insert event locations with composite key
-INSERT INTO event_locations (event_id, region_id, description, max_spin, today_spin, daily_spin_distributing_rate, daily_spin_dist_rate, remaining_today_spin, status, created_by, created_at, updated_by, updated_at, version)
+INSERT INTO event_locations (event_id, region_id, name, description, max_spin, today_spin, daily_spin_dist_rate, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 1, 'Summer event in North', 1000, 100, 0.1, 0.1, 50, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(1, 2, 'Summer event in Central', 800, 80, 0.1, 0.1, 40, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(1, 3, 'Summer event in South', 1200, 120, 0.1, 0.1, 60, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 1, 'Tet event in North', 500, 50, 0.2, 0.2, 25, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 3, 'Tet event in South', 500, 50, 0.2, 0.2, 25, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 1, 'Fall event in North', 700, 70, 0.15, 0.15, 35, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 2, 'Fall event in Central', 600, 60, 0.15, 0.15, 30, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 3, 'Winter event in South', 900, 90, 0.1, 0.1, 45, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 1, 'North Summer', 'Summer event in North', 1000, 50, 0.1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(1, 2, 'Central Summer', 'Summer event in Central', 800, 40, 0.1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(1, 3, 'South Summer', 'Summer event in South', 1200, 60, 0.1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 1, 'North Tet', 'Tet event in North', 500, 0, 0.2, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 2, 'Central Fall', 'Fall event in Central', 600, 30, 0.15, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 3, 'South Fall', 'Fall event in South', 900, 45, 0.15, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 1, 'North Winter', 'Winter event in North', 700, 35, 0.2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 3, 'South Winter', 'Winter event in South', 800, 40, 0.2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
 -- Insert participants
-INSERT INTO participants (id, code, name, phone, address, last_adding_spin, province_id, status, created_by, created_at, updated_by, updated_at, version)
+INSERT INTO participants (id, name, code, phone, email, address, province_id, status, created_by, created_at, updated_by, updated_at, version, last_adding_spin)
 VALUES
-(1, 'P001', 'John Doe', '0901234567', '123 Main St, Hanoi', 0, 1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 'P002', 'Jane Smith', '0912345678', '456 Oak St, Ho Chi Minh City', 0, 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 'P003', 'Bob Johnson', '0923456789', '789 Pine St, Da Nang', 0, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 'P004', 'Alice Brown', '0934567890', '321 Elm St, Hai Phong', 0, 4, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 'P005', 'Charlie Wilson', '0945678901', '654 Maple St, Can Tho', 0, 5, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 'John Doe', 'P001', '0901234567', 'john@example.com', '123 Tran Hung Dao St, Hoan Kiem District', 1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0, 0),
+(2, 'Jane Smith', 'P002', '0912345678', 'jane@example.com', '456 Nguyen Hue Blvd, District 1', 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0, 0),
+(3, 'Robert Brown', 'P003', '0923456789', 'robert@example.com', '789 Bach Dang St, Hai Chau District', 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0, 0),
+(4, 'Mary Johnson', 'P004', '0934567890', 'mary@example.com', '101 Dien Bien Phu St, Hong Bang District', 4, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0, 0),
+(5, 'David Wilson', 'P005', '0945678901', 'david@example.com', '202 Nguyen Van Linh St, Ninh Kieu District', 5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0, 0),
+(6, 'Susan Miller', 'P006', '0956789012', 'susan@example.com', '303 Kim Ma St, Ba Dinh District', 1, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0, 0);
 
--- Insert participant_events with composite key
+-- Insert participant events with composite key
 INSERT INTO participant_events (participant_id, event_id, region_id, spins_remaining, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
 (1, 1, 1, 5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(1, 3, 1, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 1, 3, 4, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 3, 2, 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 1, 2, 6, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 4, 3, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 1, 3, 0, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 1, 2, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(1, 3, 2, 4, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 1, 1, 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 1, 3, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 1, 2, 1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 1, 3, 4, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(5, 3, 3, 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(6, 2, 1, 0, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
 -- Insert rewards
 INSERT INTO rewards (id, code, name, description, prize_value, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 'CASH100', '$100 Cash Prize', 'Cash prize of $100', 100.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 'CASH50', '$50 Cash Prize', 'Cash prize of $50', 50.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 'VOUCHER25', '$25 Gift Voucher', 'Gift voucher worth $25', 25.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 'SMARTPHONE', 'Smartphone', 'Latest model smartphone', 500.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 'TABLET', 'Tablet', 'High-end tablet device', 300.00, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 'R001', 'Cash Prize', 'Cash prize worth $100', 100.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 'R002', 'Gift Card', 'Gift card worth $50', 50.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 'R003', 'Smartphone', 'Latest smartphone model', 800.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 'R004', 'Tablet', 'Premium tablet device', 400.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(5, 'R005', 'Travel Voucher', 'Travel voucher worth $500', 500.00, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(6, 'R006', 'Headphones', 'Noise cancelling headphones', 200.00, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
--- Insert reward_events with composite key
-INSERT INTO reward_events (reward_id, event_id, region_id, quantity, today_quantity, status, created_by, created_at, updated_by, updated_at, version)
+-- Insert reward events with composite key
+INSERT INTO reward_events (reward_id, event_id, region_id, quantity, today_quantity, probability, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 1, 1, 10, 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 1, 1, 20, 4, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 1, 1, 30, 6, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(1, 1, 2, 8, 2, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 1, 2, 15, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 1, 3, 5, 1, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(1, 3, 1, 12, 3, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 3, 2, 25, 5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 2, 1, 3, 1, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 1, 1, 10, 2, 0.05, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 1, 1, 20, 5, 0.10, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 1, 2, 5, 1, 0.02, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 1, 3, 8, 2, 0.04, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(5, 3, 2, 15, 3, 0.08, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(6, 3, 3, 12, 3, 0.06, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
 -- Insert golden hours
 INSERT INTO golden_hours (id, event_id, region_id, start_time, end_time, multiplier, max_rewards, claimed_rewards, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 1, 1, '2023-06-15 12:00:00', '2023-06-15 14:00:00', 2.0, 50, 10, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 1, 2, '2023-07-01 18:00:00', '2023-07-01 20:00:00', 1.5, 40, 5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 1, 3, '2023-08-15 15:00:00', '2023-08-15 17:00:00', 2.5, 30, 0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 3, 1, '2023-10-01 10:00:00', '2023-10-01 12:00:00', 1.8, 35, 0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 2, 1, '2023-01-23 08:00:00', '2023-01-23 10:00:00', 3.0, 25, 25, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 1, 1, '2023-07-01 18:00:00', '2023-07-01 20:00:00', 2.0, 50, 10, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 1, 2, '2023-07-02 19:00:00', '2023-07-02 21:00:00', 2.0, 40, 5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 1, 3, '2023-07-03 20:00:00', '2023-07-03 22:00:00', 2.5, 30, 0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 3, 2, '2023-10-15 18:00:00', '2023-10-15 20:00:00', 1.5, 20, 0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
--- Insert spin histories
-INSERT INTO spin_histories (id, participant_id, event_id, region_id, spin_time, reward_id, reward_event_id, reward_region_id, win, wheel_position, multiplier, status, created_by, created_at, updated_by, updated_at, version)
+-- Insert spin histories with composite foreign keys
+INSERT INTO spin_histories (id, participant_id, participant_event_id, participant_region_id, spin_time, reward_id, reward_event_id, reward_region_id, golden_hour_id, win, wheel_position, multiplier, server_seed, client_seed, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 1, 1, 1, '2023-06-10 10:30:00', 1, 1, 1, TRUE, 120.5, 1.0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 1, 1, 1, '2023-06-10 11:45:00', NULL, NULL, NULL, FALSE, 45.2, 1.0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 2, 1, 3, '2023-06-11 14:22:00', 4, 1, 3, TRUE, 230.7, 2.5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 3, 1, 2, '2023-06-12 09:15:00', 2, 1, 2, TRUE, 190.3, 1.5, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 3, 1, 2, '2023-06-12 09:20:00', NULL, NULL, NULL, FALSE, 78.9, 1.0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(6, 4, 4, 3, '2023-12-05 16:40:00', NULL, NULL, NULL, FALSE, 310.5, 1.0, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(7, 5, 1, 3, '2023-06-15 11:30:00', NULL, NULL, NULL, FALSE, 22.8, 1.0, 'INACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 1, 1, 1, '2023-07-01 19:15:30', 1, 1, 1, 1, true, 120.5, 2.0, 'srv-seed-001', 'cli-seed-001', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 1, 1, 1, '2023-07-02 14:20:15', NULL, NULL, NULL, NULL, false, 45.8, 1.0, 'srv-seed-002', 'cli-seed-002', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 2, 1, 1, '2023-07-02 16:30:45', 2, 1, 1, NULL, true, 220.3, 1.0, 'srv-seed-003', 'cli-seed-003', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 2, 1, 3, '2023-07-03 10:10:20', NULL, NULL, NULL, NULL, false, 75.1, 1.0, 'srv-seed-004', 'cli-seed-004', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(5, 3, 1, 2, '2023-07-03 12:05:55', 3, 1, 2, NULL, true, 180.7, 1.0, 'srv-seed-005', 'cli-seed-005', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(6, 4, 1, 3, '2023-07-03 21:15:10', 4, 1, 3, 3, true, 270.2, 2.5, 'srv-seed-006', 'cli-seed-006', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+
+-- Insert blacklisted tokens
+INSERT INTO blacklisted_tokens (id, token, token_type, user_id, expiration_time, status, created_by, created_at, updated_by, updated_at, version)
+VALUES
+(1, 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiJ9.token1', 'ACCESS', 1, DATEADD('HOUR', 1, CURRENT_TIMESTAMP), 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyIn0.token2', 'ACCESS', 2, DATEADD('HOUR', -1, CURRENT_TIMESTAMP), 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(3, 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJtYW5hZ2VyIn0.token3', 'REFRESH', 3, DATEADD('DAY', 7, CURRENT_TIMESTAMP), 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
 
 -- Insert configurations
 INSERT INTO configurations (id, config_key, config_value, description, data_type, validation_regex, modifiable, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 'MAX_DAILY_SPINS', '5', 'Maximum number of spins allowed per day per participant', 'INTEGER', '^[0-9]+$', TRUE, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 'MIN_VERIFICATION_AGE', '18', 'Minimum age for identity verification', 'INTEGER', '^[0-9]+$', TRUE, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 'DEFAULT_REWARD_PROBABILITY', '0.1', 'Default probability for rewards if not specified', 'DECIMAL', '^0\\.[0-9]+$', TRUE, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 'MAINTENANCE_MODE', 'false', 'Whether system is in maintenance mode', 'BOOLEAN', '^(true|false)$', TRUE, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 'SUPPORT_EMAIL', 'support@example.com', 'Email address for customer support', 'STRING', '^[\\w.%+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$', TRUE, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
-
--- Insert blacklisted tokens
-INSERT INTO blacklisted_tokens (id, token, token_type, expiration_time, user_id, status, created_by, created_at, updated_by, updated_at, version)
-VALUES
-(1, 'eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MTcyMzQ1Njd9.expired1', 'ACCESS', DATEADD('DAY', -1, CURRENT_TIMESTAMP), 1, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(2, 'eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MTcyMzQ1Njd9.expired2', 'REFRESH', DATEADD('DAY', -2, CURRENT_TIMESTAMP), 2, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
-(3, 'eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE2MTcyMzQ1Njd9.revoked1', 'ACCESS', DATEADD('DAY', +1, CURRENT_TIMESTAMP), 3, 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0);
+(1, 'MAX_SPINS_PER_DAY', '5', 'Maximum spins allowed per day per participant', 'INTEGER', '^[0-9]+$', true, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(2, 'DEFAULT_MULTIPLIER', '1.0', 'Default reward multiplier', 'DOUBLE', '^[0-9]+(\\.[0-9]+)?$', true, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 'ENABLE_GOLDEN_HOURS', 'true', 'Enable golden hour feature', 'BOOLEAN', '^(true|false)$', true, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(4, 'SYSTEM_MAINTENANCE', 'false', 'System maintenance mode', 'BOOLEAN', '^(true|false)$', true, 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
 
 -- Insert audit logs
-INSERT INTO audit_logs (id, object_type, object_id, property_path, old_value, new_value, value_type, update_time, context, action_type, status, created_by, created_at, updated_by, updated_at, version)
+INSERT INTO audit_logs (id, object_type, object_id, property_path, old_value, new_value, value_type, update_time, action_type, context, status, created_by, created_at, updated_by, updated_at, version)
 VALUES
-(1, 'Event', '1', 'name', NULL, 'Summer Lucky Draw 2023', 'String', '2023-05-01 09:15:00', 'EVENT_CREATION', 'CREATED', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(2, 'User', '5', 'status', 'ACTIVE', 'INACTIVE', 'CommonStatus', '2023-05-15 14:30:00', 'USER_DEACTIVATION', 'UPDATE', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(3, 'Participant', '1', 'spinsRemaining', '3', '5', 'Integer', '2023-06-10 10:15:00', 'SPIN_ADDITION', 'UPDATE', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(4, 'Reward', '4', NULL, NULL, NULL, NULL, '2023-04-20 11:45:00', 'REWARD_CREATION', 'CREATED', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
-(5, 'Event', '2', 'status', 'ACTIVE', 'INACTIVE', 'CommonStatus', '2023-01-28 00:00:01', 'EVENT_COMPLETION', 'UPDATE', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);
+(1, 'User', '1', 'username', 'old_admin', 'admin', 'String', '2023-01-15 10:30:00', 'UPDATE', 'User management', 'ACTIVE', 'system', CURRENT_TIMESTAMP, 'system', CURRENT_TIMESTAMP, 0),
+(2, 'Reward', '3', 'prize_value', '700.00', '800.00', 'BigDecimal', '2023-01-20 14:45:00', 'UPDATE', 'Reward adjustment', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(3, 'Participant', '6', 'status', 'ACTIVE', 'INACTIVE', 'CommonStatus', '2023-01-25 09:15:00', 'UPDATE', 'Participant deactivation', 'ACTIVE', 'manager', CURRENT_TIMESTAMP, 'manager', CURRENT_TIMESTAMP, 0),
+(4, 'Event', '2', 'end_time', '2023-01-25 23:59:59', '2023-01-27 23:59:59', 'LocalDateTime', '2023-01-20 16:30:00', 'UPDATE', 'Event extension', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0),
+(5, 'EventLocation', '2_1', 'max_spin', '400', '500', 'Integer', '2023-01-22 11:00:00', 'UPDATE', 'Capacity increase', 'ACTIVE', 'admin', CURRENT_TIMESTAMP, 'admin', CURRENT_TIMESTAMP, 0);

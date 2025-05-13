@@ -107,20 +107,26 @@ export const TableBody: React.FC<TableBodyProps> = ({
           </tr>
           <tr className="relative z-[200]">
             <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)} className="p-0 bg-[#252525] border-t border-[#3c3c3c]">
-              <div className="p-4 relative">
-                <EntityDetailTabs
-                  tableRow={newRowData as TabTableRow}
-                  entityType={entityType}
-                  tableInfo={data}
-                  search={search}
-                  isEditing={true}
-                  isNewRow={true}
-                  onCancelEdit={handleCancelEdit}
-                  onSaveEdit={(editedData) => handleSaveEdit(newRowData, editedData)}
-                  columns={columns}
-                  excludedStatusOptions={['DELETE']}
-                />
-              </div>
+              <table className="w-full border-collapse">
+                <tbody>
+                  <tr>
+                    <td className="p-4 relative" style={{ width: '100%', maxWidth: '100%', overflow: 'hidden', position: 'relative', left: 0, tableLayout: 'fixed' }}>
+                      <EntityDetailTabs
+                        tableRow={newRowData as TabTableRow}
+                        entityType={entityType}
+                        tableInfo={data}
+                        search={search}
+                        isEditing={true}
+                        isNewRow={true}
+                        onCancelEdit={handleCancelEdit}
+                        onSaveEdit={(editedData) => handleSaveEdit(newRowData, editedData)}
+                        columns={columns}
+                        excludedStatusOptions={['DELETE']}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </td>
           </tr>
         </>
@@ -128,31 +134,36 @@ export const TableBody: React.FC<TableBodyProps> = ({
       {isLoading ? (
         <tr>
           <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)} className="p-8 text-center">
-            <div className="animate-spin h-8 w-8 border-4 border-[#007acc] border-t-transparent rounded-full mx-auto mb-2"></div>
-            <p className="text-gray-400">Loading data...</p>
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td>
+                    <div className="animate-spin h-8 w-8 border-4 border-[#007acc] border-t-transparent rounded-full mx-auto mb-2"></div>
+                    <p className="text-gray-400">Loading data...</p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </td>
         </tr>
       ) : data.rows.length > 0 ? (
         data.rows.map((row, idx) => (
           <Fragment key={row.data?.viewId || `row_${idx}`}>
+            {/* Main row */}
             <tr
-              className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} ${expandedRowId === row.data?.viewId ? 'bg-[#2a2d2e]' : ''} ${editingRowId === row.data?.viewId ? 'relative z-[200]' : ''}`}
-              onClick={() => handleRowClick(row.data?.viewId || null)}
+              className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} ${expandedRowId === row.data?.viewId ? 'bg-[#2a2d2e]' : ''}`}
+              onClick={() => {
+                // Only handle row clicks if not in edit mode
+                if (editingRowId === null) {
+                  handleRowClick(row.data?.viewId || null);
+                }
+              }}
               role="row"
+              style={{ tableLayout: 'fixed', width: '100%' }}
             >
-              {editingRowId === row.data?.viewId && (
-                <td
-                  className="absolute inset-0 bg-transparent z-[150]"
-                  colSpan={1}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  style={{ pointerEvents: 'all' }}
-                />
-              )}
+              {/* Toggle column */}
               {showDetailView && (
-                <td className="w-10 p-3">
+                <td className="w-10 p-3" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
                   {expandedRowId === row.data?.viewId ? (
                     <ChevronDown className="h-4 w-4 text-[#007acc]" />
                   ) : (
@@ -160,13 +171,34 @@ export const TableBody: React.FC<TableBodyProps> = ({
                   )}
                 </td>
               )}
-              {columns.map(column => (
-                <td key={column.key} className="p-3 break-words" role="cell">
-                  {column.render ? column.render(row.data[column.key], row) : safeRenderValue(row.data[column.key])}
-                </td>
-              ))}
+              
+              {/* Data columns */}
+              {columns.map((column) => {
+                const cellWidth = 
+                  column.key === 'viewId' ? '80px' : 
+                  column.key === 'status' ? '120px' : 
+                  column.key === 'name' ? '200px' :
+                  '150px';
+                
+                return (
+                  <td 
+                    key={column.key} 
+                    className="p-3 break-words"
+                    data-column-key={column.key}
+                    style={{
+                      width: cellWidth,
+                      minWidth: cellWidth,
+                      maxWidth: column.key === 'description' ? '300px' : cellWidth
+                    }}
+                  >
+                    {column.render ? column.render(row.data[column.key], row) : safeRenderValue(row.data[column.key])}
+                  </td>
+                );
+              })}
+              
+              {/* Actions column */}
               {showDefaultActions && (
-                <td className="p-3 text-right" role="cell">
+                <td className="p-3 text-right" style={{ width: '150px', minWidth: '150px' }}>
                   <div className="flex justify-end space-x-2">
                     {actions.map(action => (
                       <button
@@ -176,7 +208,11 @@ export const TableBody: React.FC<TableBodyProps> = ({
                           e.stopPropagation();
                           if (editingRowId !== null || isAddingNewRow) return;
                           action.onClick(row);
-                          if (action.showDetail) handleRowClick(row.data?.viewId || null);
+                          // If the action is Edit, don't collapse the row
+                          // This is the key fix to prevent collapsing when editing
+                          if (action.showDetail && action.label !== 'Edit') {
+                            handleRowClick(row.data?.viewId || null);
+                          }
                         }}
                         disabled={editingRowId !== null || isAddingNewRow}
                         aria-label={`${action.label} row ${row.data?.viewId}`}
@@ -190,21 +226,35 @@ export const TableBody: React.FC<TableBodyProps> = ({
                 </td>
               )}
             </tr>
-            {row.data?.viewId && expandedRowId === row.data.viewId && (
-              <tr className={editingRowId === row.data?.viewId ? 'relative z-[200]' : ''}>
-                <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)} className="p-0 bg-[#252525] border-t border-[#3c3c3c]" role="row">
-                  <div className="p-4 relative" style={{ zIndex: 200 }}>
+            
+            {/* Expanded detail row - Show it for both normal and edit modes */}
+            {row.data?.viewId && (expandedRowId === row.data.viewId || editingRowId === row.data.viewId) && (
+              <tr>
+                {/* This is the key fix */}
+                <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)}>
+                  {/* Remove any nested table structure causing the misalignment */}
+                  <div className="bg-[#252525] border-t border-[#3c3c3c] p-4">
                     {renderRowDetail(row as TabTableRow)}
                   </div>
                 </td>
               </tr>
             )}
+
+            {/* Remove the absolute positioned overlay that was blocking interactions */}
           </Fragment>
         ))
       ) : (
         <tr>
           <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)} className="p-8 text-center text-gray-400">
-            {emptyMessage}
+            <table className="w-full border-collapse">
+              <tbody>
+                <tr>
+                  <td>
+                    {emptyMessage}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </td>
         </tr>
       )}

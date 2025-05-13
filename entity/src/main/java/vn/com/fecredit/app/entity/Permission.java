@@ -59,7 +59,7 @@ public class Permission extends AbstractSimplePersistableEntity<Long> {
      * Type category of the permission (READ, WRITE, EXECUTE, ADMIN)
      * Used for organizing and filtering permissions by operation type
      */
-    @Column(name = "type")
+    @Column(name = "permission_type")
     @Enumerated(EnumType.STRING)
     private PermissionType type;
 

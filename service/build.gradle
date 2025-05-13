@@ -45,6 +45,9 @@ dependencies {
     // Add Jackson JSR310 module for Java 8 date/time support
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'org.apache.commons:commons-lang3:3.12.0'
+
+    // Add Apache Commons CSV for CSV file processing
+    implementation 'org.apache.commons:commons-csv:1.14.0'
 }
 
 java {

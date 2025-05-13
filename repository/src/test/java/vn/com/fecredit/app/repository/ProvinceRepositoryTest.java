@@ -35,14 +35,7 @@ class ProvinceRepositoryTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase();
         createTestData();
-    }
-
-    private void cleanDatabase() {
-        entityManager.createNativeQuery("DELETE FROM provinces").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();
-        entityManager.flush();
     }
 
     private void createTestData() {

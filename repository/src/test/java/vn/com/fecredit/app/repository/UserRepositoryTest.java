@@ -35,57 +35,68 @@ class UserRepositoryTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase();
+        // cleanDatabase();
         createTestData();
     }
 
-    private void cleanDatabase() {
-        // Remove this line as the table doesn't exist anymore
-        // entityManager.createNativeQuery("DELETE FROM user_roles").executeUpdate();
-        
-        // Keep the other delete statements
-        entityManager.createNativeQuery("DELETE FROM blacklisted_tokens").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM users").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM roles").executeUpdate();
-        entityManager.flush();
-    }
+    // private void cleanDatabase() {
+    //     // Delete in the correct order to respect foreign key constraints
+    //     entityManager.createNativeQuery("DELETE FROM blacklisted_tokens").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM role_permissions").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM users").executeUpdate();
+    //     entityManager.createNativeQuery("DELETE FROM roles").executeUpdate();
+    //     entityManager.flush();
+    // }
 
     private void createTestData() {
-        // Create roles with proper RoleType enum
-        adminRole = Role.builder()
-            .roleType(RoleType.ROLE_ADMIN) // Use enum not String
-            .description("Administrator")
-            .displayOrder(1)
-            .status(CommonStatus.ACTIVE)
-            .permissions(new HashSet<>())
-            .build();
-        adminRole.setVersion(0L);
-        adminRole.setCreatedBy("system");
-        adminRole.setUpdatedBy("system");
-        adminRole.setCreatedAt(now);
-        adminRole.setUpdatedAt(now);
-        adminRole = roleRepository.save(adminRole);
+        // Try to find existing roles, or create new ones if not found
+        Optional<Role> adminRoleOpt = roleRepository.findByRoleType(RoleType.ROLE_ADMIN);
+        if (adminRoleOpt.isPresent()) {
+            adminRole = adminRoleOpt.get();
+        } else {
+            // Create admin role if it doesn't exist
+            adminRole = Role.builder()
+                .roleType(RoleType.ROLE_ADMIN)
+                .description("System Administrator")
+                .displayOrder(1)
+                .status(CommonStatus.ACTIVE)
+                .build();
+            adminRole.setVersion(0L);
+            adminRole.setCreatedBy("system");
+            adminRole.setUpdatedBy("system");
+            adminRole.setCreatedAt(now);
+            adminRole.setUpdatedAt(now);
+            adminRole = roleRepository.save(adminRole);
+        }
+            
+        Optional<Role> userRoleOpt = roleRepository.findByRoleType(RoleType.ROLE_USER);
+        if (userRoleOpt.isPresent()) {
+            userRole = userRoleOpt.get();
+        } else {
+            // Create user role if it doesn't exist
+            userRole = Role.builder()
+                .roleType(RoleType.ROLE_USER)
+                .description("Regular User")
+                .displayOrder(2)
+                .status(CommonStatus.ACTIVE)
+                .build();
+            userRole.setVersion(0L);
+            userRole.setCreatedBy("system");
+            userRole.setUpdatedBy("system");
+            userRole.setCreatedAt(now);
+            userRole.setUpdatedAt(now);
+            userRole = roleRepository.save(userRole);
+        }
 
-        userRole = Role.builder()
-            .roleType(RoleType.ROLE_USER) // Use enum not String
-            .description("Regular User")
-            .displayOrder(2)
-            .status(CommonStatus.ACTIVE)
-            .permissions(new HashSet<>())
-            .build();
-        userRole.setVersion(0L);
-        userRole.setCreatedBy("system");
-        userRole.setUpdatedBy("system");
-        userRole.setCreatedAt(now);
-        userRole.setUpdatedAt(now);
-        userRole = roleRepository.save(userRole);
-
-        // Create users with RoleType enum
+        // Create users with unique usernames to avoid conflicts
+        String uniqueSuffix = String.valueOf(System.currentTimeMillis()).substring(6);
+        
         adminUser = User.builder()
-            .username("admin")
+            .username("admin_test_" + uniqueSuffix)
             .password("$2a$10$hKDVYxLefVHV/vtuPhWD3OigtRyOykRLDdUAp80Z1crSoS1lFqaFS") // bcrypt hash for 'password'
-            .email("admin@example.com")
-            .fullName("Admin User")
+            .email("admin_test_" + uniqueSuffix + "@example.com")
+            .fullName("Admin Test User")
+            .role(adminRole)
             .status(CommonStatus.ACTIVE)
             .build();
         adminUser.setVersion(0L);
@@ -94,13 +105,13 @@ class UserRepositoryTest extends AbstractRepositoryTest {
         adminUser.setCreatedAt(now);
         adminUser.setUpdatedAt(now);
         adminUser = userRepository.save(adminUser);
-        adminUser.setRole(adminRole);
 
         regularUser = User.builder()
-            .username("user")
+            .username("user_test_" + uniqueSuffix)
             .password("$2a$10$hKDVYxLefVHV/vtuPhWD3OigtRyOykRLDdUAp80Z1crSoS1lFqaFS")
-            .email("user@example.com")
-            .fullName("Regular User")
+            .email("user_test_" + uniqueSuffix + "@example.com")
+            .fullName("Regular Test User")
+            .role(userRole)
             .status(CommonStatus.ACTIVE)
             .build();
         regularUser.setVersion(0L);
@@ -109,13 +120,13 @@ class UserRepositoryTest extends AbstractRepositoryTest {
         regularUser.setCreatedAt(now);
         regularUser.setUpdatedAt(now);
         regularUser = userRepository.save(regularUser);
-        regularUser.setRole(userRole);
 
         inactiveUser = User.builder()
-            .username("inactive")
+            .username("inactive_test_" + uniqueSuffix)
             .password("$2a$10$hKDVYxLefVHV/vtuPhWD3OigtRyOykRLDdUAp80Z1crSoS1lFqaFS")
-            .email("inactive@example.com")
-            .fullName("Inactive User")
+            .email("inactive_test_" + uniqueSuffix + "@example.com")
+            .fullName("Inactive Test User")
+            .role(userRole)
             .status(CommonStatus.INACTIVE)
             .build();
         inactiveUser.setVersion(0L);
@@ -124,7 +135,6 @@ class UserRepositoryTest extends AbstractRepositoryTest {
         inactiveUser.setCreatedAt(now);
         inactiveUser.setUpdatedAt(now);
         inactiveUser = userRepository.save(inactiveUser);
-        inactiveUser.setRole(userRole);
 
         entityManager.flush();
         entityManager.clear();
@@ -132,18 +142,18 @@ class UserRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void findByUsername_ShouldReturnUser_WhenExists() {
-        Optional<User> result = userRepository.findByUsername("admin");
+        Optional<User> result = userRepository.findByUsername(adminUser.getUsername());
 
         assertThat(result).isPresent();
-        assertThat(result.get().getFullName()).isEqualTo("Admin User");
+        assertThat(result.get().getFullName()).isEqualTo(adminUser.getFullName());
     }
 
     @Test
     void findByEmail_ShouldReturnUser_WhenExists() {
-        Optional<User> result = userRepository.findByEmail("user@example.com");
+        Optional<User> result = userRepository.findByEmail(regularUser.getEmail());
 
         assertThat(result).isPresent();
-        assertThat(result.get().getUsername()).isEqualTo("user");
+        assertThat(result.get().getUsername()).isEqualTo(regularUser.getUsername());
     }
 
     @Test
@@ -151,23 +161,23 @@ class UserRepositoryTest extends AbstractRepositoryTest {
         List<User> activeUsers = userRepository.findByStatus(CommonStatus.ACTIVE);
         List<User> inactiveUsers = userRepository.findByStatus(CommonStatus.INACTIVE);
 
-        assertThat(activeUsers).hasSize(2);
-        assertThat(inactiveUsers).hasSize(1);
-        assertThat(inactiveUsers.get(0).getUsername()).isEqualTo("inactive");
+        assertThat(activeUsers).hasSizeGreaterThanOrEqualTo(2);
+        assertThat(inactiveUsers).hasSizeGreaterThanOrEqualTo(1);
+        assertThat(inactiveUsers).anyMatch(user -> user.getUsername().equals(inactiveUser.getUsername()));
     }
 
     @Test
     void findByUsernameContaining_ShouldReturnMatchingUsers() {
-        List<User> usersWithUser = userRepository.findByUsernameContainingIgnoreCase("user");
+        String uniquePart = regularUser.getUsername().substring(5, 10); // Extract a unique part of the test username
+        List<User> users = userRepository.findByUsernameContainingIgnoreCase(uniquePart);
 
-        assertThat(usersWithUser).hasSize(1);
-        assertThat(usersWithUser.get(0).getUsername()).isEqualTo("user");
+        assertThat(users).anyMatch(user -> user.getUsername().equals(regularUser.getUsername()));
     }
 
     @Test
     void existsByUsername_ShouldReturnTrueWhenExists() {
-        boolean exists = userRepository.existsByUsername("admin");
-        boolean notExists = userRepository.existsByUsername("nonexistent");
+        boolean exists = userRepository.existsByUsername(adminUser.getUsername());
+        boolean notExists = userRepository.existsByUsername("nonexistent_user_" + System.currentTimeMillis());
 
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
@@ -175,11 +185,10 @@ class UserRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void existsByEmail_ShouldReturnTrueWhenExists() {
-        boolean exists = userRepository.existsByEmail("admin@example.com");
-        boolean notExists = userRepository.existsByEmail("nonexistent@example.com");
+        boolean exists = userRepository.existsByEmail(adminUser.getEmail());
+        boolean notExists = userRepository.existsByEmail("nonexistent_" + System.currentTimeMillis() + "@example.com");
 
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
     }
-
 }

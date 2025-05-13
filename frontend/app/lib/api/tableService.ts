@@ -258,9 +258,10 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
         const response = await fetch(url, {
           method: 'POST',
           headers: {
-            ...apiConfig.headers
+            ...apiConfig.headers,
+            'Content-Type': 'application/json' // Make sure we set the content type
           },
-          body: JSON.stringify(request),
+          body: JSON.stringify(request), // Ensure we're sending the request body as JSON
           // Add cache control headers to prevent browser caching
           cache: 'no-store'
         });

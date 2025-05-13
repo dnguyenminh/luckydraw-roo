@@ -30,14 +30,7 @@ class PermissionRepositoryTest extends AbstractRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        cleanDatabase();
         createTestData();
-    }
-
-    private void cleanDatabase() {
-        entityManager.createNativeQuery("DELETE FROM role_permissions").executeUpdate();
-        entityManager.createNativeQuery("DELETE FROM permissions").executeUpdate();
-        entityManager.flush();
     }
 
     private void createTestData() {

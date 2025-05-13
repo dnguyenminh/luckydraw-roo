@@ -13,6 +13,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Min;
@@ -91,7 +93,7 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
      * Rate at which daily spins are distributed
      * Controls the distribution of spins throughout the day
      * Must be a non-negative value
-     * 
+     * <p>
      * This rate determines how quickly the daily spin allocation is consumed
      * A higher rate means spins are distributed faster throughout the day
      */
@@ -152,11 +154,16 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
      * @param rewardEvent the rewardEvent to add to this location
      */
     public void addRewardEvent(RewardEvent rewardEvent) {
-        if (rewardEvent != null) {
+        if (null != rewardEvent && !rewardEvents.contains(rewardEvent)) {
             rewardEvents.add(rewardEvent);
-            if (rewardEvent.getEventLocation() != this) {
-                rewardEvent.setEventLocation(this);
-            }
+            rewardEvent.setEventLocation(this);
+        }
+    }
+
+    public void removeRewardEvent(RewardEvent rewardEvent) {
+        if (null != rewardEvent && this.rewardEvents.contains(rewardEvent)) {
+            this.rewardEvents.remove(rewardEvent);
+            rewardEvent.setEventLocation(null);
         }
     }
 
@@ -198,9 +205,7 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     public void addParticipantEvent(ParticipantEvent participantEvent) {
         if (participantEvent != null) {
             participantEvents.add(participantEvent);
-            if (participantEvent.getEventLocation() != this) {
-                participantEvent.setEventLocation(this);
-            }
+            participantEvent.setEventLocation(this);
         }
     }
 
@@ -221,64 +226,70 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     /**
      * Set region with proper bidirectional relationship management
      * Updates both sides of the relationship and handles the previous relationship cleanup
-     * Also updates status based on region status and initializes the composite key
+     * Also updates status based on region status and updates the composite key
      *
      * @param newRegion the new region to associate with this location
      */
     public void setRegion(Region newRegion) {
-        Region oldRegion = this.region;
-        if (oldRegion != null && oldRegion.getEventLocations() != null) {
-            oldRegion.getEventLocations().remove(this);
-        }
-        this.region = newRegion;
-        if (newRegion != null && newRegion.getEventLocations() != null) {
-            newRegion.getEventLocations().add(this);
-            if (getStatus().isActive() && !newRegion.getStatus().isActive()) {
-                setStatus(CommonStatus.INACTIVE);
+        if (this.region != null) {
+            if (null != newRegion) {
+                if (this.region.equals(newRegion)) {
+                    if (!this.region.getEventLocations().contains(this)) {
+                        this.region.addEventLocation(this);
+                    }
+                } else {
+                    if (this.region.getEventLocations() != null && this.region.getEventLocations().contains(this)) {
+                        this.region.removeEventLocation(this);
+                    }
+                }
             }
         }
+        this.region = newRegion;
+        CommonStatus newStatus = (null != this.event && null != this.region) ?
+            (this.event.isActive() && this.region.isActive()) ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
+        setStatus(newStatus);
 
-        // Initialize or update the ID whenever the region is set
-        initializeOrUpdateId();
+        // Update the ID fields if possiblejava --version
+        updateId();
     }
 
     /**
      * Set event with proper bidirectional relationship management
      * Updates both sides of the relationship and handles the previous relationship cleanup
-     * Also initializes the composite key with the new event ID
+     * Also updates the composite key with the new event ID
      *
      * @param newEvent the new event to associate with this location
      */
     public void setEvent(Event newEvent) {
-        Event oldEvent = this.event;
-        if (oldEvent != null && oldEvent.getLocations() != null) {
-            oldEvent.getLocations().remove(this);
+        if (this.event != null) {
+            if (null != newEvent) {
+                if (this.event.equals(newEvent)) {
+                    if (!this.event.getLocations().contains(this)) {
+                        this.event.addLocation(this);
+                    }
+                } else {
+                    if (this.event.getLocations() != null && this.event.getLocations().contains(this)) {
+                        this.event.removeLocation(this);
+                    }
+                }
+            }
         }
         this.event = newEvent;
-        if (newEvent != null && newEvent.getLocations() != null) {
-            newEvent.getLocations().add(this);
-        }
+        CommonStatus newStatus = null != this.event && null != this.region ?
+            this.event.isActive() && this.region.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : CommonStatus.INACTIVE;
+        setStatus(newStatus);
 
-        // Initialize or update the ID whenever the event is set
-        initializeOrUpdateId();
+        // Update the ID fields if possiblejava --version
+        updateId();
     }
 
-    /**
-     * Initialize or update the composite ID based on event and region
-     * This private helper method ensures the ID is always consistent with the relationship entities
-     * Called whenever event or region is set to maintain ID integrity
-     */
-    private void initializeOrUpdateId() {
-        // Only try to create the ID when both event and region are present
-        if (this.event != null && this.region != null) {
-            // Get existing ID or create new one
+    private void updateId() {
+        if (this.region != null && this.event != null) {
             EventLocationKey key = getId();
             if (key == null) {
                 key = new EventLocationKey();
                 setId(key);
             }
-
-            // Set the ID fields
             key.setEventId(this.event.getId());
             key.setRegionId(this.region.getId());
         }
@@ -343,10 +354,8 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     @Override
     public void doPrePersist() {
         super.doPrePersist();
-
+        this.updateId();
         // Ensure ID is initialized before persisting
-        initializeOrUpdateId();
-
         this.validateState();
     }
 

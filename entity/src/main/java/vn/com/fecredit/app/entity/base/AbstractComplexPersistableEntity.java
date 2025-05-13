@@ -6,6 +6,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.MappedSuperclass;
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
@@ -42,6 +43,7 @@ public abstract class AbstractComplexPersistableEntity<T extends Serializable> e
     /**
      * Primary key using identity generation strategy
      */
+    @EqualsAndHashCode.Include
     @EmbeddedId
     @Column(name = "id")
     private T id;

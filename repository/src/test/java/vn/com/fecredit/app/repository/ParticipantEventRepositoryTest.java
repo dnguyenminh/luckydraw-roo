@@ -52,21 +52,7 @@ class ParticipantEventRepositoryTest extends AbstractRepositoryTest {
 
         @BeforeEach
         void setUp() {
-                cleanDatabase();
                 createTestData();
-        }
-
-        private void cleanDatabase() {
-                entityManager.createNativeQuery("DELETE FROM spin_histories").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM rewards").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM participant_events").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM participants").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM event_locations").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM events").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM provinces").executeUpdate();
-                entityManager.createNativeQuery("DELETE FROM regions").executeUpdate();
-
-                entityManager.flush();
         }
 
         private void createTestData() {

@@ -140,7 +140,7 @@ export default function EntityListPage({
 
   return (
     <ShellLayout>
-      <div className="container mx-auto py-6 px-4">
+      <div className="container mx-auto py-6 px-4 max-w-full">
         {/* Breadcrumb */}
         <Breadcrumb className="mb-6">
           <BreadcrumbItem>
@@ -161,7 +161,7 @@ export default function EntityListPage({
           {/* Page-level actions rendered in the header */}
           <div className="flex gap-2">
             {actionButtons}
-            
+
             {!actionButtons && addButtonLabel && (
               <button
                 onClick={onAddButtonClick}
@@ -216,7 +216,7 @@ export default function EntityListPage({
         )}
 
         {/* Data Table */}
-        <div className="bg-[#252526] rounded-lg shadow p-4">
+        <div className="bg-[#252526] rounded-lg shadow p-4 w-full" style={{ maxWidth: '100%' }}>
           <div className="mb-4">
             <div className="flex justify-between items-center">
               <h2 className="font-semibold">

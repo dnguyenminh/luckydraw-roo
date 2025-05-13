@@ -16,6 +16,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 import jakarta.validation.constraints.Min;
@@ -50,7 +52,7 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = { "eventLocation", "participant", "spinHistories" })
+@ToString(callSuper = true, exclude = {"eventLocation", "participant", "spinHistories"})
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class ParticipantEvent extends AbstractComplexPersistableEntity<ParticipantEventKey> {
     @NotNull(message = "Event location is required")
@@ -78,6 +80,7 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
     @Builder.Default
     private List<SpinHistory> spinHistories = new ArrayList<>();
 
+
     /**
      * Check if participant can spin
      *
@@ -85,9 +88,9 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
      */
     public boolean canSpin() {
         if (!getStatus().isActive() ||
-                eventLocation == null ||
-                !eventLocation.getStatus().isActive() ||
-                !eventLocation.getEvent().isActive()) {
+            eventLocation == null ||
+            !eventLocation.getStatus().isActive() ||
+            !eventLocation.getEvent().isActive()) {
             return false;
         }
         return spinsRemaining > 0;
@@ -135,14 +138,50 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
      * @param newLocation the location to set
      */
     public void setEventLocation(EventLocation newLocation) {
-        EventLocation oldLocation = this.eventLocation;
-        if (oldLocation != null && oldLocation.getParticipantEvents() != null) {
-            oldLocation.getParticipantEvents().remove(this);
+        if (this.eventLocation != null) {
+            if (null != newLocation) {
+                if (this.eventLocation.equals(newLocation)) {
+                    if (!this.eventLocation.getParticipantEvents().contains(this)) {
+                        this.eventLocation.addParticipantEvent(this);
+                    }
+                } else {
+                    if (this.eventLocation.getParticipantEvents() != null && this.eventLocation.getParticipantEvents().contains(this)) {
+                        this.eventLocation.removeParticipantEvent(this);
+                    }
+                }
+            }
         }
         this.eventLocation = newLocation;
-        if (newLocation != null && newLocation.getParticipantEvents() != null) {
-            newLocation.getParticipantEvents().add(this);
+        CommonStatus newStatus = null != this.eventLocation && null != this.participant ?
+            this.eventLocation.isActive() && this.participant.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
+        setStatus(newStatus);
+        updateId();
+    }
+
+    /**
+     * Set participant with proper bidirectional relationship
+     *
+     * @param newParticipant the participant to set
+     */
+    public void setParticipant(Participant newParticipant) {
+        if (this.participant != null) {
+            if (null != newParticipant) {
+                if (this.participant.equals(newParticipant)) {
+                    if (!this.participant.getParticipantEvents().contains(this)) {
+                        this.participant.addParticipantEvent(this);
+                    }
+                } else {
+                    if (this.participant.getParticipantEvents() != null && this.participant.getParticipantEvents().contains(this)) {
+                        this.participant.removeParticipantEvent(this);
+                    }
+                }
+            }
         }
+        this.participant = newParticipant;
+        CommonStatus newStatus = null != this.eventLocation && null != this.participant ?
+            this.eventLocation.isActive() && this.participant.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
+        setStatus(newStatus);
+        updateId();
     }
 
     /**
@@ -164,9 +203,9 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
         // Create new spin history
         LocalDateTime spinTime = LocalDateTime.now();
         SpinHistory spinHistory = SpinHistory.builder()
-                .spinTime(spinTime)
-                .status(CommonStatus.ACTIVE)
-                .build();
+            .spinTime(spinTime)
+            .status(CommonStatus.ACTIVE)
+            .build();
 
         // Establish bidirectional relationship with thread safety
         synchronized (this.spinHistories) {
@@ -202,6 +241,7 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
     @Override
     public void doPrePersist() {
         super.doPrePersist();
+        this.updateId(); // Ensure ID is set before persisting
         this.validateState();
     }
 
@@ -231,6 +271,28 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
 
         if (eventLocation.getMaxSpin() <= 0) {
             throw new IllegalStateException("Maximum spins must be positive");
+        }
+    }
+
+    private void updateId() {
+        if (this.eventLocation != null && this.participant != null) {
+            ParticipantEventKey key = getId();
+            if (key == null) {
+                key = new ParticipantEventKey();
+                setId(key);
+            }
+            key.setParticipantId(this.participant.getId());
+            
+            // Create a new EventLocationKey if needed instead of directly using the reference
+            EventLocationKey eventLocationKey = this.eventLocation.getId();
+            if (eventLocationKey == null && this.eventLocation.getEvent() != null && this.eventLocation.getRegion() != null) {
+                // If the eventLocation's ID is null but we have enough information to create it
+                eventLocationKey = new EventLocationKey();
+                eventLocationKey.setEventId(this.eventLocation.getEvent().getId());
+                eventLocationKey.setRegionId(this.eventLocation.getRegion().getId());
+            }
+            
+            key.setEventLocationKey(eventLocationKey);
         }
     }
 }

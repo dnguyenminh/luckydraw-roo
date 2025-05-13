@@ -4,12 +4,15 @@ import java.io.Serializable;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Base class for all persistable entities in the system.
@@ -23,9 +26,9 @@ import lombok.experimental.SuperBuilder;
  * annotation and is required by JPA for entity instantiation. This constructor creates
  * an entity with default values and null ID, which gets populated during persistence.
  * </p>
- * 
+ *
  * @param <T> The type of the identifier used by entities extending this class,
- *           must implement {@link Serializable}
+ *            must implement {@link Serializable}
  */
 @MappedSuperclass
 @Getter
@@ -33,6 +36,7 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor // Creates a default no-args constructor required by JPA
 @AllArgsConstructor
 @ToString
+@Slf4j
 public abstract class AbstractPersistableEntity<T extends Serializable> extends AbstractStatusAwareEntity<T> implements PersistableEntity<T> {
 
     /**
@@ -53,4 +57,31 @@ public abstract class AbstractPersistableEntity<T extends Serializable> extends 
         this.version = version;
         return this;
     }
+
+    /**
+     * Hook method for additional pre-persist actions in subclasses
+     */
+    @PrePersist
+    public void doPrePersistListener() {
+        log.debug("JPA @PrePersist triggered for entity: {}", this.getClass().getSimpleName());
+        this.doPrePersist();
+    }
+
+    public void doPrePersist() {
+        // Default implementation is empty
+    }
+
+    /**
+     * Hook method for additional pre-update actions in subclasses
+     */
+    @PreUpdate
+    public void doPreUpdateListener() {
+        log.debug("JPA @PreUpdate triggered for entity: {}", this.getClass().getSimpleName());
+        this.doPreUpdate();
+    }
+
+    public void doPreUpdate() {
+        // Default implementation is empty
+    }
+
 }

@@ -31,15 +31,15 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  */
 @Entity
 @Table(name = "rewards", indexes = {
-        @Index(name = "idx_reward_code", columnList = "code", unique = true),
-        @Index(name = "idx_reward_status", columnList = "status")
+    @Index(name = "idx_reward_code", columnList = "code", unique = true),
+    @Index(name = "idx_reward_status", columnList = "status")
 })
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = {  "rewardEvents" })
+@ToString(callSuper = true, exclude = {"rewardEvents"})
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Reward extends AbstractSimplePersistableEntity<Long> {
 
@@ -101,6 +101,20 @@ public class Reward extends AbstractSimplePersistableEntity<Long> {
     // newLocation.getRewards().add(this);
     // }
     // }
+
+    public void addRewardEvent(RewardEvent rewardEvent) {
+        if (null != rewardEvent && !rewardEvents.contains(rewardEvent)) {
+            rewardEvents.add(rewardEvent);
+            rewardEvent.setReward(this);
+        }
+    }
+
+    public void removeRewardEvent(RewardEvent rewardEvent) {
+        if (null != rewardEvent && !rewardEvents.contains(rewardEvent)) {
+            rewardEvents.remove(rewardEvent);
+            rewardEvent.setReward(null);
+        }
+    }
 
     @Override
     public StatusAware setStatus(CommonStatus newStatus) {

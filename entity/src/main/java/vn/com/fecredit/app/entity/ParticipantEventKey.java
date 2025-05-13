@@ -54,5 +54,6 @@ public class ParticipantEventKey implements SerializableKey {
      * The ID of the participant
      * Identifies which participant is involved in this event registration
      */
+    @Column(name = "participant_id", nullable = false)
     private Long participantId;
 }

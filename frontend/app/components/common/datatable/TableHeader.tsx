@@ -43,7 +43,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
             key={column.key}
             className="text-left p-3 relative"
             scope="col"
-            style={{ width: column.key === 'viewId' ? '80px' : 'auto' }}
+            style={{ width: column.key === 'viewId' ? '80px' : 'auto', minWidth: column.key === 'viewId' ? '80px' : '120px' }}
           >
             <div className="flex items-start">
               <button
@@ -85,7 +85,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
           </th>
         ))}
         {showDefaultActions && (
-          <th className="text-right p-3 whitespace-nowrap" scope="col" style={{ width: '150px' }}>
+          <th className="text-right p-3 whitespace-nowrap" scope="col" style={{ width: 'auto', minWidth: '150px' }}>
             <div className="flex items-center justify-between">
               <span>Actions</span>
               <button

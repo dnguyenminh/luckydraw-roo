@@ -1,5 +1,7 @@
 package vn.com.fecredit.app.repository;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
@@ -15,9 +17,15 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @DataJpaTest
 @ActiveProfiles("test")
-@Import(DatabaseCleanupUtil.class)
 @ComponentScan(basePackages = {"vn.com.fecredit.app.repository"})
 @Transactional
 public abstract class AbstractRepositoryTest {
     // Common test utilities and helpers can be added here
+    @Autowired
+    public DatabaseCleanupUtil databaseCleanupUtil;
+
+    @BeforeEach
+    void setUp() {
+        databaseCleanupUtil.cleanAllTables();
+    }
 }

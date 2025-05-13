@@ -54,4 +54,43 @@ public class TableActionRequest {
      * Search context containing related objects
      */
     private Map<ObjectType, DataObject> search;
+
+    // New fields for handling chunked file uploads
+    private String filePath; // Path to the imported file on disk
+    private String sessionId;
+    private Integer totalChunks;
+    private String fileName;
+
+    // Getters and setters for new fields
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public void setFilePath(String filePath) {
+        this.filePath = filePath;
+    }
+
+    public String getSessionId() {
+        return sessionId;
+    }
+
+    public void setSessionId(String sessionId) {
+        this.sessionId = sessionId;
+    }
+
+    public Integer getTotalChunks() {
+        return totalChunks;
+    }
+
+    public void setTotalChunks(Integer totalChunks) {
+        this.totalChunks = totalChunks;
+    }
+
+    public String getFileName() {
+        return fileName;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
 }

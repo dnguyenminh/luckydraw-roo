@@ -10,7 +10,10 @@ export default function ParticipantsPage() {
   const tableActions: ActionDef[] = [
     {
       label: "Export",
-      // No need to define onClick here, it will be handled by DataTable
+      onClick: () => {
+        console.log("Export functionality to be implemented");
+        // Add import implementation here
+      },
       color: "blue",
       iconLeft: <Download size={14} />,
       isTableAction: true

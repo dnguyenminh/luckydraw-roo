@@ -72,7 +72,7 @@ class BlacklistedTokenRepositoryTest extends AbstractRepositoryTest {
                 .token("expired-token-456")
                 .tokenType("ACCESS")
                 .user(testUser)
-                .expirationTime(now.minusDays(1))
+                .expirationTime(now.plusDays(1))
                 .status(CommonStatus.ACTIVE)
                 .build();
         expiredToken.setCreatedAt(now.minusDays(2));
@@ -137,6 +137,10 @@ class BlacklistedTokenRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void testDeleteExpiredTokens() {
+        entityManager.createNativeQuery("UPDATE blacklisted_tokens SET expiration_time = ? WHERE id = ?")
+                .setParameter(1, LocalDateTime.now().minusDays(1))
+                .setParameter(2, expiredToken.getId())
+                .executeUpdate();
         // When
         int deletedCount = blacklistedTokenRepository.deleteExpiredTokens(LocalDateTime.now());
 

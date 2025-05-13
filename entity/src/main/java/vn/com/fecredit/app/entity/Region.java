@@ -38,15 +38,15 @@ import vn.com.fecredit.app.entity.enums.CommonStatus;
  */
 @Entity
 @Table(name = "regions", indexes = {
-        @Index(name = "idx_region_code", columnList = "code", unique = true),
-        @Index(name = "idx_region_status", columnList = "status")
+    @Index(name = "idx_region_code", columnList = "code", unique = true),
+    @Index(name = "idx_region_status", columnList = "status")
 })
 @Getter
 @Setter
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = { "provinces", "eventLocations" })
+@ToString(callSuper = true, exclude = {"provinces", "eventLocations"})
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class Region extends AbstractSimplePersistableEntity<Long> {
 
@@ -92,7 +92,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Add a province to this region with bidirectional relationship
-     * 
+     *
      * @param province the province to add
      */
     public void addProvince(Province province) {
@@ -106,7 +106,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Remove a province from this region
-     * 
+     *
      * @param province the province to remove
      */
     public void removeProvince(Province province) {
@@ -119,51 +119,55 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Add an event location to this region with bidirectional relationship
-     * 
+     *
      * @param location the location to add
      */
     public void addEventLocation(EventLocation location) {
-        eventLocations.add(location);
-        location.setRegion(this);
+        if (null != location && !eventLocations.contains(location)) {
+            eventLocations.add(location);
+            location.setRegion(this);
+        }
     }
 
     /**
      * Remove an event location from this region
-     * 
+     *
      * @param location the location to remove
      */
     public void removeEventLocation(EventLocation location) {
-        eventLocations.remove(location);
-        location.setRegion(null);
+        if (null != location && eventLocations.contains(location)) {
+            eventLocations.remove(location);
+            location.setRegion(null);
+        }
     }
 
     /**
      * Get total active provinces in this region
-     * 
+     *
      * @return count of active provinces
      */
     @Transient
     public long getActiveProvinceCount() {
         return provinces.stream()
-                .filter(p -> p.getStatus().isActive())
-                .count();
+            .filter(p -> p.getStatus().isActive())
+            .count();
     }
 
     /**
      * Get total active event locations in this region
-     * 
+     *
      * @return count of active locations
      */
     @Transient
     public long getActiveEventLocationCount() {
         return eventLocations.stream()
-                .filter(e -> e.getStatus().isActive())
-                .count();
+            .filter(e -> e.getStatus().isActive())
+            .count();
     }
 
     /**
      * Check if this region has any provinces that overlap with another region
-     * 
+     *
      * @param other the other region to check
      * @return true if any provinces overlap
      */
@@ -173,7 +177,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
         }
 
         return provinces.stream()
-                .anyMatch(p -> other.getProvinces().contains(p));
+            .anyMatch(p -> other.getProvinces().contains(p));
     }
 
     @Override
@@ -190,7 +194,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Validate region state
-     * 
+     *
      * @throws IllegalStateException if validation fails
      */
     public void validateState() {
@@ -209,7 +213,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Set status with proper cascading to related entities
-     * 
+     *
      * @param status the new status
      * @return this region for method chaining
      */
@@ -235,7 +239,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
         // Only check for deactivation if region is currently active
         if (getStatus() != null && getStatus().isActive()) {
             boolean allProvincesInactive = !provinces.isEmpty() && provinces.stream()
-                    .allMatch(p -> !p.getStatus().isActive());
+                .allMatch(p -> !p.getStatus().isActive());
 
             if (allProvincesInactive) {
                 setStatus(CommonStatus.INACTIVE);
@@ -257,7 +261,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
 
     /**
      * Check if any provinces in this region are active
-     * 
+     *
      * @return true if at least one province is active
      */
     @Transient
@@ -266,7 +270,7 @@ public class Region extends AbstractSimplePersistableEntity<Long> {
             return false;
         }
         return provinces.stream()
-                .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
+            .anyMatch(p -> p.getStatus() != null && p.getStatus().isActive());
     }
 
     @Override

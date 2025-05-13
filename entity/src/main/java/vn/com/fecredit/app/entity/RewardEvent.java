@@ -22,6 +22,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 import vn.com.fecredit.app.entity.base.AbstractComplexPersistableEntity;
+import vn.com.fecredit.app.entity.enums.CommonStatus;
 
 /**
  * Entity representing the allocation of rewards to specific event locations.
@@ -46,7 +47,7 @@ import vn.com.fecredit.app.entity.base.AbstractComplexPersistableEntity;
 @SuperBuilder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
-@ToString(callSuper = true, exclude = { "eventLocation",  "reward" })
+@ToString(callSuper = true, exclude = {"eventLocation", "reward"})
 @EqualsAndHashCode(callSuper = true, onlyExplicitlyIncluded = true)
 public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey> {
 
@@ -99,22 +100,56 @@ public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey
      * @param newLocation the location to set
      */
     public void setEventLocation(EventLocation newLocation) {
-        EventLocation oldLocation = this.eventLocation;
-        if (oldLocation != null && oldLocation.getRewardEvents() != null) {
-            oldLocation.getRewardEvents().remove(this);
+        if (this.eventLocation != null) {
+            if (null != newLocation) {
+                if (this.eventLocation.equals(newLocation)) {
+                    if (!this.eventLocation.getRewardEvents().contains(this)) {
+                        this.eventLocation.addRewardEvent(this);
+                    }
+                } else {
+                    if (this.eventLocation.getRewardEvents() != null && this.eventLocation.getRewardEvents().contains(this)) {
+                        this.eventLocation.removeRewardEvent(this);
+                    }
+                }
+            }
         }
         this.eventLocation = newLocation;
-        if (newLocation != null ) {
-            if(newLocation.getRewardEvents() == null) {
-                newLocation.setRewardEvents(new HashSet<>());
+        CommonStatus newStatus = null != this.eventLocation && null != this.reward ?
+            this.eventLocation.isActive() && this.reward.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
+        setStatus(newStatus);
+        updateId();
+    }
+
+    /**
+     * Set reward with proper bidirectional relationship
+     *
+     * @param newReward the reward to set
+     */
+    public void setReward(Reward newReward) {
+        if (this.reward != null) {
+            if (null != newReward) {
+                if (this.reward.equals(newReward)) {
+                    if (!this.reward.getRewardEvents().contains(this)) {
+                        this.reward.addRewardEvent(this);
+                    }
+                } else {
+                    if (this.reward.getRewardEvents() != null && this.reward.getRewardEvents().contains(this)) {
+                        this.reward.removeRewardEvent(this);
+                    }
+                }
             }
-            newLocation.getRewardEvents().add(this);
         }
+        this.reward = newReward;
+        CommonStatus newStatus = null != this.eventLocation && null != this.reward ?
+            this.eventLocation.isActive() && this.reward.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
+        setStatus(newStatus);
+        updateId();
     }
 
     @Override
     public void doPrePersist() {
         super.doPrePersist();
+        this.updateId();
         this.validateState();
     }
 
@@ -148,6 +183,18 @@ public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey
 
         if (eventLocation.getMaxSpin() <= 0) {
             throw new IllegalStateException("Maximum spins must be positive");
+        }
+    }
+
+    private void updateId() {
+        if (this.eventLocation != null && this.reward != null) {
+            RewardEventKey key = getId();
+            if (key == null) {
+                key = new RewardEventKey();
+                setId(key);
+            }
+            key.setRewardId(this.reward.getId());
+            key.setEventLocationKey(this.eventLocation.getId());
         }
     }
 }
