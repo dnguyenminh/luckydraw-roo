@@ -78,19 +78,19 @@ public class TableDataServiceIntegrationTest {
         }
     }
 
-    @BeforeAll
-    public static void setupDatabase(@Autowired DataSource dataSource) throws Exception {
-        try (Connection connection = dataSource.getConnection()) {
-            // First, execute the schema creation script directly
-            ScriptUtils.executeSqlScript(connection, new EncodedResource(new ClassPathResource("/schema.sql"), "UTF-8"), false, true, "--", ";", "/*", "*/");
-
-            // Then execute the data script
-            ScriptUtils.executeSqlScript(connection, new EncodedResource(new ClassPathResource("/data-test.sql"), "UTF-8"), false, true, "--", ";", "/*", "*/");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
+//    @BeforeAll
+//    public static void setupDatabase(@Autowired DataSource dataSource) throws Exception {
+//        try (Connection connection = dataSource.getConnection()) {
+//            // First, execute the schema creation script directly
+//            ScriptUtils.executeSqlScript(connection, new EncodedResource(new ClassPathResource("/schema.sql"), "UTF-8"), false, true, "--", ";", "/*", "*/");
+//
+//            // Then execute the data script
+//            ScriptUtils.executeSqlScript(connection, new EncodedResource(new ClassPathResource("/data-test.sql"), "UTF-8"), false, true, "--", ";", "/*", "*/");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            throw e;
+//        }
+//    }
 
     @Autowired
     private TableDataService tableDataService;

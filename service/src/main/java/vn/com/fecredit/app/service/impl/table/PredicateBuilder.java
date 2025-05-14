@@ -131,9 +131,11 @@ public class PredicateBuilder {
                     }
                     break;
                 case CONTAINS:
+                    // Fix: Escape special characters in LIKE query
+                    String escapedValue = escapeForLike(filter.getMinValue().toLowerCase());
                     predicates.add(cb.like(
                             cb.lower(root.get(filter.getField()).as(String.class)),
-                            "%" + filter.getMinValue().toLowerCase() + "%"));
+                            "%" + escapedValue + "%"));
                     break;
                 case IN:
                     if (filter.getMinValue() != null && filter.getMinValue().contains(",")) {
@@ -153,6 +155,19 @@ public class PredicateBuilder {
         } catch (Exception e) {
             log.error("Error applying filter for field {}: {}", filter.getField(), e.getMessage());
         }
+    }
+
+    /**
+     * Escapes special characters in a string for use in a LIKE expression
+     * Escapes: % _ \ characters by adding a backslash before them
+     */
+    private String escapeForLike(String input) {
+        if (input == null) {
+            return null;
+        }
+
+        // Replace special characters
+        return input.replaceAll("([%_\\\\])", "\\\\$1");
     }
 
     /**

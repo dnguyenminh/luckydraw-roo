@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.tuple.Pair;
+import org.hibernate.query.sqm.tree.domain.SqmBasicValuedSimplePath;
 import org.springframework.stereotype.Component;
 
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -82,7 +82,7 @@ public class PredicateHandler {
 
                 // Handle potentially nested paths
                 Path<?> path = getPathForField(fieldName, root, joinMap);
-                Class<?> fieldType = path.getJavaType();
+                Class<?> fieldType = (Class<?>) (((SqmBasicValuedSimplePath) path).getLhs()).getExpressible().getRelationalJavaType().getJavaType();
                 ColumnInfo columnInfo = columnTypeMap.get(path.getAlias());
                 if (columnInfo != null) {
                     columnInfo.setObjectType(ObjectType.valueOf(fieldType.getSimpleName()));
@@ -113,13 +113,13 @@ public class PredicateHandler {
                                 ComparisonType.LESS_THAN_OR_EQUAL);
                             break;
                         case CONTAINS:
-                            addLikePredicate(cb, predicates, path, filter.getMinValue(), LikeType.CONTAINS);
+                            addLikePredicate(cb, predicates, (Path<String>) path, filter.getMinValue(), LikeType.CONTAINS);
                             break;
                         case STARTS_WITH:
-                            addLikePredicate(cb, predicates, path, filter.getMinValue(), LikeType.STARTS_WITH);
+                            addLikePredicate(cb, predicates, (Path<String>) path, filter.getMinValue(), LikeType.STARTS_WITH);
                             break;
                         case ENDS_WITH:
-                            addLikePredicate(cb, predicates, path, filter.getMinValue(), LikeType.ENDS_WITH);
+                            addLikePredicate(cb, predicates, (Path<String>) path, filter.getMinValue(), LikeType.ENDS_WITH);
                             break;
                         case IN:
                             addInPredicate(cb, predicates, path, filter.getMinValue());
@@ -453,7 +453,7 @@ public class PredicateHandler {
     private void addLikePredicate(
         CriteriaBuilder cb,
         List<Predicate> predicates,
-        Path<?> path,
+        Path<String> path,
         Object value,
         LikeType likeType) {
 
@@ -462,23 +462,36 @@ public class PredicateHandler {
                 return;
             }
 
-            String stringValue = value.toString().toLowerCase();
-            Path<String> stringPath = (Path<String>) path.as(String.class);
+            String stringValue = escapeForLike(value.toString());
+//            Path<String> stringPath = (Path<String>) path;
 
             switch (likeType) {
                 case CONTAINS:
-                    predicates.add(cb.like(cb.lower(stringPath), "%" + stringValue + "%"));
+                    predicates.add(cb.like(cb.lower(path), "%" + stringValue + "%"));
                     break;
                 case STARTS_WITH:
-                    predicates.add(cb.like(cb.lower(stringPath), stringValue + "%"));
+                    predicates.add(cb.like(cb.lower(path), stringValue + "%"));
                     break;
                 case ENDS_WITH:
-                    predicates.add(cb.like(cb.lower(stringPath), "%" + stringValue));
+                    predicates.add(cb.like(cb.lower(path), "%" + stringValue));
                     break;
             }
         } catch (Exception e) {
             log.warn("Error adding like predicate: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Escapes special characters in a string for use in a LIKE expression
+     * Escapes: % _ \ characters by adding a backslash before them
+     */
+    private String escapeForLike(String input) {
+        if (input == null) {
+            return null;
+        }
+
+        // Replace special characters
+        return input.replaceAll("([%_\\\\])", "\\\\$1");
     }
 
     /**
