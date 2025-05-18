@@ -100,20 +100,13 @@ public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey
      * @param newLocation the location to set
      */
     public void setEventLocation(EventLocation newLocation) {
-        if (this.eventLocation != null) {
-            if (null != newLocation) {
-                if (this.eventLocation.equals(newLocation)) {
-                    if (!this.eventLocation.getRewardEvents().contains(this)) {
-                        this.eventLocation.addRewardEvent(this);
-                    }
-                } else {
-                    if (this.eventLocation.getRewardEvents() != null && this.eventLocation.getRewardEvents().contains(this)) {
-                        this.eventLocation.removeRewardEvent(this);
-                    }
-                }
-            }
+        if (this.eventLocation != null && !this.eventLocation.equals(newLocation)) {
+            this.eventLocation.removeRewardEvent(this);
         }
         this.eventLocation = newLocation;
+        if (null != this.eventLocation && !this.eventLocation.getRewardEvents().contains(this)) {
+            this.eventLocation.addRewardEvent(this);
+        }
         CommonStatus newStatus = null != this.eventLocation && null != this.reward ?
             this.eventLocation.isActive() && this.reward.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
         setStatus(newStatus);
@@ -126,20 +119,13 @@ public class RewardEvent extends AbstractComplexPersistableEntity<RewardEventKey
      * @param newReward the reward to set
      */
     public void setReward(Reward newReward) {
-        if (this.reward != null) {
-            if (null != newReward) {
-                if (this.reward.equals(newReward)) {
-                    if (!this.reward.getRewardEvents().contains(this)) {
-                        this.reward.addRewardEvent(this);
-                    }
-                } else {
-                    if (this.reward.getRewardEvents() != null && this.reward.getRewardEvents().contains(this)) {
-                        this.reward.removeRewardEvent(this);
-                    }
-                }
-            }
+        if (this.reward != null && !this.reward.equals(newReward)) {
+            this.reward.removeRewardEvent(this);
         }
         this.reward = newReward;
+        if (null != this.reward && !this.reward.getRewardEvents().contains(this)) {
+            this.reward.addRewardEvent(this);
+        }
         CommonStatus newStatus = null != this.eventLocation && null != this.reward ?
             this.eventLocation.isActive() && this.reward.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
         setStatus(newStatus);

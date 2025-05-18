@@ -1,4 +1,4 @@
-package vn.com.fecredit.app.repository.config;
+package vn.com.fecredit.app.entity.config;
 
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;

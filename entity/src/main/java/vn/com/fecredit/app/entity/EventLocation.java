@@ -231,20 +231,14 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
      * @param newRegion the new region to associate with this location
      */
     public void setRegion(Region newRegion) {
-        if (this.region != null) {
-            if (null != newRegion) {
-                if (this.region.equals(newRegion)) {
-                    if (!this.region.getEventLocations().contains(this)) {
-                        this.region.addEventLocation(this);
-                    }
-                } else {
-                    if (this.region.getEventLocations() != null && this.region.getEventLocations().contains(this)) {
-                        this.region.removeEventLocation(this);
-                    }
-                }
-            }
+        if (this.region != null && !this.region.equals(newRegion)) {
+            this.region.removeEventLocation(this);
         }
         this.region = newRegion;
+        if (null != this.region && !this.region.getEventLocations().contains(this)) {
+            this.region.addEventLocation(this);
+        }
+
         CommonStatus newStatus = (null != this.event && null != this.region) ?
             (this.event.isActive() && this.region.isActive()) ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
         setStatus(newStatus);
@@ -261,20 +255,14 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
      * @param newEvent the new event to associate with this location
      */
     public void setEvent(Event newEvent) {
-        if (this.event != null) {
-            if (null != newEvent) {
-                if (this.event.equals(newEvent)) {
-                    if (!this.event.getLocations().contains(this)) {
-                        this.event.addLocation(this);
-                    }
-                } else {
-                    if (this.event.getLocations() != null && this.event.getLocations().contains(this)) {
-                        this.event.removeLocation(this);
-                    }
-                }
-            }
+        if (this.event != null && !this.event.equals(newEvent)) {
+            this.event.removeLocation(this);
         }
         this.event = newEvent;
+        if (null != this.event && !this.event.getLocations().contains(this)) {
+            this.event.addLocation(this);
+        }
+
         CommonStatus newStatus = null != this.event && null != this.region ?
             this.event.isActive() && this.region.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : CommonStatus.INACTIVE;
         setStatus(newStatus);
@@ -307,10 +295,11 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
         if (participantEvents == null) {
             return true;
         }
-        long activeParticipants = participantEvents.stream()
+        long currentTotalSpin = participantEvents.stream()
             .filter(pe -> pe.getStatus().isActive() && pe.getEventLocation() == this)
-            .count();
-        return activeParticipants < maxSpin;
+            .map(ParticipantEvent::getSpinsRemaining)
+            .reduce(0, Integer::sum);
+        return currentTotalSpin > 0;
     }
 
     /**
@@ -322,24 +311,16 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
     @Override
     public StatusAware setStatus(CommonStatus newStatus) {
         // Check if we can change to active status
-        if (newStatus != null && newStatus.isActive()) {
-            if (region != null && !region.getStatus().isActive()) {
-                throw new IllegalStateException("Cannot activate location when region is inactive");
-            } else if (event != null && !event.getStatus().isActive()) {
-                throw new IllegalStateException("Cannot activate location when event is inactive");
-            }
+        if (newStatus == null ||
+            region == null || event == null ||
+            region.getStatus() == null || event.getStatus() == null ||
+            !event.getStatus().isActive() || !region.getStatus().isActive()) {
+            newStatus = CommonStatus.INACTIVE;
         }
 
         super.setStatus(newStatus);
 
-//        // Cascade deactivation to dependent entities
-//        if (newStatus != null && !newStatus.isActive()) {
-//            participantEvents.forEach(pe -> pe.setStatus(CommonStatus.INACTIVE));
-//            rewardEvents.forEach(r -> r.setStatus(CommonStatus.INACTIVE));
-//            goldenHours.forEach(gh -> gh.setStatus(CommonStatus.INACTIVE));
-//        }
-
-        validateState();
+//        validateState();
         return this; // Fixed: was returning null
     }
 
@@ -383,16 +364,18 @@ public class EventLocation extends AbstractComplexPersistableEntity<EventLocatio
             throw new IllegalStateException("Today Spin must be non-negative");
         }
 
-        // Debug logging for class loading issue
-        if (region != null) {
-            var status = region.getStatus();
-            log.debug("Region status class: {}", status.getClass().getName());
-            log.debug("Region status methods: {}", Arrays.toString(status.getClass().getMethods()));
-            log.debug("Region status value: {}", status);
-        }
+//        // Debug logging for class loading issue
+//        if (region != null) {
+//            var status = region.getStatus();
+//            log.debug("Region status class: {}", status.getClass().getName());
+//            log.debug("Region status methods: {}", Arrays.toString(status.getClass().getMethods()));
+//            log.debug("Region status value: {}", status);
+//        }
 
-        if (getStatus().isActive() && (region == null || !region.getStatus().isActive())) {
-            throw new IllegalStateException("Location cannot be active in inactive region");
+        if (getStatus().isActive() && (
+            region == null || null == region.getStatus() || !region.getStatus().isActive() ||
+                event == null || null == event.getStatus() || !event.getStatus().isActive())) {
+            throw new IllegalStateException("Location cannot be active in inactive region or event");
         }
     }
 }

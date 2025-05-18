@@ -50,7 +50,7 @@ class RegionTest {
     void testActiveCounters() {
         region.addProvince(province);
         region.addEventLocation(location);
-
+        location.setStatus(CommonStatus.ACTIVE);
         assertEquals(1, region.getActiveProvinceCount());
         assertEquals(1, region.getActiveEventLocationCount());
 

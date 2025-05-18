@@ -138,20 +138,14 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
      * @param newLocation the location to set
      */
     public void setEventLocation(EventLocation newLocation) {
-        if (this.eventLocation != null) {
-            if (null != newLocation) {
-                if (this.eventLocation.equals(newLocation)) {
-                    if (!this.eventLocation.getParticipantEvents().contains(this)) {
-                        this.eventLocation.addParticipantEvent(this);
-                    }
-                } else {
-                    if (this.eventLocation.getParticipantEvents() != null && this.eventLocation.getParticipantEvents().contains(this)) {
-                        this.eventLocation.removeParticipantEvent(this);
-                    }
-                }
-            }
+        if (this.eventLocation != null && !this.eventLocation.equals(newLocation)) {
+            this.eventLocation.removeParticipantEvent(this);
         }
         this.eventLocation = newLocation;
+        if (null != this.eventLocation && !this.eventLocation.getParticipantEvents().contains(this)) {
+            this.eventLocation.addParticipantEvent(this);
+        }
+
         CommonStatus newStatus = null != this.eventLocation && null != this.participant ?
             this.eventLocation.isActive() && this.participant.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
         setStatus(newStatus);
@@ -164,20 +158,14 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
      * @param newParticipant the participant to set
      */
     public void setParticipant(Participant newParticipant) {
-        if (this.participant != null) {
-            if (null != newParticipant) {
-                if (this.participant.equals(newParticipant)) {
-                    if (!this.participant.getParticipantEvents().contains(this)) {
-                        this.participant.addParticipantEvent(this);
-                    }
-                } else {
-                    if (this.participant.getParticipantEvents() != null && this.participant.getParticipantEvents().contains(this)) {
-                        this.participant.removeParticipantEvent(this);
-                    }
-                }
-            }
+        if (this.participant != null && !this.participant.equals(newParticipant)) {
+            this.participant.removeParticipantEvent(this);
         }
         this.participant = newParticipant;
+        if (null != this.participant && !this.participant.getParticipantEvents().contains(this)) {
+            this.participant.addParticipantEvent(this);
+        }
+
         CommonStatus newStatus = null != this.eventLocation && null != this.participant ?
             this.eventLocation.isActive() && this.participant.isActive() ? CommonStatus.ACTIVE : CommonStatus.INACTIVE : null;
         setStatus(newStatus);
@@ -282,7 +270,7 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
                 setId(key);
             }
             key.setParticipantId(this.participant.getId());
-            
+
             // Create a new EventLocationKey if needed instead of directly using the reference
             EventLocationKey eventLocationKey = this.eventLocation.getId();
             if (eventLocationKey == null && this.eventLocation.getEvent() != null && this.eventLocation.getRegion() != null) {
@@ -291,7 +279,7 @@ public class ParticipantEvent extends AbstractComplexPersistableEntity<Participa
                 eventLocationKey.setEventId(this.eventLocation.getEvent().getId());
                 eventLocationKey.setRegionId(this.eventLocation.getRegion().getId());
             }
-            
+
             key.setEventLocationKey(eventLocationKey);
         }
     }

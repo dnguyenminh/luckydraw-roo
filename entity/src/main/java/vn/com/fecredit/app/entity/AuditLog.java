@@ -264,13 +264,11 @@ public class AuditLog extends AbstractSimplePersistableEntity<Long> {
             .updateTime(now)
             .actionType(ActionType.MODIFIED)
             .status(CommonStatus.ACTIVE)
+            .createdAt(now)
+            .createdBy(username)
+            .updatedAt(now)
+            .updatedBy(username)
             .build();
-
-        auditLog.setCreatedBy(username);
-        auditLog.setUpdatedBy(username);
-        auditLog.setCreatedAt(now);
-        auditLog.setUpdatedAt(now);
-
         return auditLog;
     }
 
