@@ -9,14 +9,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
-import jakarta.transaction.Transactional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.springframework.test.context.jdbc.Sql;
+import jakarta.transaction.Transactional;
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.EventLocationKey;

@@ -25,7 +25,6 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.entity.base.AbstractPersistableEntity;
-import vn.com.fecredit.app.service.dto.FetchStatus;
 import vn.com.fecredit.app.service.dto.TableActionRequest;
 import vn.com.fecredit.app.service.dto.TableActionResponse;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;

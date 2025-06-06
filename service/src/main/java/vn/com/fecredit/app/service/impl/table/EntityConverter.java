@@ -15,23 +15,33 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Handles conversion between entities and DTOs and provides utility methods for entity operations
+ * Handles conversion between entities and DTOs and provides utility methods for entity operations.
+ * 
+ * @deprecated This class has been partially replaced by the enhanced EntityManager class.
+ * It is maintained for backward compatibility but will be removed once the refactoring is complete.
+ * Use the more efficient EntityManager class for new code.
  */
 @Component
 @Slf4j
 @RequiredArgsConstructor
 public class EntityConverter {
-
-    private final RelatedTablesFactory relatedTablesFactory;
-
+    
     /**
+     * @deprecated Use EntityManager's implementation instead.
+     */
+    @Deprecated
+    private static final String DEPRECATION_MESSAGE = "This method has been moved to EntityManager. Use EntityManager instead.";
+
+    private final RelatedTablesFactory relatedTablesFactory;    /**
      * Check if a class contains a field with the given name
      * Searches through the class hierarchy (including superclasses)
      *
      * @param clazz     The class to check
      * @param fieldName The name of the field to look for
      * @return true if the field exists, false otherwise
+     * @deprecated Use {@link vn.com.fecredit.app.service.impl.table.EntityManager#containsField(Class, String)} instead.
      */
+    @Deprecated
     public static boolean containField(Class<?> clazz, String fieldName) {
         if (clazz == null || fieldName == null) {
             return false;
@@ -51,14 +61,14 @@ public class EntityConverter {
         }
 
         return false;
-    }
-
-    /**
+    }    /**
      * Get entity class from ObjectType
      * 
      * @param objectType The object type enum
      * @return The corresponding entity class or null if not found
+     * @deprecated Use {@link vn.com.fecredit.app.service.impl.table.EntityManager#findEntityClass(String, ObjectType)} instead.
      */
+    @Deprecated
     public static Class<?> getEntityClassFromObjectType(ObjectType objectType) {
         try {
             return Class.forName("vn.com.fecredit.app.entity." + objectType.name());

@@ -1,7 +1,5 @@
 package vn.com.fecredit.app.entity;
 
-import java.util.HashSet;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

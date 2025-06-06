@@ -2,7 +2,7 @@
 
 import { ReactNode } from 'react';
 import DataTable from '@/app/components/common/DataTable';
-import { ActionDef } from '../common/DataTable';
+import { ActionDef } from '../common/datatable/utils/tableUtils';
 import { TableFetchResponse, ObjectType, FetchStatus, SortType, DataObject } from '@/app/lib/api/interfaces';
 import { fetchTableData } from '@/app/lib/api/tableService';
 
@@ -138,12 +138,12 @@ export default function EntityTabContent({
       return relatedTable; // Return existing data if fetch fails
     }
   };
-
   return (
     <div>
       <h2 className="text-xl font-bold mb-4">{title}</h2>
       <DataTable 
         data={relatedTable}
+        entityType={relatedTableName.toUpperCase() as unknown as ObjectType}
         actions={actions}
         detailView={renderDetailView}
         filterOptions={filterOptions}

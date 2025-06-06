@@ -10,11 +10,8 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-
 import org.springframework.test.context.jdbc.Sql;
+
 import vn.com.fecredit.app.entity.Event;
 import vn.com.fecredit.app.entity.EventLocation;
 import vn.com.fecredit.app.entity.EventLocationKey;
@@ -35,8 +32,8 @@ class EventLocationRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private RegionRepository regionRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    // @Autowired
+    // private JdbcTemplate jdbcTemplate;
 
     private Long testEventId;
     private Long testRegionId;
@@ -51,7 +48,7 @@ class EventLocationRepositoryTest extends AbstractRepositoryTest {
         // Generate unique identifiers for test data
         LocalDateTime now = LocalDateTime.now();
         String testUser = "test-user";
-        String uniquePrefix = UUID.randomUUID().toString().substring(0, 8);
+        // String uniquePrefix = UUID.randomUUID().toString().substring(0, 8);
 
         // Use existing regions from the data-h2.sql file
         Region region = regionRepository.findById(1L).orElseThrow(() -> new RuntimeException("Test region not found"));

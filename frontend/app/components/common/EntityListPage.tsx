@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
 import ShellLayout from '../VSCodeLayout/ShellLayout';
-import DataTable, { ActionDef } from './DataTable'; // Import ActionDef type
+import DataTable from './DataTable';
+import { ActionDef } from './datatable/utils/tableUtils';
 import { fetchTableData } from '@/app/lib/api/tableService';
 import { ObjectType, TableFetchRequest, TableFetchResponse, SortType, DataObject } from '@/app/lib/api/interfaces';
 import { Card, CardContent } from '@/components/ui/card';

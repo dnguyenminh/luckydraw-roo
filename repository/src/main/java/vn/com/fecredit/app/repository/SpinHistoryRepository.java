@@ -1,16 +1,16 @@
 package vn.com.fecredit.app.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import vn.com.fecredit.app.entity.EventLocationKey;
 import vn.com.fecredit.app.entity.ParticipantEvent;
-import vn.com.fecredit.app.entity.ParticipantEventKey;
 import vn.com.fecredit.app.entity.SpinHistory;
 import vn.com.fecredit.app.entity.enums.CommonStatus;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Repository
 public interface SpinHistoryRepository extends SimpleObjectRepository<SpinHistory, Long> {

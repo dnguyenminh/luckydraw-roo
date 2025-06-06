@@ -17,7 +17,6 @@ import vn.com.fecredit.app.service.dto.TableActionRequest;
 import vn.com.fecredit.app.service.dto.TableActionResponse;
 import vn.com.fecredit.app.service.factory.RepositoryFactory;
 import vn.com.fecredit.app.service.impl.EntityMapperService;
-import vn.com.fecredit.app.service.impl.table.EntityConverter;
 
 /**
  * Handler for DELETE actions
@@ -32,7 +31,7 @@ public class DeleteActionHandler implements TableActionHandler {
     
     private final RepositoryFactory repositoryFactory;
     private final EntityMapperService entityMapperService;
-    private final EntityConverter entityConverter;
+    private final vn.com.fecredit.app.service.impl.table.EntityManager customEntityManager;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -47,7 +46,7 @@ public class DeleteActionHandler implements TableActionHandler {
 
             // Get the entity class
             Class<? extends AbstractStatusAwareEntity<?>> entityClass = repositoryFactory.getEntityClass(request.getObjectType());
-            Class<?> idType = (Class<?>) entityConverter.getIdType(entityClass);
+            Class<?> idType = (Class<?>) customEntityManager.getIdType(entityClass);
             Object id = objectMapper.convertValue(data.get("id"), idType);
 
             // Find the entity to delete

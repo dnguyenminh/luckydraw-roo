@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="7d1d11fa-dc03-4f4a-9d68-fd4a7a7f99c6" name="DDL Mapping">
+      <data-sources db="3e746114-e3e3-4459-bed7-7819374312b5" ddl="aeb185fd-b99d-4eba-8337-be39a0584c0f" />
+      <scope>
+        <node kind="database" negative="1" />
+      </scope>
+    </mapping>
+    <mapping uuid="a1400914-6553-4492-8f5f-05a23c877d66" name="H2_Lucky-draw Mapping">
+      <data-sources db="c541f506-750d-4482-89e3-e81ce5f486e3" ddl="b2c4be07-d14a-401d-9894-c98861cfbfcb" />
+      <scope>
+        <node kind="database" negative="1" />
+      </scope>
+    </mapping>
+  </component>
+</project>

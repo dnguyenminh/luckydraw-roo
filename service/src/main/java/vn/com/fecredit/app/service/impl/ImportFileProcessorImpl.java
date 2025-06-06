@@ -93,7 +93,7 @@ public class ImportFileProcessorImpl implements ImportFileProcessor {
     private void validateCsvFile(String filePath, ImportValidator validator,
             BiFunction<Integer, ImportError, Boolean> validationCallback) throws Exception {
 
-        try (CSVParser parser = CSVFormat.DEFAULT.withFirstRecordAsHeader()
+        try (CSVParser parser = CSVFormat.DEFAULT.builder().setSkipHeaderRecord(true).get()
                 .parse(Files.newBufferedReader(Paths.get(filePath)))) {
 
             // Validate header fields

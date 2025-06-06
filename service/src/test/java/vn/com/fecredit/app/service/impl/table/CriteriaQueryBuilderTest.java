@@ -52,19 +52,17 @@ import vn.com.fecredit.app.service.dto.TableRow;
 @AutoConfigureTestEntityManager
 @ActiveProfiles("test")
 @Transactional
-class CriteriaQueryBuilderTest {
-
-    @PersistenceContext
+class CriteriaQueryBuilderTest {    @PersistenceContext
     private EntityManager entityManager;
 
     @Autowired
-    private PredicateBuilder predicateBuilder;
+    private PredicateManager predicateManager;
 
     // @Autowired
     // private RepositoryFactory repositoryFactory;
 
     @Autowired
-    private CriteriaQueryBuilder criteriaQueryBuilder;
+    private QueryManager queryManager;
 
     @BeforeEach
     void setUp() {
@@ -134,7 +132,7 @@ class CriteriaQueryBuilderTest {
 
         try {
             // Build the criteria query
-            CriteriaQuery<Tuple> criteriaQuery = criteriaQueryBuilder.buildCriteriaQuery(request, Event.class);
+            CriteriaQuery<Tuple> criteriaQuery = queryManager.buildCriteriaQuery(request, Event.class);
 
             // If the query builds successfully, verify it
             if (criteriaQuery != null) {
@@ -215,9 +213,7 @@ class CriteriaQueryBuilderTest {
             log.error("Exception during query building: {}", e.getMessage());
             e.printStackTrace(); // Add stack trace for better debugging
         }
-    }
-
-    @Test
+    }    @Test
     void testQuerySelectionColumns() {
         // Arrange
         TableFetchRequest request = new TableFetchRequest();
@@ -232,7 +228,7 @@ class CriteriaQueryBuilderTest {
         request.setViewColumns(viewColumns);
 
         // Act
-        CriteriaQuery<Tuple> query = criteriaQueryBuilder.buildCriteriaQuery(request, Event.class);
+        CriteriaQuery<Tuple> query = queryManager.buildCriteriaQuery(request, Event.class);
 
         // Assert
         assertNotNull(query, "Query should be built successfully");
@@ -334,10 +330,8 @@ class CriteriaQueryBuilderTest {
         viewColumns.add(new ColumnInfo("id", FieldType.NUMBER, SortType.NONE));
         viewColumns.add(new ColumnInfo("name", FieldType.STRING, SortType.NONE));
         viewColumns.add(new ColumnInfo("status", FieldType.STRING, SortType.NONE));
-        request.setViewColumns(viewColumns);
-
-        // Act
-        CriteriaQuery<Tuple> query = criteriaQueryBuilder.buildCriteriaQuery(request, Event.class);
+        request.setViewColumns(viewColumns);        // Act
+        CriteriaQuery<Tuple> query = queryManager.buildCriteriaQuery(request, Event.class);
 
         // Assert
         assertNotNull(query, "Query with filters should be built successfully");
@@ -399,10 +393,8 @@ class CriteriaQueryBuilderTest {
             new ColumnInfo("id", FieldType.NUMBER, SortType.NONE),
             new ColumnInfo("name", FieldType.STRING, SortType.NONE),
             new ColumnInfo("status", FieldType.STRING, SortType.NONE)
-        ));
-
-        // Act
-        CriteriaQuery<Tuple> query = criteriaQueryBuilder.buildCriteriaQuery(request, Event.class);
+        ));        // Act
+        CriteriaQuery<Tuple> query = queryManager.buildCriteriaQuery(request, Event.class);
 
         // Assert
         assertNotNull(query, "Query with multiple filters should be built successfully");
@@ -442,10 +434,8 @@ class CriteriaQueryBuilderTest {
         // Create the CriteriaBuilder and root manually for more control
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Tuple> query = cb.createTupleQuery();
-        Root<Event> root = query.from(Event.class);
-
-        // Build predicates using our PredicateBuilder
-        List<Predicate> predicates = predicateBuilder.buildPredicates(
+        Root<Event> root = query.from(Event.class);        // Build predicates using our PredicateManager
+        List<Predicate> predicates = predicateManager.buildPredicates(
             TableFetchRequest.builder()
                 .filters(Collections.singletonList(filter))
                 .build(),
@@ -472,37 +462,35 @@ class CriteriaQueryBuilderTest {
             log.error("Error in diagnostic query: {}", e.getMessage(), e);
             fail("Diagnostic query failed: " + e.getMessage());
         }
+    }    /**
+     * Helper method to validate SQL generation with filters
+     */
+    private String getSqlForEventWithFilter(String fieldName, FilterType filterType, Object value) {
+        try {
+            // Create request with filter
+            TableFetchRequest request = new TableFetchRequest();
+            request.setObjectType(ObjectType.Event);
+
+            FilterRequest filter = new FilterRequest();
+            filter.setField(fieldName);
+            filter.setFilterType(filterType);
+            filter.setMinValue(value.toString());
+            request.setFilters(Collections.singletonList(filter));
+
+            // Set minimal columns
+            request.setViewColumns(Collections.singletonList(
+                new ColumnInfo("id", FieldType.NUMBER, SortType.NONE)
+            ));
+
+            // Build query
+            CriteriaQuery<Tuple> query = queryManager.buildCriteriaQuery(request, Event.class);
+
+            // Extract SQL
+            jakarta.persistence.Query jpaQuery = entityManager.createQuery(query);
+            return jpaQuery.unwrap(org.hibernate.query.Query.class).getQueryString();
+        } catch (Exception e) {
+            log.error("Failed to get SQL for filter on {}: {}", fieldName, e.getMessage());
+            return "ERROR: " + e.getMessage();
+        }
     }
-
-    // /**
-    //  * Helper method to validate SQL generation with filters
-    //  */
-    // private String getSqlForEventWithFilter(String fieldName, FilterType filterType, Object value) {
-    //     try {
-    //         // Create request with filter
-    //         TableFetchRequest request = new TableFetchRequest();
-    //         request.setObjectType(ObjectType.Event);
-
-    //         FilterRequest filter = new FilterRequest();
-    //         filter.setField(fieldName);
-    //         filter.setFilterType(filterType);
-    //         filter.setMinValue(value.toString());
-    //         request.setFilters(Collections.singletonList(filter));
-
-    //         // Set minimal columns
-    //         request.setViewColumns(Collections.singletonList(
-    //             new ColumnInfo("id", "NUMBER", SortType.NONE)
-    //         ));
-
-    //         // Build query
-    //         CriteriaQuery<Tuple> query = criteriaQueryBuilder.buildCriteriaQuery(request, Event.class);
-
-    //         // Extract SQL
-    //         jakarta.persistence.Query jpaQuery = entityManager.createQuery(query);
-    //         return jpaQuery.unwrap(org.hibernate.query.Query.class).getQueryString();
-    //     } catch (Exception e) {
-    //         log.error("Failed to get SQL for filter on {}: {}", fieldName, e.getMessage());
-    //         return "ERROR: " + e.getMessage();
-    //     }
-    // }
 }

@@ -39,7 +39,7 @@ class EventRepositoryTest extends AbstractRepositoryTest {
     private Event activeEvent;
     private Event inactiveEvent;
     private Event upcomingEvent;
-    private Region testRegion;
+    // private Region testRegion;
 
     @BeforeEach
     void setUp() {

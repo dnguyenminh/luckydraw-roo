@@ -70,9 +70,7 @@ public class TableFetchRequest {
     public TableFetchRequest addSort(String field, SortType sortType) {
         sorts.add(new SortRequest(field, sortType));
         return this;
-    }
-
-    /**
+    }    /**
      * Add a filter request
      *
      * @param field      the field to filter
@@ -82,7 +80,12 @@ public class TableFetchRequest {
      * @return this request for chaining
      */
     public TableFetchRequest addFilter(String field, FilterType filterType, String minValue, String maxValue) {
-        filters.add(new FilterRequest(field, filterType, minValue, maxValue));
+        FilterRequest filter = new FilterRequest();
+        filter.setField(field);
+        filter.setFilterType(filterType);
+        filter.setMinValue(minValue);
+        filter.setMaxValue(maxValue);
+        filters.add(filter);
         return this;
     }
 
@@ -95,6 +98,36 @@ public class TableFetchRequest {
      */
     public TableFetchRequest addSearch(ObjectType objectType, DataObject dataObject) {
         search.put(objectType, dataObject);
+        return this;
+    }
+
+    /**
+     * Add a simple filter request with a single value
+     *
+     * @param field      the field to filter
+     * @param filterType the filter operation
+     * @param value      the value to filter by
+     * @return this request for chaining
+     */
+    public TableFetchRequest addSimpleFilter(String field, FilterType filterType, String value) {
+        FilterRequest filter = new FilterRequest();
+        filter.setField(field);
+        filter.setFilterType(filterType);
+        filter.setMinValue(value);
+        filters.add(filter);
+        return this;
+    }
+
+    /**
+     * Add a filter with an operator and value
+     *
+     * @param field    the field to filter
+     * @param operator the filter operator
+     * @param value    the value to filter by
+     * @return this request for chaining
+     */
+    public TableFetchRequest addOperatorFilter(String field, FilterOperator operator, Object value) {
+        filters.add(new FilterRequest(field, operator, value));
         return this;
     }
 

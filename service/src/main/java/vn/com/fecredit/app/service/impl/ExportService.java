@@ -29,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import vn.com.fecredit.app.config.FileStorageProperties;
 import vn.com.fecredit.app.service.dto.ColumnInfo;
 import vn.com.fecredit.app.service.dto.FetchStatus;
+import vn.com.fecredit.app.service.dto.FieldType;
 import vn.com.fecredit.app.service.dto.TableActionRequest;
 import vn.com.fecredit.app.service.dto.TableActionResponse;
 import vn.com.fecredit.app.service.dto.TableFetchRequest;
@@ -200,7 +201,7 @@ public class ExportService {
                     .entrySet()) {
 
                 // Skip complex object fields
-                if ("OBJECT".equals(entry.getValue().getFieldType())) {
+                if (FieldType.OBJECT.equals(entry.getValue().getFieldType())) {
                     continue;
                 }
 

@@ -11,7 +11,8 @@ import {
   TableRow,
 } from '@/app/lib/api/interfaces';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import DataTable, { ColumnDef } from './DataTable'; // Import the ColumnDef type from DataTable
+import DataTable from './DataTable';
+import { ColumnDef } from './datatable/utils/tableUtils';
 import { fetchTableData } from '@/app/lib/api/tableService';
 import { Loader, AlertCircle, ChevronRight, Save, X } from 'lucide-react';
 

@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +24,6 @@ public class ImportValidatorFactory {
      * Constructor that autowires all available ImportValidator implementations
      * and maps them by their supported ObjectType
      */
-    @Autowired
     public ImportValidatorFactory(List<ImportValidator> validators) {
         for (ImportValidator validator : validators) {
             ObjectType type = validator.getObjectType();

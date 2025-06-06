@@ -20,18 +20,19 @@ export function createMockTableData(
   totalElements: number = rows.length,
   page: number = 0,
   size: number = 10
-): TableFetchResponse {
-  // Create column info based on the first row's data keys
+): TableFetchResponse {  // Create column info based on the first row's data keys
   const fieldNameMap: Record<string, ColumnInfo> = {};
   
   if (rows.length > 0) {
     const firstRowKeys = Object.keys(rows[0].data);
     firstRowKeys.forEach(key => {
-      fieldNameMap[key] = {
+      const columnInfo: ColumnInfo = {
+        objectType: objectType, // Required property from ColumnInfo interface
         fieldName: key,
         fieldType: getFieldTypeForValue(rows[0].data[key]),
         sortType: SortType.NONE
       };
+      fieldNameMap[key] = columnInfo;
     });
   }
   
@@ -71,21 +72,21 @@ export function createMockTableData(
 }
 
 // Helper function to determine field type from a value
-function getFieldTypeForValue(value: any): string {
-  if (value === null || value === undefined) return 'STRING';
+function getFieldTypeForValue(value: any): FieldType {
+  if (value === null || value === undefined) return FieldType.STRING;
   
   switch (typeof value) {
-    case 'number': return 'NUMBER';
-    case 'boolean': return 'BOOLEAN';
+    case 'number': return FieldType.NUMBER;
+    case 'boolean': return FieldType.BOOLEAN;
     case 'string': 
       // Try to detect dates
-      if (!isNaN(Date.parse(value)) && value.includes('-')) return 'DATE';
-      return 'STRING';
+      if (!isNaN(Date.parse(value)) && value.includes('-')) return FieldType.DATE;
+      return FieldType.STRING;
     case 'object':
-      if (value instanceof Date) return 'DATE';
-      return 'OBJECT';
+      if (value instanceof Date) return FieldType.DATE;
+      return FieldType.OBJECT;
     default:
-      return 'STRING';
+      return FieldType.STRING;
   }
 }
 

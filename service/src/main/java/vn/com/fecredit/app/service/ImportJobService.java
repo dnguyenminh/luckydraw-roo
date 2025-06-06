@@ -251,24 +251,24 @@ public class ImportJobService {
         return sessionInfo;
     }
 
-    /**
-     * Execute the import operation
-     */
-    private TableActionResponse executeImport(ObjectType objectTypeEnum, String fileName,
-            String sessionId, Integer totalChunks, Path combinedFilePath) {
+    // /**
+    //  * Execute the import operation
+    //  */
+    // private TableActionResponse executeImport(ObjectType objectTypeEnum, String fileName,
+    //         String sessionId, Integer totalChunks, Path combinedFilePath) {
 
-        // Create a TableActionRequest for the import
-        TableActionRequest actionRequest = new TableActionRequest();
-        actionRequest.setAction(TableAction.IMPORT);
-        actionRequest.setObjectType(objectTypeEnum);
-        actionRequest.setFileName(fileName);
-        actionRequest.setSessionId(sessionId);
-        actionRequest.setTotalChunks(totalChunks);
-        actionRequest.setFilePath(combinedFilePath.toString());
+    //     // Create a TableActionRequest for the import
+    //     TableActionRequest actionRequest = new TableActionRequest();
+    //     actionRequest.setAction(TableAction.IMPORT);
+    //     actionRequest.setObjectType(objectTypeEnum);
+    //     actionRequest.setFileName(fileName);
+    //     actionRequest.setSessionId(sessionId);
+    //     actionRequest.setTotalChunks(totalChunks);
+    //     actionRequest.setFilePath(combinedFilePath.toString());
 
-        // Process the import using the TableActionService
-        return tableActionService.executeAction(actionRequest);
-    }
+    //     // Process the import using the TableActionService
+    //     return tableActionService.executeAction(actionRequest);
+    // }
 
     /**
      * Update import job status based on import results

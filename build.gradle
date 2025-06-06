@@ -1,4 +1,3 @@
-// Properly clear initialization scripts using standard Java API
 buildscript {
     gradle.startParameter.initScripts = new ArrayList<>()
 }

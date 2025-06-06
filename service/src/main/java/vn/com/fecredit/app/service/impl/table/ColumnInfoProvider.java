@@ -22,10 +22,8 @@ import vn.com.fecredit.app.service.dto.TableFetchRequest;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class ColumnInfoProvider {
-
-    private final EntityManager entityManager;
-    private final EntityHandler entityHandler;
+public class ColumnInfoProvider {    private final EntityManager entityManager;
+    private final vn.com.fecredit.app.service.impl.table.EntityManager customEntityManager;
 
     // Add expiration to caches with 1-hour timeout
     private final Map<Class<?>, CachedValue<Map<String, ColumnInfo>>> columnInfoCache = new ConcurrentHashMap<>();
@@ -131,11 +129,9 @@ public class ColumnInfoProvider {
         CachedValue<Map<String, ColumnInfo>> cached = objectTypeColumnInfoCache.get(objectType);
         if (cached != null && !cached.isExpired()) {
             return cached.getValue();
-        }
-
-        Map<String, ColumnInfo> columns = new HashMap<>();
+        }        Map<String, ColumnInfo> columns = new HashMap<>();
         try {
-            Class<?> entityClass = entityHandler.resolveEntityClass(null, objectType);
+            Class<?> entityClass = customEntityManager.resolveEntityClass(null, objectType);
 
             if (entityClass != null) {
                 columns = getColumnInfo(entityClass);
