@@ -55,6 +55,46 @@ const mockTables: Record<string, TableFetchResponse> = {
   'roles': mockRoleTable
 };
 
+// Function to get mock data from predefined tables
+function getMockTableData(request: TableFetchRequest): TableFetchResponse {
+  const objectTypeName = ObjectType[request.objectType].toLowerCase();
+  
+  // Try to find the mock table by ObjectType name
+  let mockTable = mockTables[objectTypeName];
+  
+  // If not found, try alternative mappings
+  if (!mockTable) {
+    const mappings: Record<string, string> = {
+      'participant': 'participants',
+      'event': 'events',
+      'reward': 'rewards',
+      'user': 'users',
+      'role': 'roles',
+      'region': 'regions',
+      'province': 'provinces',
+      'goldenhour': 'golden_hours',
+      'auditlog': 'audit_log',
+      'spinhistory': 'spin_history'
+    };
+    
+    const mappedName = mappings[objectTypeName];
+    if (mappedName) {
+      mockTable = mockTables[mappedName];
+    }
+  }
+  
+  if (mockTable) {
+    return {
+      ...mockTable,
+      currentPage: request.page,
+      pageSize: request.size,
+      originalRequest: request
+    };
+  }
+  
+  return mockFetchTableData(request);
+}
+
 // Centralized entity API endpoint mapping - single source of truth
 export const entityApiEndpoints: Record<string, string> = {
   event: 'events',
@@ -75,19 +115,19 @@ export const objectTypeToEndpoint: Record<ObjectType, string> = {
   [ObjectType.Region]: 'regions',
   [ObjectType.Province]: 'provinces',
   [ObjectType.Reward]: 'rewards',
-  [ObjectType.GoldenHour]: 'golden_hours',
+  [ObjectType.GoldenHour]: 'goldenHours',
   [ObjectType.Participant]: 'participants',
-  [ObjectType.SpinHistory]: 'spin_history',
-  [ObjectType.AuditLog]: 'audit_log',
+  [ObjectType.SpinHistory]: 'spinHistories',
+  [ObjectType.AuditLog]: 'auditLogs',
   [ObjectType.Statistics]: 'statistics',
   [ObjectType.User]: 'users',
   [ObjectType.Role]: 'roles',
   [ObjectType.Permission]: 'permissions',
   [ObjectType.Configuration]: 'configurations',
-  [ObjectType.BlacklistedToken]: 'blacklisted_tokens',
-  [ObjectType.EventLocation]: 'event_locations',
-  [ObjectType.ParticipantEvent]: 'participant_events',
-  [ObjectType.RewardEvent]: 'reward_events'  // Add the missing mapping for RewardEvent
+  [ObjectType.BlacklistedToken]: 'blacklistedTokens',
+  [ObjectType.EventLocation]: 'eventLocations',
+  [ObjectType.ParticipantEvent]: 'participantEvents',
+  [ObjectType.RewardEvent]: 'rewardEvents'  // Add the missing mapping for RewardEvent
 };
 
 // Helper function to construct full API URLs
@@ -226,6 +266,11 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
       throw new Error('objectType is required in the request');
     }
     
+    // Check if we should use mock data primarily
+    if (apiConfig.useMockData) {
+      return getMockTableData(request);
+    }
+    
     // Generate a unique cache key for this request
     const cacheKey = getRequestCacheKey(request);
     
@@ -246,11 +291,21 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
     // Log what we're sending to the API
     console.log('Sending table data request:', request);
 
-    // Create a proper URL for the API endpoint
-    const url = `${apiConfig.baseUrl}/table-data/fetch/${request.objectType.toLowerCase()}`;
+    // Create a proper URL for the API endpoint using the correct entity endpoint mapping
+    const entityEndpoint = objectTypeToEndpoint[request.objectType];
+    if (!entityEndpoint) {
+      throw new Error(`No API endpoint mapping found for ObjectType: ${request.objectType}`);
+    }
+    const url = `${apiConfig.baseUrl}/table-data/fetch/${entityEndpoint}`;
+    
+    // Create the request body with both objectType and entityName as expected by backend
+    const requestBody = {
+      ...request,
+      entityName: entityEndpoint // Add the entityName field that the backend expects
+    };
     
     // Log the request for debugging
-    console.log(`Fetching data from: ${url}`, request);
+    console.log(`Fetching data from: ${url}`, requestBody);
     
     // Create the fetch promise
     const fetchPromise = (async () => {
@@ -261,7 +316,7 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
             ...apiConfig.headers,
             'Content-Type': 'application/json' // Make sure we set the content type
           },
-          body: JSON.stringify(request), // Ensure we're sending the request body as JSON
+          body: JSON.stringify(requestBody), // Send the enhanced request body with entityName
           // Add cache control headers to prevent browser caching
           cache: 'no-store'
         });
@@ -283,7 +338,7 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
         // If using mock data is enabled and no real data is available, use mock data
         if (apiConfig.useMockData && (!data || !data.rows || data.rows.length === 0)) {
           console.log(`No data returned from API for ${request.objectType}, using mock data instead.`);
-          return mockFetchTableData(request);
+          return getMockTableData(request);
         }
         
         return data;
@@ -296,7 +351,7 @@ export async function fetchTableData(request: TableFetchRequest): Promise<TableF
         // If using mock data is enabled, use it as fallback
         if (apiConfig.useMockData) {
           console.log(`API request failed, using mock data as fallback for ${request.objectType}`);
-          return mockFetchTableData(request);
+          return getMockTableData(request);
         }
         
         throw error;

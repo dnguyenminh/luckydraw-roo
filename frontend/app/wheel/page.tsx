@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ShellLayout from '../components/VSCodeLayout/ShellLayout';
 import WheelComponent from '../components/LuckyDrawWheel/WheelComponent';
@@ -105,7 +105,7 @@ const generateWheelSegments = (prizes: Prize[]): WheelSegment[] => {
   return segments;
 };
 
-export default function WheelPage() {
+function WheelPageContent() {
   const [isSpinning, setIsSpinning] = useState(false);
   const [segments, setSegments] = useState<WheelSegment[]>([]);
   const [currentEvent, setCurrentEvent] = useState<string>("Summer Giveaway");
@@ -500,5 +500,20 @@ export default function WheelPage() {
         </div>
       </Modal>
     </ShellLayout>
+  );
+}
+
+export default function WheelPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#1e1e1e]">
+        <div className="flex items-center gap-3">
+          <Loader className="h-6 w-6 animate-spin text-[#007acc]" />
+          <span className="text-white">Loading Wheel...</span>
+        </div>
+      </div>
+    }>
+      <WheelPageContent />
+    </Suspense>
   );
 }

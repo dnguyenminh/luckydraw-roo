@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { 
   Home, Users, Gift, Clock, Map, BarChart2, Settings, History, 
   FileText, ChevronsRight, ChevronsLeft, Lock, Shield,
-  Circle
+  Circle, Database
 } from 'lucide-react';
 import SidebarNavItem from './SidebarNavItem';
 
@@ -49,6 +49,7 @@ export default memo(function Sidebar({ minimized = false, onToggle }: SidebarPro
     { href: '/golden-hours', icon: <Clock />, label: 'Golden Hours' },
     { href: '/regions', icon: <Map />, label: 'Regions' },
     { href: '/provinces', icon: <Map />, label: 'Provinces' },
+    { href: '/dynamic-data', icon: <Database />, label: 'Dynamic Data' },
     { href: '/spin-history', icon: <History />, label: 'Spin History' },
     { href: '/statistics', icon: <BarChart2 />, label: 'Statistics' },
     { href: '/audit-log', icon: <FileText />, label: 'Audit Log' },

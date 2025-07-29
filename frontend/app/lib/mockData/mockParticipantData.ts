@@ -1,4 +1,4 @@
-import { TableRow, TableFetchResponse, ObjectType, DataObject } from '../api/interfaces';
+import { TableRow, TableFetchResponse, ObjectType, DataObject, TabTableRow } from '../api/interfaces';
 import { createMockTableData, generateRecentDate } from './mockDataGenerator';
 
 // Generate mock participant data
@@ -71,7 +71,9 @@ mockParticipantTable.rows.forEach(row => {
   
   // Add related tables to each row
   if ('data' in row && row.data.id) {
-    (row as any).relatedTables = ['participantEvents', 'spinHistory'];
+    // Properly type the row as TabTableRow
+    const tabRow = row as TabTableRow;
+    tabRow.relatedTables = ['participantEvents', 'spinHistory', 'province'];
   }
 });
 

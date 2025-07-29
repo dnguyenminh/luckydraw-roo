@@ -119,6 +119,7 @@ export interface TableFetchRequest {
     sorts: SortRequest[];
     filters: FilterRequest[];
     search: Record<ObjectType, DataObject>;
+    viewColumns?: ColumnInfo[]; // Added to support column selection in queries
 }
 
 // Column information structure

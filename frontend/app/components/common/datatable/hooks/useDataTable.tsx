@@ -458,7 +458,8 @@ export const useDataTable = ({
     setOpenFilterColumn,
     expandedRowId,
     setExpandedRowId: (id: number | null) => {
-      if (!id || editingRowId === id || isAddingNewRow) return;
+      // Allow null to collapse rows, but prevent expansion during edit mode
+      if (editingRowId !== null || isAddingNewRow) return;
       setExpandedRowId(expandedRowId === id ? null : id);
     },
     editingRowId,

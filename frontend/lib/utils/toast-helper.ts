@@ -1,20 +1,15 @@
-/**
- * Toast utility function for showing notifications
- */
+// Simple placeholder for toast-helper
+// Replace with your actual toast logic as needed
 
-interface ToastOptions {
-  title: string;
-  description?: string;
-  variant?: 'default' | 'destructive' | 'success';
+type ToastArg = string | { title: string; description?: string; variant?: string };
+
+export function showToast(arg: ToastArg) {
+  if (typeof arg === 'string') {
+    console.log('Toast:', arg);
+  } else {
+    // You can integrate with your toast/notification library here
+    console.log('Toast:', arg.title, arg.description, arg.variant);
+  }
 }
 
-// Simple toast implementation for use throughout the application
-export const toast = (options: ToastOptions) => {
-  const { title, description, variant = 'default' } = options;
-  
-  // For now, just console log the toast message since there's no UI component
-  console.log(`[TOAST - ${variant}] ${title}${description ? ': ' + description : ''}`);
-  
-  // In a real implementation, this would show a toast notification UI
-  // You can implement this with a toast library or a custom toast component later
-};
+export const toast = showToast;

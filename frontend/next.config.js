@@ -8,6 +8,7 @@ const nextConfig = {
     unoptimized: true, // Required for static export
   },
   // Removed experimental.appDir as it's now available by default in Next.js 13.5+
+  productionBrowserSourceMaps: true, // Enable source maps for debugging
 };
 
 module.exports = nextConfig;

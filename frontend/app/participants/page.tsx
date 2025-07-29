@@ -12,7 +12,7 @@ export default function ParticipantsPage() {
       label: "Export",
       onClick: () => {
         console.log("Export functionality to be implemented");
-        // Add import implementation here
+        // Add export implementation here
       },
       color: "blue",
       iconLeft: <Download size={14} />,

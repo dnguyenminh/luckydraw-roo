@@ -1,4 +1,4 @@
-import { TableRow, TableFetchResponse, ObjectType, DataObject } from '../api/interfaces';
+import { TableRow, TableFetchResponse, ObjectType, DataObject, TabTableRow } from '../api/interfaces';
 import { createMockTableData } from './mockDataGenerator';
 
 // Generate mock province data
@@ -73,7 +73,7 @@ mockProvinceTable.rows.forEach((row, index) => {
 
     // Add related tables to each row
     if ('data' in row && row.data.id) {
-        (row as any).relatedTables = ['eventLocations', 'participants'];
+        (row as TabTableRow).relatedTables = ['eventLocations', 'participants'];
     }
 });
 

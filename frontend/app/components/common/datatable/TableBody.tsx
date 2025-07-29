@@ -48,7 +48,7 @@ export const TableBody: React.FC<TableBodyProps> = ({
   showDefaultActions,
 }) => {
   const renderRowDetail = (row: TabTableRow) => {
-    if (editingRowId === row.data?.viewId) {
+    if (editingRowId === row.data?.id) {
       return (
         <EntityDetailTabs
           tableRow={row}
@@ -147,15 +147,24 @@ export const TableBody: React.FC<TableBodyProps> = ({
           </td>
         </tr>
       ) : data.rows.length > 0 ? (
-        data.rows.map((row, idx) => (
-          <Fragment key={row.data?.viewId || `row_${idx}`}>
+        data.rows.map((row, idx) => {
+          // Ensure we have a unique primitive key
+          const rowId = row.data?.id;
+          const uniqueKey = typeof rowId === 'object' 
+            ? `row_${idx}_${JSON.stringify(rowId)}`
+            : rowId 
+              ? `row_${rowId}`
+              : `row_${idx}`;
+          
+          return (
+          <Fragment key={uniqueKey}>
             {/* Main row */}
             <tr
-              className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} ${expandedRowId === row.data?.viewId ? 'bg-[#2a2d2e]' : ''}`}
+              className={`${idx % 2 === 0 ? 'bg-[#1e1e1e]' : 'bg-[#252525]'} ${showDetailView ? 'cursor-pointer hover:bg-[#2a2d2e]' : ''} ${expandedRowId === row.data?.id ? 'bg-[#2a2d2e]' : ''}`}
               onClick={() => {
                 // Only handle row clicks if not in edit mode
                 if (editingRowId === null) {
-                  handleRowClick(row.data?.viewId || null);
+                  handleRowClick(row.data?.id || null);
                 }
               }}
               role="row"
@@ -164,7 +173,7 @@ export const TableBody: React.FC<TableBodyProps> = ({
               {/* Toggle column */}
               {showDetailView && (
                 <td className="w-10 p-3" style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }}>
-                  {expandedRowId === row.data?.viewId ? (
+                  {expandedRowId === row.data?.id ? (
                     <ChevronDown className="h-4 w-4 text-[#007acc]" />
                   ) : (
                     <ChevronRight className="h-4 w-4 text-gray-400" />
@@ -175,7 +184,7 @@ export const TableBody: React.FC<TableBodyProps> = ({
               {/* Data columns */}
               {columns.map((column) => {
                 const cellWidth = 
-                  column.key === 'viewId' ? '80px' : 
+                  column.key === 'id' ? '80px' : 
                   column.key === 'status' ? '120px' : 
                   column.key === 'name' ? '200px' :
                   '150px';
@@ -211,11 +220,11 @@ export const TableBody: React.FC<TableBodyProps> = ({
                           // If the action is Edit, don't collapse the row
                           // This is the key fix to prevent collapsing when editing
                           if (action.showDetail && action.label !== 'Edit') {
-                            handleRowClick(row.data?.viewId || null);
+                            handleRowClick(row.data?.id || null);
                           }
                         }}
                         disabled={editingRowId !== null || isAddingNewRow}
-                        aria-label={`${action.label} row ${row.data?.viewId}`}
+                        aria-label={`${action.label} row ${row.data?.id}`}
                       >
                         {action.iconLeft}
                         <span className="mx-1">{action.label}</span>
@@ -228,7 +237,7 @@ export const TableBody: React.FC<TableBodyProps> = ({
             </tr>
             
             {/* Expanded detail row - Show it for both normal and edit modes */}
-            {row.data?.viewId && (expandedRowId === row.data.viewId || editingRowId === row.data.viewId) && (
+            {row.data?.id && (expandedRowId === row.data.id || editingRowId === row.data.id) && (
               <tr>
                 {/* This is the key fix */}
                 <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)}>
@@ -242,7 +251,8 @@ export const TableBody: React.FC<TableBodyProps> = ({
 
             {/* Remove the absolute positioned overlay that was blocking interactions */}
           </Fragment>
-        ))
+          );
+        })
       ) : (
         <tr>
           <td colSpan={columns.length + (showDetailView ? 1 : 0) + (showDefaultActions ? 1 : 0)} className="p-8 text-center text-gray-400">

@@ -7,7 +7,7 @@ export default function EventsPage() {
   return (
     <EntityListPage
       title="Events"
-      entityType={ObjectType.Event} // Use correct ObjectType key
+      entityType={ObjectType.Event}
       breadcrumbPath="events"
       description="Overview of event performance and participation"
       // statsCards={[

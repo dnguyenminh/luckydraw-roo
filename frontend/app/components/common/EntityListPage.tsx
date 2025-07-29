@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from '@/components/ui/breadcrumb';
 import ShellLayout from '../VSCodeLayout/ShellLayout';
@@ -32,7 +32,8 @@ interface EntityListPageProps {
   actionButtons?: React.ReactNode; // These are page-level actions for the header
 }
 
-export default function EntityListPage({
+// Component that uses useSearchParams
+function EntityListPageContent({
   title,
   entityType,
   breadcrumbPath,
@@ -248,5 +249,19 @@ export default function EntityListPage({
         </div>
       </div>
     </ShellLayout>
+  );
+}
+
+// Main component wrapped in Suspense
+export default function EntityListPage(props: EntityListPageProps) {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center py-16">
+        <div className="animate-spin h-8 w-8 border-4 border-[#007acc] border-t-transparent rounded-full mr-3"></div>
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    }>
+      <EntityListPageContent {...props} />
+    </Suspense>
   );
 }

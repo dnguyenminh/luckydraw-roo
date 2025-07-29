@@ -1,4 +1,4 @@
-import { TableRow, TableFetchResponse, ObjectType, DataObject } from '../api/interfaces';
+import { TableRow, TableFetchResponse, ObjectType, DataObject, TabTableRow } from '../api/interfaces';
 import { createMockTableData, generateRecentDate } from './mockDataGenerator';
 
 // Generate mock participant event data (join table between participants and events)
@@ -87,7 +87,7 @@ mockParticipantEventTable.relatedLinkedObjects['spinHistory'] = {
 // Update rows with related tables information
 mockParticipantEventTable.rows.forEach(row => {
   if ('data' in row && row.data.id) {
-    (row as any).relatedTables = ['spinHistory'];
+    (row as TabTableRow).relatedTables = ['spinHistory'];
   }
 });
 

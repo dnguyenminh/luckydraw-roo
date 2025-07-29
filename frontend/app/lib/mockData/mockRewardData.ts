@@ -1,4 +1,4 @@
-import { TableRow, TableFetchResponse, ObjectType, DataObject } from '../api/interfaces';
+import { TableRow, TableFetchResponse, ObjectType, DataObject, TabTableRow } from '../api/interfaces';
 import { createMockTableData, generateRecentDate, pickRandom } from './mockDataGenerator';
 
 // Generate mock reward data
@@ -65,7 +65,7 @@ mockRewardTable.rows.forEach(row => {
 
     // Add related tables to each row
     if ('data' in row && row.data.id) {
-        (row as any).relatedTables = ['spinHistory'];
+        (row as TabTableRow).relatedTables = ['spinHistory', 'event'];
     }
 });
 

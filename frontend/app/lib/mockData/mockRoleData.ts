@@ -1,4 +1,4 @@
-import { TableRow, TableFetchResponse, ObjectType, DataObject } from '../api/interfaces';
+import { TableRow, TableFetchResponse, ObjectType, DataObject, TabTableRow } from '../api/interfaces';
 import { createMockTableData } from './mockDataGenerator';
 
 // Generate mock role data
@@ -53,7 +53,7 @@ mockRoleTable.relatedLinkedObjects = {
 // Update rows with related tables information
 mockRoleTable.rows.forEach(row => {
   if ('data' in row && row.data.id) {
-    (row as any).relatedTables = ['users', 'permissions'];
+    (row as TabTableRow).relatedTables = ['users', 'permissions'];
   }
 });
 
